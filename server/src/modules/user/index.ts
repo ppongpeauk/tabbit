@@ -3,37 +3,38 @@
  * @description User module routes and handlers
  */
 
-import { Elysia, t } from 'elysia';
-import { userService } from './service';
-import { createUserSchema, updateUserSchema } from './model';
+import { Elysia, t } from "elysia";
+import { userService } from "./service";
+import { createUserSchema, updateUserSchema } from "./model";
+import { HTTP_STATUS } from "../../utils/constants";
 
-export const userModule = new Elysia({ prefix: '/users' })
+export const userModule = new Elysia({ prefix: "/users" })
   .get(
-    '/',
+    "/",
     async ({ set }) => {
       const result = await userService.getAllUsers();
-      set.status = 200;
+      set.status = HTTP_STATUS.OK;
       return result;
     },
     {
       detail: {
-        tags: ['user'],
-        summary: 'Get all users',
-        description: 'Retrieve a list of all users',
+        tags: ["user"],
+        summary: "Get all users",
+        description: "Retrieve a list of all users",
       },
     }
   )
   .get(
-    '/:id',
+    "/:id",
     async ({ params: { id }, set }) => {
       const result = await userService.getUserById(id);
 
       if (!result.success) {
-        set.status = 404;
+        set.status = HTTP_STATUS.NOT_FOUND;
         return result;
       }
 
-      set.status = 200;
+      set.status = HTTP_STATUS.OK;
       return result;
     },
     {
@@ -41,45 +42,45 @@ export const userModule = new Elysia({ prefix: '/users' })
         id: t.String(),
       }),
       detail: {
-        tags: ['user'],
-        summary: 'Get user by ID',
-        description: 'Retrieve a specific user by their ID',
+        tags: ["user"],
+        summary: "Get user by ID",
+        description: "Retrieve a specific user by their ID",
       },
     }
   )
   .post(
-    '/',
+    "/",
     async ({ body, set }) => {
       const result = await userService.createUser(body);
 
       if (!result.success) {
-        set.status = 400;
+        set.status = HTTP_STATUS.BAD_REQUEST;
         return result;
       }
 
-      set.status = 201;
+      set.status = HTTP_STATUS.CREATED;
       return result;
     },
     {
       body: createUserSchema,
       detail: {
-        tags: ['user'],
-        summary: 'Create new user',
-        description: 'Create a new user account',
+        tags: ["user"],
+        summary: "Create new user",
+        description: "Create a new user account",
       },
     }
   )
   .put(
-    '/:id',
+    "/:id",
     async ({ params: { id }, body, set }) => {
       const result = await userService.updateUser(id, body);
 
       if (!result.success) {
-        set.status = 404;
+        set.status = HTTP_STATUS.NOT_FOUND;
         return result;
       }
 
-      set.status = 200;
+      set.status = HTTP_STATUS.OK;
       return result;
     },
     {
@@ -88,23 +89,23 @@ export const userModule = new Elysia({ prefix: '/users' })
       }),
       body: updateUserSchema,
       detail: {
-        tags: ['user'],
-        summary: 'Update user',
-        description: 'Update an existing user by ID',
+        tags: ["user"],
+        summary: "Update user",
+        description: "Update an existing user by ID",
       },
     }
   )
   .delete(
-    '/:id',
+    "/:id",
     async ({ params: { id }, set }) => {
       const result = await userService.deleteUser(id);
 
       if (!result.success) {
-        set.status = 404;
+        set.status = HTTP_STATUS.NOT_FOUND;
         return result;
       }
 
-      set.status = 200;
+      set.status = HTTP_STATUS.OK;
       return result;
     },
     {
@@ -112,9 +113,9 @@ export const userModule = new Elysia({ prefix: '/users' })
         id: t.String(),
       }),
       detail: {
-        tags: ['user'],
-        summary: 'Delete user',
-        description: 'Delete a user by ID',
+        tags: ["user"],
+        summary: "Delete user",
+        description: "Delete a user by ID",
       },
     }
   );

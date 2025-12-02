@@ -26,11 +26,16 @@ import { FormTextInput } from "@/components/form-text-input";
 import { Receipt } from "@/components/receipt";
 import { Colors } from "@/constants/theme";
 import { SymbolView } from "expo-symbols";
-import { HeaderButton, useHeaderHeight } from "@react-navigation/elements";
+import { HeaderButton } from "@react-navigation/elements";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { saveReceipt, type ReceiptItem } from "@/utils/storage";
+import { saveReceipt } from "@/utils/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { scanReceipt, type Receipt as ReceiptData, type Barcode } from "@/utils/api";
+import {
+  scanReceipt,
+  type Receipt as ReceiptData,
+  type Barcode,
+} from "@/utils/api";
+import { hashImage } from "@/utils/hash";
 
 interface ReceiptFormData {
   name: string;
@@ -48,7 +53,6 @@ export default function CreateReceiptScreen() {
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const headerHeight = useHeaderHeight();
   const isDark = colorScheme === "dark";
   const isSavingRef = useRef(false);
   const barcodePromptShownRef = useRef(false);
@@ -85,6 +89,18 @@ export default function CreateReceiptScreen() {
         const receiptName =
           formData.name ||
           (!touchedFields.name ? receiptData.merchant.name : "");
+
+        // Hash the image if imageUri is provided
+        let imageHash: string | undefined;
+        if (params.imageUri) {
+          try {
+            imageHash = await hashImage(params.imageUri);
+          } catch (error) {
+            console.warn("Failed to hash image:", error);
+            // Continue saving without hash if hashing fails
+          }
+        }
+
         await saveReceipt({
           name: receiptName || receiptData.merchant.name,
           merchant: receiptData.merchant,
@@ -95,6 +111,7 @@ export default function CreateReceiptScreen() {
           appData: receiptData.appData,
           technical: receiptData.technical,
           imageUri: params.imageUri,
+          imageHash,
         });
         router.back();
       } catch (error) {
@@ -323,8 +340,8 @@ export default function CreateReceiptScreen() {
   ]);
 
   useEffect(() => {
-    // Scan receipt using API
-    const scanReceiptImage = async () => {
+    // Load receipt data - check if already scanned in camera screen
+    const loadReceiptData = async () => {
       if (!params.imageUri) {
         setError("No image provided. Please take a photo or select an image.");
         setLoading(false);
@@ -335,6 +352,39 @@ export default function CreateReceiptScreen() {
         setLoading(true);
         setError(null);
 
+        // Check if receipt was already scanned in camera screen
+        const storageKey = `@recipio:scan_result:${params.imageUri}`;
+        const storedResult = await AsyncStorage.getItem(storageKey);
+
+        if (storedResult) {
+          // Use stored scan result to avoid redundant API call
+          try {
+            const parsed = JSON.parse(storedResult);
+            console.log("[CreateReceipt] Using cached scan result:", {
+              hasReturnBarcode: parsed.receipt?.returnInfo?.hasReturnBarcode,
+              returnBarcode: parsed.receipt?.returnInfo?.returnBarcode,
+              barcodesFromCache: parsed.barcodes,
+            });
+
+            if (parsed.receipt) {
+              setReceiptData(parsed.receipt);
+              if (parsed.barcodes) {
+                setApiBarcodes(parsed.barcodes);
+              } else {
+                setApiBarcodes([]);
+              }
+              setLoading(false);
+              // Clean up stored result
+              await AsyncStorage.removeItem(storageKey);
+              return;
+            }
+          } catch (parseError) {
+            console.warn("Failed to parse stored scan result:", parseError);
+            // Fall through to scan again
+          }
+        }
+
+        // No cached result - scan receipt using API
         const response = await scanReceipt(params.imageUri);
 
         if (!response.success) {
@@ -382,8 +432,8 @@ export default function CreateReceiptScreen() {
       }
     };
 
-    scanReceiptImage();
-  }, [params.imageUri]);
+    loadReceiptData();
+  }, [params.imageUri, params.barcodes]);
 
   return (
     <View style={{ flex: 1 }}>

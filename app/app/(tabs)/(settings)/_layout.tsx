@@ -3,14 +3,9 @@
  * @description Settings stack layout
  */
 
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Colors, Fonts } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 
 export default function SettingsLayout() {
   const colorScheme = useColorScheme();
@@ -19,13 +14,13 @@ export default function SettingsLayout() {
     <Stack
       screenOptions={{
         headerBackTitleStyle: {
-          fontFamily: "LiterataSerif",
+          fontFamily: "DMSans",
         },
         headerTitleStyle: {
-          fontFamily: "LiterataSerif-SemiBold",
+          fontFamily: "DMSans-SemiBold",
         },
         headerLargeTitleStyle: {
-          fontFamily: "LiterataSerif-SemiBold",
+          fontFamily: "DMSans-SemiBold",
         },
         headerStyle: {
           backgroundColor:
@@ -46,6 +41,18 @@ export default function SettingsLayout() {
         name="about"
         options={{
           title: "About",
+        }}
+      />
+      <Stack.Screen
+        name="friends"
+        options={{
+          title: "Friends",
+        }}
+      />
+      <Stack.Screen
+        name="import-contacts"
+        options={{
+          title: "Import Contacts",
         }}
       />
     </Stack>

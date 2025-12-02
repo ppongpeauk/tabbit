@@ -1,6 +1,6 @@
 /**
  * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Receipts screen
+ * @description Receipts screen - displays a list of receipts grouped by date sections
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
   RefreshControl,
+  type SectionListRenderItemInfo,
 } from "react-native";
 import { useFocusEffect, router } from "expo-router";
 import { Colors } from "@/constants/theme";
@@ -27,6 +28,19 @@ interface ReceiptSection {
   data: StoredReceipt[];
 }
 
+const SECTION_ORDER = [
+  "Today",
+  "Yesterday",
+  "Last Week",
+  "Last Month",
+] as const;
+const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
+const DAYS_IN_WEEK = 7;
+const DAYS_IN_MONTH = 30;
+
+/**
+ * Get the section title for a receipt based on its timestamp
+ */
 function getSectionTitle(timestamp: string): string {
   const date = new Date(timestamp);
   const now = new Date();
@@ -37,15 +51,15 @@ function getSectionTitle(timestamp: string): string {
     date.getDate()
   );
   const diffTime = today.getTime() - receiptDate.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.ceil(diffTime / MILLISECONDS_PER_DAY);
 
   if (diffDays === 0) {
     return "Today";
   } else if (diffDays === 1) {
     return "Yesterday";
-  } else if (diffDays <= 7) {
+  } else if (diffDays <= DAYS_IN_WEEK) {
     return "Last Week";
-  } else if (diffDays <= 30) {
+  } else if (diffDays <= DAYS_IN_MONTH) {
     return "Last Month";
   } else {
     return new Intl.DateTimeFormat("en-US", {
@@ -55,10 +69,14 @@ function getSectionTitle(timestamp: string): string {
   }
 }
 
+/**
+ * ReceiptsScreen component - displays receipts grouped by date sections
+ */
 export default function ReceiptsScreen() {
   const [receipts, setReceipts] = useState<StoredReceipt[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   const loadReceipts = useCallback(async () => {
     const data = await getReceipts();
@@ -94,6 +112,7 @@ export default function ReceiptsScreen() {
   const sections = useMemo<ReceiptSection[]>(() => {
     const grouped = new Map<string, StoredReceipt[]>();
 
+    // Group receipts by section title
     receipts.forEach((receipt) => {
       const sectionTitle = getSectionTitle(receipt.transaction.datetime);
       if (!grouped.has(sectionTitle)) {
@@ -102,12 +121,10 @@ export default function ReceiptsScreen() {
       grouped.get(sectionTitle)!.push(receipt);
     });
 
-    // Convert to array and sort sections
-    const sectionOrder = ["Today", "Yesterday", "Last Week", "Last Month"];
     const sortedSections: ReceiptSection[] = [];
 
-    // Add ordered sections first
-    sectionOrder.forEach((title) => {
+    // Add ordered sections first (Today, Yesterday, Last Week, Last Month)
+    SECTION_ORDER.forEach((title) => {
       if (grouped.has(title)) {
         sortedSections.push({
           title,
@@ -117,11 +134,10 @@ export default function ReceiptsScreen() {
       }
     });
 
-    // Add remaining sections (months) sorted by date
+    // Add remaining sections (months) sorted by date (newest first)
     const remainingSections: ReceiptSection[] = Array.from(grouped.entries())
       .map(([title, data]) => ({ title, data }))
       .sort((a, b) => {
-        // Sort by the first receipt's date in each section
         const dateA = new Date(a.data[0]?.transaction.datetime || 0);
         const dateB = new Date(b.data[0]?.transaction.datetime || 0);
         return dateB.getTime() - dateA.getTime();
@@ -130,19 +146,24 @@ export default function ReceiptsScreen() {
     return [...sortedSections, ...remainingSections];
   }, [receipts]);
 
+  const getReceiptDisplayInfo = (item: StoredReceipt) => {
+    const receiptEmoji = item.appData?.emoji || "🧾";
+    const hasCustomTitle = item.name && item.name !== item.merchant.name;
+    const displayTitle = hasCustomTitle ? item.name : item.merchant.name;
+    return { receiptEmoji, hasCustomTitle, displayTitle };
+  };
+
   const renderReceiptItem = ({
     item,
     section,
-  }: {
-    item: StoredReceipt;
-    section: ReceiptSection;
-  }) => {
-    const isDark = colorScheme === "dark";
-    const receiptEmoji = item.appData?.emoji || "🧾";
-
+  }: SectionListRenderItemInfo<StoredReceipt, ReceiptSection>) => {
+    const { receiptEmoji, hasCustomTitle, displayTitle } =
+      getReceiptDisplayInfo(item);
     const isToday = section.title === "Today";
-    const hasCustomTitle = item.name && item.name !== item.merchant.name;
-    const displayTitle = hasCustomTitle ? item.name : item.merchant.name;
+
+    const handlePress = () => {
+      router.push(`/${item.id}`);
+    };
 
     return (
       <TouchableOpacity
@@ -158,9 +179,7 @@ export default function ReceiptsScreen() {
           },
         ]}
         activeOpacity={0.7}
-        onPress={() => {
-          router.push(`/${item.id}`);
-        }}
+        onPress={handlePress}
       >
         <View style={styles.receiptEmoji}>
           <ThemedText style={styles.emojiText}>{receiptEmoji}</ThemedText>
@@ -192,7 +211,14 @@ export default function ReceiptsScreen() {
     );
   };
 
-  const renderSectionHeader = ({ section }: { section: ReceiptSection }) => {
+  const renderSectionHeader = ({
+    section,
+  }: {
+    section: SectionListRenderItemInfo<
+      StoredReceipt,
+      ReceiptSection
+    >["section"];
+  }) => {
     return (
       <View style={styles.sectionHeader}>
         <ThemedText
@@ -213,17 +239,18 @@ export default function ReceiptsScreen() {
         contentInsetAdjustmentBehavior="automatic"
         automaticallyAdjustContentInsets
         sections={sections}
-        renderItem={({ item, section }) => renderReceiptItem({ item, section })}
+        renderItem={renderReceiptItem}
         renderSectionHeader={renderSectionHeader}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        style={{
-          flex: 1,
-          backgroundColor:
-            colorScheme === "dark"
+        style={[
+          styles.list,
+          {
+            backgroundColor: isDark
               ? Colors.dark.background
               : Colors.light.background,
-        }}
+          },
+        ]}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <ThemedText style={styles.emptyText}>
@@ -251,11 +278,7 @@ export default function ReceiptsScreen() {
               <GlassView style={styles.fab}>
                 <SymbolView
                   name="plus"
-                  tintColor={
-                    colorScheme === "dark"
-                      ? Colors.dark.text
-                      : Colors.light.text
-                  }
+                  tintColor={isDark ? Colors.dark.text : Colors.light.text}
                   size={24}
                 />
               </GlassView>
@@ -269,6 +292,9 @@ export default function ReceiptsScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  list: {
     flex: 1,
   },
   listContent: {

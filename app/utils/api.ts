@@ -65,8 +65,10 @@ export interface ReceiptItem {
 }
 
 export interface ReturnInfo {
-  returnPolicyText?: string;
+  returnPolicyText?: string[] | string;
+  returnPolicyRawText?: string;
   returnByDate?: string;
+  exchangeByDate?: string;
   returnBarcode?: string;
   hasReturnBarcode?: boolean;
 }
@@ -136,7 +138,9 @@ async function imageUriToBase64(uri: string): Promise<string> {
     return await file.base64();
   } catch (error) {
     throw new Error(
-      `Failed to read image file: ${error instanceof Error ? error.message : "Unknown error"}`
+      `Failed to read image file: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
     );
   }
 }
@@ -152,9 +156,7 @@ async function imageUriToBase64(uri: string): Promise<string> {
  * @param imageUri - Local file URI of the image
  * @returns Barcode scan response
  */
-export async function scanBarcodeImage(
-  imageUri: string
-): Promise<{
+export async function scanBarcodeImage(imageUri: string): Promise<{
   success: boolean;
   barcodes?: Barcode[];
   count?: number;
@@ -166,15 +168,18 @@ export async function scanBarcodeImage(
     const imageBase64 = await imageUriToBase64(imageUri);
 
     // Make API request
-    const response = await fetch(`${API_BASE_URL}/receipts/barcodes/scan-base64`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        image_base64: imageBase64,
-      }),
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/receipts/barcodes/scan-base64`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          image_base64: imageBase64,
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({
@@ -182,7 +187,9 @@ export async function scanBarcodeImage(
       }));
       return {
         success: false,
-        message: errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+        message:
+          errorData.message ||
+          `HTTP ${response.status}: ${response.statusText}`,
       };
     }
 
@@ -245,7 +252,9 @@ export async function scanReceipt(
       }));
       return {
         success: false,
-        message: errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+        message:
+          errorData.message ||
+          `HTTP ${response.status}: ${response.statusText}`,
       };
     }
 
@@ -262,4 +271,3 @@ export async function scanReceipt(
     };
   }
 }
-

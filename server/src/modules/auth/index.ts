@@ -6,6 +6,7 @@
 import { Elysia } from "elysia";
 import { authService } from "./service";
 import { loginSchema, registerSchema } from "./model";
+import { HTTP_STATUS } from "../../utils/constants";
 
 export const authModule = new Elysia({ prefix: "/auth" })
   .post(
@@ -14,11 +15,11 @@ export const authModule = new Elysia({ prefix: "/auth" })
       const result = await authService.login(body);
 
       if (!result.success) {
-        set.status = 401;
+        set.status = HTTP_STATUS.UNAUTHORIZED;
         return result;
       }
 
-      set.status = 200;
+      set.status = HTTP_STATUS.OK;
       return result;
     },
     {
@@ -36,11 +37,11 @@ export const authModule = new Elysia({ prefix: "/auth" })
       const result = await authService.register(body);
 
       if (!result.success) {
-        set.status = 400;
+        set.status = HTTP_STATUS.BAD_REQUEST;
         return result;
       }
 
-      set.status = 201;
+      set.status = HTTP_STATUS.CREATED;
       return result;
     },
     {
@@ -58,18 +59,18 @@ export const authModule = new Elysia({ prefix: "/auth" })
       const token = headers.authorization?.replace("Bearer ", "");
 
       if (!token) {
-        set.status = 401;
+        set.status = HTTP_STATUS.UNAUTHORIZED;
         return { success: false, message: "No token provided" };
       }
 
       const verification = await authService.verifyToken(token);
 
       if (!verification.valid) {
-        set.status = 401;
+        set.status = HTTP_STATUS.UNAUTHORIZED;
         return { success: false, message: "Invalid token" };
       }
 
-      set.status = 200;
+      set.status = HTTP_STATUS.OK;
       return {
         success: true,
         userId: verification.userId,

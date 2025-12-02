@@ -16,10 +16,6 @@ export default function TabsLayout() {
         <Label>Home</Label>
         <Icon sf="house" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="(friends)">
-        <Label>Split</Label>
-        <Icon sf="dollarsign.circle" />
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="(settings)">
         <Label>Settings</Label>
         <Icon sf="gearshape" />

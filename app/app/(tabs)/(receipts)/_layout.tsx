@@ -1,6 +1,6 @@
 /**
  * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Receipts stack layout
+ * @description Receipts stack layout - configures navigation header for receipts screen
  */
 
 import { router, Stack } from "expo-router";
@@ -8,14 +8,49 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { HeaderButton } from "@react-navigation/elements";
 import { SymbolView } from "expo-symbols";
 import { Colors } from "@/constants/theme";
-import { Host } from "@expo/ui/swift-ui";
-import { GlassView } from "expo-glass-effect";
-import { View } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 
-export default function ReceiptsLayout() {
-  const colorScheme = useColorScheme();
+const HEADER_FONT_FAMILY = "DMSans";
+const HEADER_FONT_FAMILY_BOLD = "DMSans-SemiBold";
 
+/**
+ * Header right component with limit indicator and camera button
+ */
+function HeaderRight() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const handleCameraPress = () => {
+    router.push("/camera");
+  };
+
+  return (
+    <View style={styles.headerRight}>
+      <View style={styles.limitContainer}>
+        <ThemedText
+          size="sm"
+          weight="bold"
+          family="sans"
+          style={styles.limitText}
+        >
+          - / 10 Left
+        </ThemedText>
+      </View>
+      <HeaderButton onPress={handleCameraPress}>
+        <SymbolView
+          name="camera"
+          tintColor={isDark ? Colors.dark.text : Colors.light.text}
+        />
+      </HeaderButton>
+    </View>
+  );
+}
+
+/**
+ * ReceiptsLayout component - configures the receipts stack navigation
+ */
+export default function ReceiptsLayout() {
   return (
     <Stack>
       <Stack.Screen
@@ -27,46 +62,32 @@ export default function ReceiptsLayout() {
           headerTransparent: true,
           headerBlurEffect: "none",
           headerBackTitleStyle: {
-            fontFamily: "LiterataSerif",
+            fontFamily: HEADER_FONT_FAMILY,
           },
           headerTitleStyle: {
-            fontFamily: "LiterataSerif-SemiBold",
+            fontFamily: HEADER_FONT_FAMILY_BOLD,
           },
           headerLargeTitleStyle: {
-            fontFamily: "LiterataSerif-SemiBold",
+            fontFamily: HEADER_FONT_FAMILY_BOLD,
           },
-          headerRight: () => (
-            <View
-              style={{ flexDirection: "row", gap: 10, alignItems: "center" }}
-            >
-              <View style={{ flexDirection: "row", gap: 4 }}>
-                <ThemedText
-                  size="sm"
-                  weight="bold"
-                  family="sans"
-                  style={{ marginLeft: 10 }}
-                >
-                  - / 10 Left
-                </ThemedText>
-              </View>
-              <HeaderButton
-                onPress={() => {
-                  router.push("/camera");
-                }}
-              >
-                <SymbolView
-                  name="camera"
-                  tintColor={
-                    colorScheme === "dark"
-                      ? Colors.dark.text
-                      : Colors.light.text
-                  }
-                />
-              </HeaderButton>
-            </View>
-          ),
+          headerRight: () => <HeaderRight />,
         }}
       />
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  headerRight: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+  },
+  limitContainer: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  limitText: {
+    marginLeft: 10,
+  },
+});

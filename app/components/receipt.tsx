@@ -424,6 +424,16 @@ export function Receipt({ data }: ReceiptProps) {
                     RETURN BY: {data.returnInfo.returnByDate}
                   </Text>
                 )}
+                {data.returnInfo.exchangeByDate && (
+                  <Text
+                    style={[
+                      styles.returnText,
+                      { color: isDark ? "#9BA1A6" : "#687076" },
+                    ]}
+                  >
+                    EXCHANGE BY: {data.returnInfo.exchangeByDate}
+                  </Text>
+                )}
                 {data.returnInfo.returnBarcode && (
                   <Text
                     style={[

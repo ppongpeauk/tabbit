@@ -64,8 +64,10 @@ export const receiptItemSchema = t.Object({
 });
 
 export const returnInfoSchema = t.Object({
-  returnPolicyText: t.Optional(t.String()),
+  returnPolicyText: t.Optional(t.Union([t.Array(t.String()), t.String()])),
+  returnPolicyRawText: t.Optional(t.String()),
   returnByDate: t.Optional(t.String()),
+  exchangeByDate: t.Optional(t.String()),
   returnBarcode: t.Optional(t.String()),
   hasReturnBarcode: t.Optional(t.Boolean()),
 });
@@ -182,8 +184,10 @@ export const defaultReceiptSchema = {
     changeDue: "number",
   },
   returnInfo: {
-    returnPolicyText: "string",
+    returnPolicyText: ["string"],
+    returnPolicyRawText: "string",
     returnByDate: "string",
+    exchangeByDate: "string",
     returnBarcode: "string",
     hasReturnBarcode: "boolean",
   },

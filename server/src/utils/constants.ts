@@ -13,7 +13,16 @@ export const HTTP_STATUS = {
   INTERNAL_SERVER_ERROR: 500,
 } as const;
 
-export const API_VERSION = 'v1';
+export const API_VERSION = "v1";
 
 export const DEFAULT_PORT = 3000;
+
+/**
+ * Cache TTL constants (in seconds)
+ */
+export const CACHE_TTL = {
+  ONE_DAY: 86400,
+  ONE_HOUR: 3600,
+  THIRTY_MINUTES: 1800,
+} as const;
 

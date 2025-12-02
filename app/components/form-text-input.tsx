@@ -43,7 +43,11 @@ export function FormTextInput({
 
   return (
     <View style={styles.container}>
-      {label && <ThemedText style={styles.label}>{label}</ThemedText>}
+      {label && (
+        <ThemedText size="base" weight="semibold" style={styles.label}>
+          {label}
+        </ThemedText>
+      )}
       <View style={styles.inputContainer}>
         {hasLeftIcon && (
           <View style={styles.leftIconContainer}>{renderIcon(leftIcon)}</View>
@@ -80,11 +84,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 16,
-    fontWeight: "600",
     marginBottom: 8,
     textAlign: "left",
-    fontFamily: Fonts.mono,
   },
   inputContainer: {
     position: "relative",

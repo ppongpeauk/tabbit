@@ -7,6 +7,10 @@ import OpenAI from "openai";
 import sharp from "sharp";
 import type { Receipt, ReceiptResponse } from "./model";
 import { detectBarcodes } from "../../utils/barcode-detector";
+import { cacheService } from "../../utils/cache";
+import { hashBuffer, hashString } from "../../utils/helpers";
+import { CACHE_TTL } from "../../utils/constants";
+import { env } from "../../config/env";
 
 const SYSTEM_PROMPT = `
 You are a world-class receipt processing expert. Your task is to accurately extract information from a receipt image, including line item totals, and provide it in a structured JSON format.
@@ -23,6 +27,29 @@ If the image does NOT contain a receipt (e.g., it's a random photo, document, or
 IMPORTANT: For returnInfo.hasReturnBarcode, set this to true if you visually detect a barcode or QR code on the receipt (even if you cannot read its value). Set returnBarcode to the actual barcode value only if you can clearly read it from the image. If you see a barcode but cannot read it, set hasReturnBarcode to true and leave returnBarcode empty or omit it.
 
 IMPORTANT: For merchant names, preserve the original casing as it appears on the receipt. Do not convert to all uppercase unless the receipt itself displays it that way. For example, if the receipt shows "Target" use "Target", if it shows "TARGET" use "TARGET", and if it shows "Coffee Shop" use "Coffee Shop".
+
+IMPORTANT: For returnInfo.returnPolicyText, return it as an array of strings where each string represents a single bullet point. Each bullet point should be:
+- Clear: Easy to understand at a glance
+- Concise: Remove unnecessary words, keep only essential information
+- Easy to read: Use active voice when possible, make each point actionable and scannable
+
+Extract each distinct return/refund policy statement as a separate array element. Rewrite and simplify the language from the receipt to make it clearer and more concise while preserving the essential meaning. Remove redundant phrases, combine related information, and ensure each bullet point stands alone as a complete thought. Also include returnPolicyRawText with the original raw text exactly as it appears on the receipt.
+
+For example, if the receipt says "Returns accepted within 30 days with receipt. Items must be in original packaging. No returns on sale items.", format it as:
+returnPolicyText: ["Returns accepted within 30 days with receipt", "Items must be in original packaging", "No returns on sale items"]
+returnPolicyRawText: "Returns accepted within 30 days with receipt. Items must be in original packaging. No returns on sale items."
+
+Another example: if the receipt says "You may return any item purchased from our store within 14 days of the purchase date, provided that the item is in its original condition and packaging, and you have the original receipt or proof of purchase.", format it as:
+returnPolicyText: ["Returns accepted within 14 days of purchase", "Item must be in original condition and packaging", "Original receipt or proof of purchase required"]
+returnPolicyRawText: "You may return any item purchased from our store within 14 days of the purchase date, provided that the item is in its original condition and packaging, and you have the original receipt or proof of purchase."
+
+IMPORTANT: For returnInfo.returnByDate and returnInfo.exchangeByDate:
+- If the receipt explicitly states a return/exchange deadline date, extract it and format as YYYY-MM-DD
+- If the receipt states a timespan (e.g., "30 days", "14 days", "within 90 days"), calculate the date by adding that timespan to the transaction.datetime date
+- For returnByDate: Calculate from the purchase date if policy mentions "X days from purchase" or "within X days"
+- For exchangeByDate: Calculate from the purchase date if policy mentions "X days for exchange" or "exchange within X days"
+- Always use the transaction.datetime as the base date for calculations
+- If no return/exchange policy is mentioned or no timespan can be determined, omit the respective date field
 
 Here is an example of a desired JSON output when a receipt IS found:
 
@@ -92,8 +119,10 @@ Here is an example of a desired JSON output when a receipt IS found:
       "changeDue": 0
     },
     "returnInfo": {
-      "returnPolicyText": "Returns accepted within 30 days with receipt.",
+      "returnPolicyText": ["Returns accepted within 30 days with receipt", "Items must be in original packaging", "No returns on sale items"],
+      "returnPolicyRawText": "Returns accepted within 30 days with receipt. Items must be in original packaging. No returns on sale items.",
       "returnByDate": "2026-01-01",
+      "exchangeByDate": "2026-01-15",
       "returnBarcode": "1234567890",
       "hasReturnBarcode": true
     },
@@ -137,7 +166,11 @@ Please extract the information from the receipt image and provide it in the foll
 \`\`\`
 `;
 
-const USER_PROMPT = "Extract the following.";
+const USER_PROMPT = "Extract the following";
+
+type ReceiptExtractionResult =
+  | ReceiptResponse
+  | { success: true; receipt: Receipt; usage: ReturnType<ReceiptService["extractUsage"]> };
 
 export class ReceiptService {
   private openai: OpenAI;
@@ -163,13 +196,46 @@ export class ReceiptService {
   /**
    * Encode image buffer to base64 string
    */
-  private encodeImageToBase64(
-    imageBuffer: Buffer,
-    maxSize: number = 2048
-  ): string {
-    // For now, we'll use the buffer directly
-    // In production, you might want to resize the image using sharp or similar
+  private encodeImageToBase64(imageBuffer: Buffer): string {
     return imageBuffer.toString("base64");
+  }
+
+  /**
+   * Normalize return info barcode flag
+   * Preserves LLM's hasReturnBarcode value - only sets it if undefined and returnBarcode exists
+   */
+  private normalizeReturnBarcode(receipt: Receipt): void {
+    if (receipt.returnInfo) {
+      if (
+        receipt.returnInfo.hasReturnBarcode === undefined &&
+        receipt.returnInfo.returnBarcode &&
+        receipt.returnInfo.returnBarcode.trim().length > 0
+      ) {
+        receipt.returnInfo.hasReturnBarcode = true;
+      }
+    }
+  }
+
+  /**
+   * Ensure appData structure exists
+   */
+  private ensureAppData(receipt: Receipt): void {
+    if (!receipt.appData) {
+      receipt.appData = {};
+    }
+  }
+
+  /**
+   * Extract usage information from OpenAI response
+   */
+  private extractUsage(
+    usage: OpenAI.Chat.Completions.ChatCompletionUsage | undefined
+  ) {
+    return {
+      completion_tokens: usage?.completion_tokens ?? 0,
+      prompt_tokens: usage?.prompt_tokens ?? 0,
+      total_tokens: usage?.total_tokens ?? 0,
+    };
   }
 
   /**
@@ -252,6 +318,85 @@ export class ReceiptService {
   }
 
   /**
+   * Generate cache key for receipt scan
+   */
+  private generateCacheKey(
+    imageHash: string,
+    promptHash: string
+  ): string {
+    return `receipt:scan:${imageHash}:${promptHash}`;
+  }
+
+  /**
+   * Extract receipt data from parsed LLM response
+   * Handles both { receipt: Receipt | null } and direct Receipt object formats
+   */
+  private extractReceiptFromResponse(
+    parsed: { receipt?: Receipt | null } | { error: string; raw_response: string } | Receipt,
+    usage: OpenAI.Chat.Completions.ChatCompletionUsage | undefined
+  ): ReceiptExtractionResult {
+    // Handle error case
+    if ("error" in parsed) {
+      return {
+        success: false,
+        message: parsed.error,
+        raw_response: parsed.raw_response,
+        usage: this.extractUsage(usage),
+      };
+    }
+
+    const parsedObj = parsed as { receipt?: Receipt | null } & Receipt;
+    let receiptData: Receipt | null = null;
+
+    // Check if the response has a receipt property (new format)
+    if ("receipt" in parsedObj) {
+      if (parsedObj.receipt === null || parsedObj.receipt === undefined) {
+        return {
+          success: false,
+          message:
+            "No receipt detected in the image. Please ensure the image contains a clear, readable receipt.",
+          usage: this.extractUsage(usage),
+        };
+      }
+      // Validate that receipt is actually a Receipt object
+      if (
+        typeof parsedObj.receipt !== "object" ||
+        !("merchant" in parsedObj.receipt)
+      ) {
+        return {
+          success: false,
+          message:
+            "Invalid receipt data received. Please try again with a clearer image.",
+          usage: this.extractUsage(usage),
+        };
+      }
+      receiptData = parsedObj.receipt as Receipt;
+    } else {
+      // Backward compatibility: treat parsed as direct Receipt object
+      const directReceipt = parsed as Receipt;
+      if (
+        !directReceipt ||
+        typeof directReceipt !== "object" ||
+        !("merchant" in directReceipt)
+      ) {
+        return {
+          success: false,
+          message:
+            "No receipt detected in the image. Please ensure the image contains a clear, readable receipt.",
+          usage: this.extractUsage(usage),
+        };
+      }
+      receiptData = directReceipt;
+    }
+
+    return {
+      success: true,
+      receipt: receiptData,
+      usage: this.extractUsage(usage),
+    };
+  }
+
+  /**
    * Process a receipt image and extract structured data
    */
   async scanReceipt(
@@ -289,7 +434,38 @@ export class ReceiptService {
         // Continue with receipt scanning even if barcode detection fails
       }
 
-      // STEP 3: Encode preprocessed image to base64 for LLM
+      // STEP 3: Generate cache key
+      // Hash the processed image (after preprocessing, this is what we'll send to LLM)
+      const imageHash = hashBuffer(processedImage);
+
+      // Hash the prompt + schema + model (these determine what the LLM will return)
+      const systemPrompt = SYSTEM_PROMPT.replace(
+        "{json_schema_content}",
+        JSON.stringify(jsonSchema, null, 2)
+      );
+      const promptContent = `${systemPrompt}${USER_PROMPT}${JSON.stringify(jsonSchema)}${model}`;
+      const promptHash = hashString(promptContent);
+
+      const cacheKey = this.generateCacheKey(imageHash, promptHash);
+
+      // STEP 4: Check cache before calling LLM (if caching is enabled)
+      if (!env.DISABLE_IMAGE_CACHE) {
+        const cachedResult = await cacheService.get<ReceiptResponse>(cacheKey);
+        if (cachedResult) {
+          console.log(`[ReceiptService] Cache hit for key: ${cacheKey}`);
+          // Merge barcodes from current detection (they might differ if image was reprocessed)
+          return {
+            ...cachedResult,
+            barcodes: barcodes.length > 0 ? barcodes : cachedResult.barcodes,
+          };
+        }
+
+        console.log(`[ReceiptService] Cache miss for key: ${cacheKey}, calling LLM`);
+      } else {
+        console.log(`[ReceiptService] Image caching disabled, calling LLM`);
+      }
+
+      // STEP 5: Encode preprocessed image to base64 for LLM
       const imageBase64 = this.encodeImageToBase64(processedImage);
 
       // Prepare system prompt with JSON schema
@@ -300,12 +476,8 @@ export class ReceiptService {
           type: "object",
         },
       };
-      const systemPrompt = SYSTEM_PROMPT.replace(
-        "{json_schema_content}",
-        JSON.stringify(jsonSchema, null, 2)
-      );
 
-      // Call OpenAI API
+      // STEP 6: Call OpenAI API
       const response = await this.openai.chat.completions.create({
         model,
         response_format: { type: "json_object" },
@@ -338,164 +510,33 @@ export class ReceiptService {
         };
       }
 
-      // Debug: Print LLM output JSON
-      console.log("[ReceiptService] LLM Raw Output:");
-      console.log(content);
-      console.log("---");
-
       // Parse response
       const parsed = this.parseJsonResponse(content);
 
-      // Debug: Print parsed JSON
-      console.log("[ReceiptService] Parsed JSON:");
-      console.log(JSON.stringify(parsed, null, 2));
-      console.log("---");
-
-      if ("error" in parsed) {
-        return {
-          success: false,
-          message: parsed.error,
-          raw_response: parsed.raw_response,
-          usage: {
-            completion_tokens: response.usage?.completion_tokens ?? 0,
-            prompt_tokens: response.usage?.prompt_tokens ?? 0,
-            total_tokens: response.usage?.total_tokens ?? 0,
-          },
-        };
-      }
-
-      // Check if receipt is null (no receipt detected)
       // Handle both formats: { receipt: Receipt | null } or direct Receipt object (backward compatibility)
-      const parsedObj = parsed as { receipt?: Receipt | null } & Receipt;
-
-      // Check if the response has a receipt property (new format)
-      if ("receipt" in parsedObj) {
-        if (parsedObj.receipt === null || parsedObj.receipt === undefined) {
-          return {
-            success: false,
-            message:
-              "No receipt detected in the image. Please ensure the image contains a clear, readable receipt.",
-            usage: {
-              completion_tokens: response.usage?.completion_tokens ?? 0,
-              prompt_tokens: response.usage?.prompt_tokens ?? 0,
-              total_tokens: response.usage?.total_tokens ?? 0,
-            },
-          };
-        }
-        // Validate that receipt is actually a Receipt object
-        if (
-          typeof parsedObj.receipt !== "object" ||
-          !("merchant" in parsedObj.receipt)
-        ) {
-          return {
-            success: false,
-            message:
-              "Invalid receipt data received. Please try again with a clearer image.",
-            usage: {
-              completion_tokens: response.usage?.completion_tokens ?? 0,
-              prompt_tokens: response.usage?.prompt_tokens ?? 0,
-              total_tokens: response.usage?.total_tokens ?? 0,
-            },
-          };
-        }
-        // Use the receipt from the new format
-        const receiptData = parsedObj.receipt as Receipt;
-
-        // Preserve LLM's hasReturnBarcode value - don't overwrite it
-        // The LLM may set hasReturnBarcode to true even if returnBarcode is empty
-        // (when it sees a barcode but can't read it)
-        // Only set it if LLM didn't set it and returnBarcode exists
-        if (receiptData.returnInfo) {
-          if (
-            receiptData.returnInfo.hasReturnBarcode === undefined &&
-            receiptData.returnInfo.returnBarcode &&
-            receiptData.returnInfo.returnBarcode.trim().length > 0
-          ) {
-            receiptData.returnInfo.hasReturnBarcode = true;
-          }
-        }
-
-        // Ensure appData exists (LLM should have set emoji, but ensure structure exists)
-        if (!receiptData.appData) {
-          receiptData.appData = {};
-        }
-
-        // Debug: Log the hasReturnBarcode value before returning
-        console.log(
-          "[ReceiptService] Returning receipt with hasReturnBarcode:",
-          receiptData.returnInfo?.hasReturnBarcode,
-          "returnBarcode:",
-          receiptData.returnInfo?.returnBarcode
-        );
-
-        return {
-          success: true,
-          receipt: receiptData,
-          barcodes: barcodes.length > 0 ? barcodes : undefined,
-          usage: {
-            completion_tokens: response.usage?.completion_tokens ?? 0,
-            prompt_tokens: response.usage?.prompt_tokens ?? 0,
-            total_tokens: response.usage?.total_tokens ?? 0,
-          },
-        };
+      const receiptData = this.extractReceiptFromResponse(parsed, response.usage);
+      if (!receiptData.success) {
+        return receiptData;
       }
 
-      // Backward compatibility: treat parsed as direct Receipt object
-      const receiptData = parsed as Receipt;
-      if (
-        !receiptData ||
-        typeof receiptData !== "object" ||
-        !("merchant" in receiptData)
-      ) {
-        return {
-          success: false,
-          message:
-            "No receipt detected in the image. Please ensure the image contains a clear, readable receipt.",
-          usage: {
-            completion_tokens: response.usage?.completion_tokens ?? 0,
-            prompt_tokens: response.usage?.prompt_tokens ?? 0,
-            total_tokens: response.usage?.total_tokens ?? 0,
-          },
-        };
-      }
+      // Normalize receipt data
+      this.normalizeReturnBarcode(receiptData.receipt);
+      this.ensureAppData(receiptData.receipt);
 
-      // Preserve LLM's hasReturnBarcode value - don't overwrite it
-      // The LLM may set hasReturnBarcode to true even if returnBarcode is empty
-      // (when it sees a barcode but can't read it)
-      // Only set it if LLM didn't set it and returnBarcode exists
-      if (receiptData.returnInfo) {
-        if (
-          receiptData.returnInfo.hasReturnBarcode === undefined &&
-          receiptData.returnInfo.returnBarcode &&
-          receiptData.returnInfo.returnBarcode.trim().length > 0
-        ) {
-          receiptData.returnInfo.hasReturnBarcode = true;
-        }
-      }
-
-      // Ensure appData exists (LLM should have set emoji, but ensure structure exists)
-      if (!receiptData.appData) {
-        receiptData.appData = {};
-      }
-
-      // Debug: Log the hasReturnBarcode value before returning
-      console.log(
-        "[ReceiptService] Returning receipt (backward compat) with hasReturnBarcode:",
-        receiptData.returnInfo?.hasReturnBarcode,
-        "returnBarcode:",
-        receiptData.returnInfo?.returnBarcode
-      );
-
-      return {
+      const result: ReceiptResponse = {
         success: true,
-        receipt: receiptData as Receipt,
+        receipt: receiptData.receipt,
         barcodes: barcodes.length > 0 ? barcodes : undefined,
-        usage: {
-          completion_tokens: response.usage?.completion_tokens ?? 0,
-          prompt_tokens: response.usage?.prompt_tokens ?? 0,
-          total_tokens: response.usage?.total_tokens ?? 0,
-        },
+        usage: receiptData.usage,
       };
+
+      // STEP 7: Cache the result with 1 day TTL (if caching is enabled)
+      if (!env.DISABLE_IMAGE_CACHE) {
+        await cacheService.set(cacheKey, result, CACHE_TTL.ONE_DAY);
+        console.log(`[ReceiptService] Cached result for key: ${cacheKey}`);
+      }
+
+      return result;
     } catch (error) {
       return {
         success: false,

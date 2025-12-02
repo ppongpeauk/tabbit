@@ -3,6 +3,8 @@
  * @description Utility functions for formatting currency, dates, and other data
  */
 
+import moment from "moment";
+
 /**
  * Format a number as currency
  * @param amount - The amount to format
@@ -93,4 +95,43 @@ export function formatReceiptDateTime(
       year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
     }).format(date);
   }
+}
+
+/**
+ * Format a date string using moment.js
+ * @param dateString - Date string (ISO format, YYYY-MM-DD, or other formats)
+ * @param format - Moment.js format string (default: "MMM D, YYYY")
+ * @returns Formatted date string
+ */
+export function formatDateWithMoment(
+  dateString: string,
+  format: string = "MMM D, YYYY"
+): string {
+  if (!dateString) return "";
+  const date = moment(dateString);
+  if (!date.isValid()) return dateString; // Return original if invalid
+  return date.format(format);
+}
+
+/**
+ * Format a return by date with moment.js
+ * Shows relative time if within 7 days, otherwise formatted date
+ * @param dateString - Date string (ISO format or YYYY-MM-DD)
+ * @returns Formatted date string (e.g., "in 3 days", "Jan 15, 2024")
+ */
+export function formatReturnByDate(dateString: string): string {
+  if (!dateString) return "";
+  const date = moment(dateString);
+  if (!date.isValid()) return dateString; // Return original if invalid
+
+  const now = moment();
+  const daysDiff = date.diff(now, "days");
+
+  // If within 7 days, show relative time
+  if (daysDiff >= 0 && daysDiff <= 7) {
+    return date.fromNow(); // e.g., "in 3 days"
+  }
+
+  // Otherwise show formatted date
+  return date.format("MMM D, YYYY"); // e.g., "Jan 15, 2024"
 }

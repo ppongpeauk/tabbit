@@ -52,10 +52,10 @@ export default function RootLayout() {
         initialRouteName="(tabs)"
         screenOptions={{
           headerBackTitleStyle: {
-            fontFamily: "LiterataSerif",
+            fontFamily: "DMSans",
           },
           headerTitleStyle: {
-            fontFamily: "LiterataSerif-Bold",
+            fontFamily: "DMSans-Bold",
             fontWeight: "700",
           },
           headerStyle: {
@@ -104,6 +104,12 @@ export default function RootLayout() {
           name="[id]/index"
           options={{
             title: "Receipt Details",
+          }}
+        />
+        <Stack.Screen
+          name="split"
+          options={{
+            title: "Split Receipt",
           }}
         />
       </Stack>

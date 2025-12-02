@@ -20,6 +20,11 @@ export default function SettingsScreen() {
     router.push("./about");
   };
 
+  const handleFriendsPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push("./friends");
+  };
+
   return (
     <View
       style={{
@@ -39,6 +44,32 @@ export default function SettingsScreen() {
         }}
       >
         <LimitIndicator />
+
+        {/* Friends section */}
+        <Pressable
+          onPress={handleFriendsPress}
+          style={({ pressed }) => [
+            styles.settingItem,
+            {
+              backgroundColor:
+                colorScheme === "dark"
+                  ? pressed
+                    ? Colors.dark.background
+                    : "rgba(255, 255, 255, 0.05)"
+                  : pressed
+                  ? Colors.light.background
+                  : "rgba(0, 0, 0, 0.02)",
+            },
+          ]}
+        >
+          <ThemedText style={styles.settingLabel}>Friends</ThemedText>
+          <SymbolView
+            name="chevron.right"
+            tintColor={
+              colorScheme === "dark" ? Colors.dark.icon : Colors.light.icon
+            }
+          />
+        </Pressable>
 
         {/* About section */}
         <Pressable

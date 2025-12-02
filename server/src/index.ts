@@ -15,7 +15,7 @@ import { cacheService } from "./utils/cache";
 
 // Initialize cache service
 cacheService.connect().catch((error) => {
-  console.error('[App] Failed to initialize cache:', error);
+  console.error("[App] Failed to initialize cache:", error);
 });
 
 const app = new Elysia()

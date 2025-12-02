@@ -15,8 +15,6 @@ import {
   updateReceipt,
   type StoredReceipt,
 } from "@/utils/storage";
-import { HeaderButton } from "@react-navigation/elements";
-import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 
 export default function EditReceiptScreen() {
