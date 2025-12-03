@@ -1,0 +1,28 @@
+{
+  "name": "tabbit-server",
+  "version": "1.0.0",
+  "description": "Tabbit API server built with ElysiaJS",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir ./dist --target bun",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1.1.1",
+    "@elysiajs/swagger": "^1.1.1",
+    "elysia": "^1.1.0",
+    "ioredis": "^5.8.2",
+    "openai": "^4.28.0",
+    "sharp": "^0.34.5",
+    "zxing-wasm": "^2.2.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
