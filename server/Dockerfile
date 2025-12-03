@@ -1,5 +1,5 @@
 FROM oven/bun:1 AS base
-WORKDIR /server
+WORKDIR ./
 
 # Install dependencies
 COPY package.json bun.lock ./
