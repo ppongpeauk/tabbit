@@ -1,4 +1,5 @@
 {
+  "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "buildCommand": "bun install && bun run db:generate",
     "watchPatterns": "src/**/*.ts"
