@@ -67,13 +67,6 @@ export const auth = betterAuth({
     },
   },
   secret: env.BETTER_AUTH_SECRET,
-  baseURL: env.BETTER_AUTH_URL,
-  trustedOrigins: [
-    env.BETTER_AUTH_URL,
-    ...(isDevelopment
-      ? ["http://localhost:3000", "http://localhost:8081"]
-      : []),
-  ],
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days in seconds
     updateAge: 60 * 60 * 24, // 1 day in seconds

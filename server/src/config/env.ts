@@ -11,7 +11,6 @@ export const env = {
   DISABLE_IMAGE_CACHE: process.env.DISABLE_IMAGE_CACHE === "true",
   // Better Auth
   BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET || "",
-  BETTER_AUTH_URL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
   // Resend
   RESEND_API_KEY: process.env.RESEND_API_KEY || "",
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || "noreply@example.com",
@@ -21,7 +20,7 @@ export function validateEnv(): void {
   const required = ["BETTER_AUTH_SECRET", "DATABASE_URL"];
 
   if (env.NODE_ENV === "production") {
-    required.push("RESEND_API_KEY", "RESEND_FROM_EMAIL", "BETTER_AUTH_URL");
+    required.push("RESEND_API_KEY", "RESEND_FROM_EMAIL");
     required.forEach((key) => {
       if (!process.env[key]) {
         throw new Error(`Missing required environment variable: ${key}`);
