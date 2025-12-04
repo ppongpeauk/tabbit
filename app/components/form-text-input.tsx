@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Reusable form text input component with label and theme support
- */
-
 import { TextInput, TextInputProps, StyleSheet, View } from "react-native";
 import { ReactNode, ReactElement, cloneElement, isValidElement } from "react";
 import { useColorScheme } from "@/hooks/use-color-scheme";

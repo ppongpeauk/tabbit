@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Root layout with fonts and splash screen setup
- */
-
 import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { useFonts } from "expo-font";

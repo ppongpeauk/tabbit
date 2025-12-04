@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Camera capture button component with consistent colors
- */
-
 import { View, StyleSheet, ActivityIndicator, Pressable } from "react-native";
 import { GlassView } from "expo-glass-effect";
 
@@ -75,4 +70,9 @@ const styles = StyleSheet.create({
     position: "absolute",
   },
 });
+
+
+
+
+
 

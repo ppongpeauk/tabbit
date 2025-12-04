@@ -1,8 +1,3 @@
-/**
- * @author Recipio Team
- * @description User data models and validation schemas
- */
-
 import { t } from 'elysia';
 
 export const createUserSchema = t.Object({

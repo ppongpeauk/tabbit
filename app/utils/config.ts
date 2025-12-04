@@ -1,9 +1,4 @@
 /**
- * @author Recipio Team
- * @description API configuration and base URLs
- */
-
-/**
  * Get the API base URL
  * For development, defaults to localhost:3000
  * Can be overridden with EXPO_PUBLIC_API_URL environment variable

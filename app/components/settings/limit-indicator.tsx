@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Limit indicator component with circular progress bar
- */
-
 import { StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { ThemedText } from "../themed-text";

@@ -1,8 +1,3 @@
-/**
- * @author Recipio Team
- * @description Environment configuration and validation
- */
-
 export const env = {
   NODE_ENV: process.env.NODE_ENV || "development",
   PORT: Number(process.env.PORT) || 3000,
@@ -14,12 +9,19 @@ export const env = {
   OPENAI_MODEL: process.env.OPENAI_MODEL || "gpt-4o-2024-08-06",
   REDIS_URL: process.env.REDIS_URL,
   DISABLE_IMAGE_CACHE: process.env.DISABLE_IMAGE_CACHE === "true",
+  // Better Auth
+  BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET || "",
+  BETTER_AUTH_URL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  // Resend
+  RESEND_API_KEY: process.env.RESEND_API_KEY || "",
+  RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || "noreply@example.com",
 } as const;
 
 export function validateEnv(): void {
-  const required = ["JWT_SECRET"];
+  const required = ["BETTER_AUTH_SECRET", "DATABASE_URL"];
 
   if (env.NODE_ENV === "production") {
+    required.push("RESEND_API_KEY", "RESEND_FROM_EMAIL", "BETTER_AUTH_URL");
     required.forEach((key) => {
       if (!process.env[key]) {
         throw new Error(`Missing required environment variable: ${key}`);
@@ -27,4 +29,3 @@ export function validateEnv(): void {
     });
   }
 }
-

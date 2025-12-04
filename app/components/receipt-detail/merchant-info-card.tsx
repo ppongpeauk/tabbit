@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Merchant information card component
- */
-
 import { View, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { SymbolView } from "expo-symbols";

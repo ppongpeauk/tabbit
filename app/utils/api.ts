@@ -1,8 +1,3 @@
-/**
- * @author Recipio Team
- * @description API utility functions for receipt scanning
- */
-
 import { File } from "expo-file-system";
 import { API_BASE_URL } from "./config";
 

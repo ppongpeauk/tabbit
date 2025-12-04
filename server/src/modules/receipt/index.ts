@@ -1,6 +1,6 @@
 /**
- * @author Recipio Team
- * @description Receipt scanning module routes and handlers
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Receipt scanning and barcode detection routes
  */
 
 import { Elysia, t } from "elysia";
@@ -8,13 +8,12 @@ import { receiptService } from "./service";
 import { defaultReceiptSchema } from "./model";
 import { detectBarcodes } from "../../utils/barcode-detector";
 import { HTTP_STATUS } from "../../utils/constants";
+import { errorResponse } from "../../utils/route-helpers";
 
 /**
  * Convert skip_preprocessing parameter to boolean
  */
-function parseSkipPreprocessing(
-  value: string | boolean | undefined
-): boolean {
+function parseSkipPreprocessing(value: string | boolean | undefined): boolean {
   return value === true || (typeof value === "string" && value === "true");
 }
 
@@ -22,8 +21,7 @@ function parseSkipPreprocessing(
  * Convert File to Buffer
  */
 async function fileToBuffer(file: File): Promise<Buffer> {
-  const arrayBuffer = await file.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  return Buffer.from(await file.arrayBuffer());
 }
 
 /**
@@ -40,17 +38,20 @@ async function handleReceiptScan(
   imageBuffer: Buffer,
   model: string | undefined,
   skipPreprocessing: boolean
-) {
+): Promise<{ success: boolean; [key: string]: unknown; status: number }> {
   const result = await receiptService.scanReceipt(imageBuffer, {
     model,
     skipPreprocessing,
     jsonSchema: defaultReceiptSchema,
   });
 
-  return {
-    result,
-    status: result.success ? HTTP_STATUS.OK : result.error ? HTTP_STATUS.INTERNAL_SERVER_ERROR : HTTP_STATUS.BAD_REQUEST,
-  };
+  const status = result.success
+    ? HTTP_STATUS.OK
+    : result.error
+    ? HTTP_STATUS.INTERNAL_SERVER_ERROR
+    : HTTP_STATUS.BAD_REQUEST;
+
+  return { ...result, status };
 }
 
 /**
@@ -69,13 +70,44 @@ async function handleBarcodeScan(imageBuffer: Buffer) {
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to detect barcodes",
+        error instanceof Error ? error.message : "Failed to detect barcodes",
       error: error instanceof Error ? error.stack : undefined,
       status: HTTP_STATUS.INTERNAL_SERVER_ERROR,
     };
   }
+}
+
+/**
+ * Process image from file or base64 and execute handler
+ */
+async function processImage<T extends { status?: number }>(
+  image: File | undefined,
+  imageBase64: string | undefined,
+  handler: (buffer: Buffer) => Promise<T>
+): Promise<{
+  response: T | { success: false; message: string };
+  status: number;
+}> {
+  let imageBuffer: Buffer;
+
+  if (image) {
+    imageBuffer = await fileToBuffer(image);
+  } else if (imageBase64) {
+    imageBuffer = base64ToBuffer(imageBase64);
+  } else {
+    const message = image
+      ? "Image file is required"
+      : "image_base64 is required";
+    const { status } = errorResponse(message);
+    return {
+      response: { success: false as const, message },
+      status,
+    };
+  }
+
+  const result = await handler(imageBuffer);
+  const status = result.status ?? HTTP_STATUS.OK;
+  return { response: result, status };
 }
 
 export const receiptModule = new Elysia({ prefix: "/receipts" })
@@ -83,25 +115,14 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     "/scan",
     async ({ body, set }) => {
       const { image, model, skip_preprocessing } = body;
-
-      if (!image) {
-        set.status = HTTP_STATUS.BAD_REQUEST;
-        return {
-          success: false,
-          message: "Image file is required",
-        };
-      }
-
-      const imageBuffer = await fileToBuffer(image);
       const skipPreprocessing = parseSkipPreprocessing(skip_preprocessing);
-      const { result, status } = await handleReceiptScan(
-        imageBuffer,
-        model,
-        skipPreprocessing
+
+      const processed = await processImage(image, undefined, async (buffer) =>
+        handleReceiptScan(buffer, model, skipPreprocessing)
       );
 
-      set.status = status;
-      return result;
+      set.status = processed.status;
+      return processed.response;
     },
     {
       body: t.Object({
@@ -124,25 +145,16 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     "/scan-base64",
     async ({ body, set }) => {
       const { image_base64, model, skip_preprocessing } = body;
-
-      if (!image_base64) {
-        set.status = HTTP_STATUS.BAD_REQUEST;
-        return {
-          success: false,
-          message: "image_base64 is required",
-        };
-      }
-
-      const imageBuffer = base64ToBuffer(image_base64);
       const skipPreprocessing = parseSkipPreprocessing(skip_preprocessing);
-      const { result, status } = await handleReceiptScan(
-        imageBuffer,
-        model,
-        skipPreprocessing
+
+      const processed = await processImage(
+        undefined,
+        image_base64,
+        async (buffer) => handleReceiptScan(buffer, model, skipPreprocessing)
       );
 
-      set.status = status;
-      return result;
+      set.status = processed.status;
+      return processed.response;
     },
     {
       body: t.Object({
@@ -155,7 +167,6 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
         summary: "Scan receipt from base64",
         description:
           "Extract structured data from a base64-encoded receipt image",
-        consumes: ["multipart/form-data"],
       },
     }
   )
@@ -163,20 +174,10 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     "/barcodes/scan",
     async ({ body, set }) => {
       const { image } = body;
+      const processed = await processImage(image, undefined, handleBarcodeScan);
 
-      if (!image) {
-        set.status = HTTP_STATUS.BAD_REQUEST;
-        return {
-          success: false,
-          message: "Image file is required",
-        };
-      }
-
-      const imageBuffer = await fileToBuffer(image);
-      const response = await handleBarcodeScan(imageBuffer);
-
-      set.status = response.status;
-      return response;
+      set.status = processed.status;
+      return processed.response;
     },
     {
       body: t.Object({
@@ -197,20 +198,14 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     "/barcodes/scan-base64",
     async ({ body, set }) => {
       const { image_base64 } = body;
+      const processed = await processImage(
+        undefined,
+        image_base64,
+        handleBarcodeScan
+      );
 
-      if (!image_base64) {
-        set.status = HTTP_STATUS.BAD_REQUEST;
-        return {
-          success: false,
-          message: "image_base64 is required",
-        };
-      }
-
-      const imageBuffer = base64ToBuffer(image_base64);
-      const response = await handleBarcodeScan(imageBuffer);
-
-      set.status = response.status;
-      return response;
+      set.status = processed.status;
+      return processed.response;
     },
     {
       body: t.Object({

@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Corner bracket component for camera guide overlays
- */
-
 import { View, StyleSheet } from "react-native";
 
 const BRACKET_LENGTH = 30;
@@ -68,4 +63,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
 });
+
+
+
+
+
 

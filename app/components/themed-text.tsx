@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Themed text component with unified styling system
- */
-
 import { StyleSheet, Text, type TextProps, type TextStyle } from "react-native";
 
 import { useThemeColor } from "@/hooks/use-theme-color";

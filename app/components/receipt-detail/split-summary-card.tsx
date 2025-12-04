@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Split summary card component for receipt detail screen
- */
-
 import { View, StyleSheet, Pressable } from "react-native";
 import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";

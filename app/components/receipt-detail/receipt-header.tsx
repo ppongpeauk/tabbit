@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Receipt detail header component
- */
-
 import { View } from "react-native";
 import { HeaderButton } from "@react-navigation/elements";
 import { SymbolView } from "expo-symbols";

@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Camera components exports
- */
-
 export { CornerBracket } from "./corner-bracket";
 export type { CornerBracketPosition, CornerBracketProps } from "./corner-bracket";
 
@@ -14,4 +9,9 @@ export type { CameraControlButtonProps } from "./camera-control-button";
 
 export { CameraGuideOverlay } from "./camera-guide-overlay";
 export type { CameraGuideOverlayProps } from "./camera-guide-overlay";
+
+
+
+
+
 

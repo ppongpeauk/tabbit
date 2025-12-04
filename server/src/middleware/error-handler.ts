@@ -1,8 +1,3 @@
-/**
- * @author Recipio Team
- * @description Global error handler middleware for ElysiaJS
- */
-
 import { Elysia } from "elysia";
 
 export const errorHandler = new Elysia().onError(({ code, error, set }) => {

@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Hook for handling scanned barcode updates
- */
-
 import { useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -24,7 +19,7 @@ export function useScannedBarcode({
     useCallback(() => {
       const checkForScannedBarcode = async () => {
         try {
-          const storageKey = "@recipio:scanned_barcode:scannedBarcode";
+          const storageKey = "@tabbit:scanned_barcode:scannedBarcode";
           const scannedBarcodeValue = await AsyncStorage.getItem(storageKey);
 
           if (scannedBarcodeValue && receipt) {
@@ -54,4 +49,9 @@ export function useScannedBarcode({
     }, [receipt, receiptId, onReceiptUpdate])
   );
 }
+
+
+
+
+
 

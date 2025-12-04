@@ -1,9 +1,4 @@
 /**
- * @author Recipio Team
- * @description Utility to map receipt categories and merchants to emojis
- */
-
-/**
  * Category to emoji mapping
  */
 const CATEGORY_EMOJI_MAP: Record<string, string> = {

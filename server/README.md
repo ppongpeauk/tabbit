@@ -1,4 +1,4 @@
-# Recipio Server
+# Tabbit Server
 
 API server built with ElysiaJS and Bun.
 

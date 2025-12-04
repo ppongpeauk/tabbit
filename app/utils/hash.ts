@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Image hashing utilities for duplicate detection
- */
-
 import { File } from "expo-file-system";
 import * as Crypto from "expo-crypto";
 

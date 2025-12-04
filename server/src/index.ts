@@ -1,6 +1,6 @@
 /**
- * @author Recipio Team
- * @description Main entry point for the ElysiaJS server application
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Main server entry point
  */
 
 import { Elysia } from "elysia";
@@ -8,10 +8,11 @@ import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import { errorHandler } from "./middleware/error-handler";
 import { logger } from "./middleware/logger";
-import { authModule } from "./modules/auth";
 import { userModule } from "./modules/user";
 import { receiptModule } from "./modules/receipt";
 import { cacheService } from "./utils/cache";
+import { env } from "./config/env";
+import { betterAuth, authModule } from "./modules/auth";
 
 // Initialize cache service
 cacheService.connect().catch((error) => {
@@ -21,6 +22,8 @@ cacheService.connect().catch((error) => {
 const app = new Elysia()
   .use(
     swagger({
+      path: "/docs",
+      provider: "swagger-ui",
       documentation: {
         info: {
           title: "Tabbit API",
@@ -31,23 +34,32 @@ const app = new Elysia()
           { name: "auth", description: "Authentication endpoints" },
           { name: "user", description: "User management endpoints" },
           { name: "receipts", description: "Receipt scanning endpoints" },
-          { name: "barcodes", description: "Barcode and QR code detection endpoints" },
+          {
+            name: "barcodes",
+            description: "Barcode and QR code detection endpoints",
+          },
         ],
       },
     })
   )
-  .use(cors())
+  .use(betterAuth)
+  .use(
+    cors({
+      origin: "http://localhost:3000",
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      credentials: true,
+      allowedHeaders: ["Content-Type", "Authorization"],
+    })
+  )
   .use(logger)
   .use(errorHandler)
-  .get("/", () => ({
-    message: "Recipio API Server",
-    version: "1.0.0",
-    status: "running",
-  }))
   .use(authModule)
   .use(userModule)
   .use(receiptModule)
-  .listen(process.env.PORT ?? 3000);
+  .get("/user", ({ user }) => user, {
+    auth: true,
+  })
+  .listen(env.PORT);
 
 console.log(
   `🦊 Server is running at http://${app.server?.hostname}:${app.server?.port}`

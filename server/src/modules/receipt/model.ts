@@ -1,8 +1,3 @@
-/**
- * @author Recipio Team
- * @description Receipt data models and validation schemas
- */
-
 import { t } from "elysia";
 
 export const merchantAddressSchema = t.Object({

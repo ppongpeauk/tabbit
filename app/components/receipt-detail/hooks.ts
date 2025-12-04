@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Custom hooks for receipt detail screen
- */
-
 import { useCallback } from "react";
 import { Alert, Linking, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
@@ -58,4 +53,9 @@ export function useAddressHandler() {
     []
   );
 }
+
+
+
+
+
 

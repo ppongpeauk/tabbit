@@ -1,8 +1,3 @@
-/**
- * @author Recipio Team
- * @description ElysiaJS plugins and reusable app configurations
- */
-
 import { Elysia } from 'elysia';
 
 /**

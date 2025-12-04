@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Root layout with Stack navigator wrapping native tabs
- */
-
 import { useEffect } from "react";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
@@ -15,10 +10,53 @@ import {
 } from "@react-navigation/native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Stack } from "expo-router";
-import { Colors } from "@/constants/theme";
+import { AuthProvider } from "@/contexts/auth-context";
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
+
+function RootLayoutNav() {
+  const colorScheme = useColorScheme();
+
+  return (
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen
+          name="index"
+          options={{
+            headerShown: false,
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
+          name="sign-in"
+          options={{
+            headerShown: false,
+            presentation: "card",
+          }}
+        />
+        <Stack.Screen
+          name="sign-up"
+          options={{
+            headerShown: false,
+            presentation: "card",
+          }}
+        />
+        <Stack.Screen
+          name="(app)"
+          options={{
+            headerShown: false,
+            gestureEnabled: false,
+          }}
+        />
+      </Stack>
+    </ThemeProvider>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -34,7 +72,6 @@ export default function RootLayout() {
     "InconsolataMono-Bold": require("../assets/fonts/InconsolataMono/static/Inconsolata-Bold.ttf"),
     "InconsolataMono-SemiBold": require("../assets/fonts/InconsolataMono/static/Inconsolata-SemiBold.ttf"),
   });
-  const colorScheme = useColorScheme();
 
   useEffect(() => {
     if (fontsLoaded) {
@@ -47,72 +84,8 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack
-        initialRouteName="(tabs)"
-        screenOptions={{
-          headerBackTitleStyle: {
-            fontFamily: "DMSans",
-          },
-          headerTitleStyle: {
-            fontFamily: "DMSans-Bold",
-            fontWeight: "700",
-          },
-          headerStyle: {
-            backgroundColor:
-              colorScheme === "dark"
-                ? Colors.dark.background
-                : Colors.light.background,
-          },
-        }}
-      >
-        <Stack.Screen
-          name="(tabs)"
-          initialParams={{
-            screen: "(receipts)",
-          }}
-          options={{
-            headerShown: false,
-            title: "Receipts",
-          }}
-        />
-        {/* Receipt detail screens - these will hide the tab bar */}
-        <Stack.Screen
-          name="camera"
-          options={{
-            title: "Camera",
-            headerShown: false,
-            presentation: "modal",
-          }}
-        />
-        <Stack.Screen
-          name="barcode-scanner"
-          options={{
-            title: "Scan Barcode",
-            headerShown: false,
-            presentation: "modal",
-          }}
-        />
-        <Stack.Screen
-          name="create"
-          options={{
-            title: "New Receipt",
-            gestureEnabled: false,
-          }}
-        />
-        <Stack.Screen
-          name="[id]/index"
-          options={{
-            title: "Receipt Details",
-          }}
-        />
-        <Stack.Screen
-          name="split"
-          options={{
-            title: "Split Receipt",
-          }}
-        />
-      </Stack>
-    </ThemeProvider>
+    <AuthProvider>
+      <RootLayoutNav />
+    </AuthProvider>
   );
 }

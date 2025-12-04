@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Contact integration utilities for importing contacts from device
- */
-
 import * as Contacts from "expo-contacts";
 
 export interface ContactInfo {

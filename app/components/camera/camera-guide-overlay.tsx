@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Camera guide overlay component for centering receipts/barcodes
- */
-
 import { View, StyleSheet, Dimensions } from "react-native";
 import { CornerBracket } from "./corner-bracket";
 
@@ -60,4 +55,9 @@ const styles = StyleSheet.create({
     position: "relative",
   },
 });
+
+
+
+
+
 

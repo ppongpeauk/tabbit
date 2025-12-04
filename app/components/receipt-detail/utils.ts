@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Utility functions for receipt detail components
- */
-
 import type { StoredReceipt } from "@/utils/storage";
 
 /**

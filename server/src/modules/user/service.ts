@@ -1,8 +1,3 @@
-/**
- * @author Recipio Team
- * @description User service containing business logic
- */
-
 import type { CreateUserDto, UpdateUserDto, User, UserResponse } from "./model";
 import { cacheService } from "../../utils/cache";
 

@@ -1,8 +1,3 @@
-/**
- * @author Recipio Team
- * @description Receipt scanning service with OpenAI API integration
- */
-
 import OpenAI from "openai";
 import sharp from "sharp";
 import type { Receipt, ReceiptResponse } from "./model";
@@ -170,7 +165,11 @@ const USER_PROMPT = "Extract the following";
 
 type ReceiptExtractionResult =
   | ReceiptResponse
-  | { success: true; receipt: Receipt; usage: ReturnType<ReceiptService["extractUsage"]> };
+  | {
+      success: true;
+      receipt: Receipt;
+      usage: ReturnType<ReceiptService["extractUsage"]>;
+    };
 
 export class ReceiptService {
   private openai: OpenAI;
@@ -228,9 +227,7 @@ export class ReceiptService {
   /**
    * Extract usage information from OpenAI response
    */
-  private extractUsage(
-    usage: OpenAI.Chat.Completions.ChatCompletionUsage | undefined
-  ) {
+  private extractUsage(usage: OpenAI.Completions.CompletionUsage | undefined) {
     return {
       completion_tokens: usage?.completion_tokens ?? 0,
       prompt_tokens: usage?.prompt_tokens ?? 0,
@@ -320,10 +317,7 @@ export class ReceiptService {
   /**
    * Generate cache key for receipt scan
    */
-  private generateCacheKey(
-    imageHash: string,
-    promptHash: string
-  ): string {
+  private generateCacheKey(imageHash: string, promptHash: string): string {
     return `receipt:scan:${imageHash}:${promptHash}`;
   }
 
@@ -332,8 +326,11 @@ export class ReceiptService {
    * Handles both { receipt: Receipt | null } and direct Receipt object formats
    */
   private extractReceiptFromResponse(
-    parsed: { receipt?: Receipt | null } | { error: string; raw_response: string } | Receipt,
-    usage: OpenAI.Chat.Completions.ChatCompletionUsage | undefined
+    parsed:
+      | { receipt?: Receipt | null }
+      | { error: string; raw_response: string }
+      | Receipt,
+    usage: OpenAI.Completions.CompletionUsage | undefined
   ): ReceiptExtractionResult {
     // Handle error case
     if ("error" in parsed) {
@@ -415,7 +412,6 @@ export class ReceiptService {
       } = options;
 
       // STEP 1: Preprocess/resize image FIRST (before any other processing)
-      // This ensures all downstream operations (barcode detection, LLM) use the resized image
       let processedImage = imageBuffer;
       if (!skipPreprocessing) {
         processedImage = await this.preprocessImage(imageBuffer);
@@ -431,19 +427,17 @@ export class ReceiptService {
         console.log("[ReceiptService] Barcode detection successful:", barcodes);
       } catch (error) {
         console.warn("[ReceiptService] Barcode detection failed:", error);
-        // Continue with receipt scanning even if barcode detection fails
       }
 
       // STEP 3: Generate cache key
-      // Hash the processed image (after preprocessing, this is what we'll send to LLM)
       const imageHash = hashBuffer(processedImage);
-
-      // Hash the prompt + schema + model (these determine what the LLM will return)
       const systemPrompt = SYSTEM_PROMPT.replace(
         "{json_schema_content}",
         JSON.stringify(jsonSchema, null, 2)
       );
-      const promptContent = `${systemPrompt}${USER_PROMPT}${JSON.stringify(jsonSchema)}${model}`;
+      const promptContent = `${systemPrompt}${USER_PROMPT}${JSON.stringify(
+        jsonSchema
+      )}${model}`;
       const promptHash = hashString(promptContent);
 
       const cacheKey = this.generateCacheKey(imageHash, promptHash);
@@ -453,29 +447,21 @@ export class ReceiptService {
         const cachedResult = await cacheService.get<ReceiptResponse>(cacheKey);
         if (cachedResult) {
           console.log(`[ReceiptService] Cache hit for key: ${cacheKey}`);
-          // Merge barcodes from current detection (they might differ if image was reprocessed)
           return {
             ...cachedResult,
             barcodes: barcodes.length > 0 ? barcodes : cachedResult.barcodes,
           };
         }
 
-        console.log(`[ReceiptService] Cache miss for key: ${cacheKey}, calling LLM`);
+        console.log(
+          `[ReceiptService] Cache miss for key: ${cacheKey}, calling LLM`
+        );
       } else {
         console.log(`[ReceiptService] Image caching disabled, calling LLM`);
       }
 
       // STEP 5: Encode preprocessed image to base64 for LLM
       const imageBase64 = this.encodeImageToBase64(processedImage);
-
-      // Prepare system prompt with JSON schema
-      // Wrap the schema in a receipt object that can be null
-      const receiptSchema = {
-        receipt: {
-          ...jsonSchema,
-          type: "object",
-        },
-      };
 
       // STEP 6: Call OpenAI API
       const response = await this.openai.chat.completions.create({
@@ -510,16 +496,23 @@ export class ReceiptService {
         };
       }
 
-      // Parse response
       const parsed = this.parseJsonResponse(content);
 
-      // Handle both formats: { receipt: Receipt | null } or direct Receipt object (backward compatibility)
-      const receiptData = this.extractReceiptFromResponse(parsed, response.usage);
+      const receiptData = this.extractReceiptFromResponse(
+        parsed,
+        response.usage
+      );
       if (!receiptData.success) {
         return receiptData;
       }
 
-      // Normalize receipt data
+      if (!receiptData.receipt) {
+        return {
+          success: false,
+          message: "No receipt data available",
+        };
+      }
+
       this.normalizeReturnBarcode(receiptData.receipt);
       this.ensureAppData(receiptData.receipt);
 

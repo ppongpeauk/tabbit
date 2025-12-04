@@ -1,12 +1,7 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Storage utility for persisting receipt data
- */
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const RECEIPTS_KEY = "@recipio:receipts";
-const FRIENDS_KEY = "@recipio:friends";
+const RECEIPTS_KEY = "@tabbit:receipts";
+const FRIENDS_KEY = "@tabbit:friends";
 
 import type {
   ReceiptItem,

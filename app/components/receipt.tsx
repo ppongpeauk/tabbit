@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Receipt component with monospace formatting
- */
-
 import { View, StyleSheet, Text } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Fonts } from "@/constants/theme";

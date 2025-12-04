@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Item assignment component for itemized splitting
- */
-
 import { useState } from "react";
 import { View, StyleSheet, Pressable, TextInput } from "react-native";
 import { ThemedText } from "@/components/themed-text";

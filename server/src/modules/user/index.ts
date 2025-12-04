@@ -1,20 +1,25 @@
 /**
- * @author Recipio Team
- * @description User module routes and handlers
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description User management routes
  */
 
 import { Elysia, t } from "elysia";
 import { userService } from "./service";
 import { createUserSchema, updateUserSchema } from "./model";
 import { HTTP_STATUS } from "../../utils/constants";
+import { handleServiceResult } from "../../utils/route-helpers";
 
 export const userModule = new Elysia({ prefix: "/users" })
   .get(
     "/",
     async ({ set }) => {
       const result = await userService.getAllUsers();
-      set.status = HTTP_STATUS.OK;
-      return result;
+      const { result: response, status } = handleServiceResult(
+        result,
+        HTTP_STATUS.OK
+      );
+      set.status = status;
+      return response;
     },
     {
       detail: {
@@ -28,14 +33,13 @@ export const userModule = new Elysia({ prefix: "/users" })
     "/:id",
     async ({ params: { id }, set }) => {
       const result = await userService.getUserById(id);
-
-      if (!result.success) {
-        set.status = HTTP_STATUS.NOT_FOUND;
-        return result;
-      }
-
-      set.status = HTTP_STATUS.OK;
-      return result;
+      const { result: response, status } = handleServiceResult(
+        result,
+        HTTP_STATUS.OK,
+        HTTP_STATUS.NOT_FOUND
+      );
+      set.status = status;
+      return response;
     },
     {
       params: t.Object({
@@ -52,14 +56,12 @@ export const userModule = new Elysia({ prefix: "/users" })
     "/",
     async ({ body, set }) => {
       const result = await userService.createUser(body);
-
-      if (!result.success) {
-        set.status = HTTP_STATUS.BAD_REQUEST;
-        return result;
-      }
-
-      set.status = HTTP_STATUS.CREATED;
-      return result;
+      const { result: response, status } = handleServiceResult(
+        result,
+        HTTP_STATUS.CREATED
+      );
+      set.status = status;
+      return response;
     },
     {
       body: createUserSchema,
@@ -74,14 +76,13 @@ export const userModule = new Elysia({ prefix: "/users" })
     "/:id",
     async ({ params: { id }, body, set }) => {
       const result = await userService.updateUser(id, body);
-
-      if (!result.success) {
-        set.status = HTTP_STATUS.NOT_FOUND;
-        return result;
-      }
-
-      set.status = HTTP_STATUS.OK;
-      return result;
+      const { result: response, status } = handleServiceResult(
+        result,
+        HTTP_STATUS.OK,
+        HTTP_STATUS.NOT_FOUND
+      );
+      set.status = status;
+      return response;
     },
     {
       params: t.Object({
@@ -99,14 +100,13 @@ export const userModule = new Elysia({ prefix: "/users" })
     "/:id",
     async ({ params: { id }, set }) => {
       const result = await userService.deleteUser(id);
-
-      if (!result.success) {
-        set.status = HTTP_STATUS.NOT_FOUND;
-        return result;
-      }
-
-      set.status = HTTP_STATUS.OK;
-      return result;
+      const { result: response, status } = handleServiceResult(
+        result,
+        HTTP_STATUS.OK,
+        HTTP_STATUS.NOT_FOUND
+      );
+      set.status = status;
+      return response;
     },
     {
       params: t.Object({
@@ -119,4 +119,3 @@ export const userModule = new Elysia({ prefix: "/users" })
       },
     }
   );
-

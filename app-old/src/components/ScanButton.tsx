@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Camera icon button component for bottom tab navigator
- */
-
 import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 

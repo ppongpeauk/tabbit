@@ -1,8 +1,3 @@
-/**
- * @author Recipio Team
- * @description Redis cache service with graceful fallback
- */
-
 import Redis from "ioredis";
 
 class CacheService {

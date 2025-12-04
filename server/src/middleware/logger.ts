@@ -1,8 +1,3 @@
-/**
- * @author Recipio Team
- * @description Request logging middleware for ElysiaJS
- */
-
 import { Elysia } from "elysia";
 import { HTTP_STATUS } from "../utils/constants";
 

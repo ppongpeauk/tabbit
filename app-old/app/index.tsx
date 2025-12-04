@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Receipts page with fixed new receipt button at bottom
- */
-
 import { useState } from "react";
 import {
   View,

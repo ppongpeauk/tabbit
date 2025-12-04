@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Receipt detail components - centralized exports
- */
-
 export { MerchantInfoCard } from "./merchant-info-card";
 export { TransactionDetailsCard } from "./transaction-details-card";
 export { ItemsCard } from "./items-card";

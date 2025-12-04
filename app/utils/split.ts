@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Split calculation logic and types for receipt splitting
- */
-
 import type { StoredReceipt } from "./storage";
 import type { ReceiptItem } from "./api";
 

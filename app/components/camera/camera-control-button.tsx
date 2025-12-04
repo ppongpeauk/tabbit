@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Camera control button component (flash, gallery, etc.)
- */
-
 import { StyleSheet } from "react-native";
 import { SymbolView } from "expo-symbols";
 import { GlassView } from "expo-glass-effect";
@@ -53,4 +48,9 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 });
+
+
+
+
+
 

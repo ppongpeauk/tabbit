@@ -1,8 +1,3 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Receipt edit form component
- */
-
 import { useState, useCallback } from "react";
 import {
   View,
@@ -15,6 +10,7 @@ import {
 import { ThemedText } from "./themed-text";
 import { ThemedView } from "./themed-view";
 import { FormTextInput } from "./form-text-input";
+import { Button } from "./button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
 import { SymbolView } from "expo-symbols";
@@ -167,26 +163,14 @@ export function ReceiptEditForm({
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <ThemedText style={styles.sectionTitle}>Items</ThemedText>
-            <TouchableOpacity
+            <Button
+              variant="secondary"
+              size="sm"
               onPress={addItem}
-              style={[
-                styles.addButton,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.05)",
-                },
-              ]}
+              leftIcon={<SymbolView name="plus" />}
             >
-              <SymbolView
-                name="plus"
-                tintColor={colors.tint}
-                size={16}
-              />
-              <ThemedText style={[styles.addButtonText, { color: colors.tint }]}>
-                Add Item
-              </ThemedText>
-            </TouchableOpacity>
+              Add Item
+            </Button>
           </View>
 
           {items.map((item, index) => (
@@ -209,16 +193,14 @@ export function ReceiptEditForm({
                   Item {index + 1}
                 </ThemedText>
                 {items.length > 1 && (
-                  <TouchableOpacity
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onPress={() => removeItem(index)}
                     style={styles.deleteButton}
                   >
-                    <SymbolView
-                      name="trash"
-                      tintColor="#FF3B30"
-                      size={16}
-                    />
-                  </TouchableOpacity>
+                    <SymbolView name="trash" tintColor="#FF3B30" size={16} />
+                  </Button>
                 )}
               </View>
 
@@ -348,31 +330,12 @@ export function ReceiptEditForm({
 
         {/* Action Buttons */}
         <View style={styles.actions}>
-          <TouchableOpacity
-            onPress={onCancel}
-            style={[
-              styles.cancelButton,
-              {
-                backgroundColor: isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.05)",
-              },
-            ]}
-          >
-            <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleSave}
-            style={[styles.saveButton, { backgroundColor: colors.tint }]}
-          >
-            <ThemedText
-              style={[styles.saveButtonText, { color: "#fff" }]}
-              lightColor="#fff"
-              darkColor="#fff"
-            >
-              Save Changes
-            </ThemedText>
-          </TouchableOpacity>
+          <Button variant="secondary" onPress={onCancel} style={{ flex: 1 }}>
+            Cancel
+          </Button>
+          <Button variant="primary" onPress={handleSave} style={{ flex: 1 }}>
+            Save Changes
+          </Button>
         </View>
       </ThemedView>
     </ScrollView>
@@ -401,19 +364,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-  },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 6,
-  },
-  addButtonText: {
-    fontSize: 14,
     fontWeight: "600",
     fontFamily: Fonts.sans,
   },
@@ -516,30 +466,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     marginTop: 32,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
-  },
-  saveButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    fontFamily: Fonts.sans,
   },
 });
 

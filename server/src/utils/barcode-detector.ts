@@ -1,8 +1,3 @@
-/**
- * @author Recipio Team
- * @description Barcode and QR code detection utility using zxing-wasm
- */
-
 import { readBarcodes, type ReaderOptions } from "zxing-wasm/reader";
 
 export interface DetectedBarcode {

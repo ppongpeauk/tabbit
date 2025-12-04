@@ -1,8 +1,3 @@
-/**
- * @author Recipio Team
- * @description Utility helper functions
- */
-
 import { createHash } from "crypto";
 
 /**
