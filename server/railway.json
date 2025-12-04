@@ -1,0 +1,14 @@
+{
+  "build": {
+    "buildCommand": "bun install && bun run db:generate",
+    "watchPatterns": "src/**/*.ts"
+  },
+  "deploy": {
+    "startCommand": "bun run start",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
