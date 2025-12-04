@@ -1,3 +1,8 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Redis cache service with connection management
+ */
+
 import Redis from "ioredis";
 
 class CacheService {
@@ -90,12 +95,15 @@ class CacheService {
   }
 
   /**
-   * Set value in cache
+   * Set value in cache with TTL
+   * @param key - Cache key
+   * @param value - Value to cache
+   * @param ttlSeconds - Time to live in seconds (default: 3600 = 1 hour)
    */
   async set(
     key: string,
     value: unknown,
-    ttlSeconds?: number
+    ttlSeconds: number = 3600
   ): Promise<boolean> {
     if (!this.isAvailable()) {
       return false;
@@ -103,14 +111,29 @@ class CacheService {
 
     try {
       const serialized = JSON.stringify(value);
-      if (ttlSeconds) {
-        await this.redis!.setex(key, ttlSeconds, serialized);
-      } else {
-        await this.redis!.set(key, serialized);
-      }
+      await this.redis!.setex(key, ttlSeconds, serialized);
       return true;
     } catch (error) {
       console.error(`[Cache] Error setting key ${key}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Set TTL on an existing key
+   * @param key - Cache key
+   * @param ttlSeconds - Time to live in seconds
+   */
+  async expire(key: string, ttlSeconds: number): Promise<boolean> {
+    if (!this.isAvailable()) {
+      return false;
+    }
+
+    try {
+      const result = await this.redis!.expire(key, ttlSeconds);
+      return result === 1;
+    } catch (error) {
+      console.error(`[Cache] Error setting TTL for key ${key}:`, error);
       return false;
     }
   }
@@ -134,6 +157,7 @@ class CacheService {
 
   /**
    * Delete multiple keys matching a pattern
+   * Uses SCAN instead of KEYS for better performance and to avoid blocking Redis
    */
   async deletePattern(pattern: string): Promise<boolean> {
     if (!this.isAvailable()) {
@@ -141,9 +165,29 @@ class CacheService {
     }
 
     try {
-      const keys = await this.redis!.keys(pattern);
+      const keys: string[] = [];
+      let cursor = "0";
+
+      // Use SCAN to iterate through keys matching the pattern
+      do {
+        const result = await this.redis!.scan(
+          cursor,
+          "MATCH",
+          pattern,
+          "COUNT",
+          100
+        );
+        cursor = result[0];
+        keys.push(...result[1]);
+      } while (cursor !== "0");
+
+      // Delete keys in batches to avoid overwhelming Redis
       if (keys.length > 0) {
-        await this.redis!.del(...keys);
+        const batchSize = 100;
+        for (let i = 0; i < keys.length; i += batchSize) {
+          const batch = keys.slice(i, i + batchSize);
+          await this.redis!.del(...batch);
+        }
       }
       return true;
     } catch (error) {

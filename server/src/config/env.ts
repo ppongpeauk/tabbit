@@ -21,10 +21,13 @@ export function validateEnv(): void {
 
   if (env.NODE_ENV === "production") {
     required.push("RESEND_API_KEY", "RESEND_FROM_EMAIL");
-    required.forEach((key) => {
-      if (!process.env[key]) {
-        throw new Error(`Missing required environment variable: ${key}`);
-      }
-    });
   }
+
+  required.forEach((key) => {
+    if (!process.env[key]) {
+      throw new Error(`Missing required environment variable: ${key}`);
+    }
+  });
 }
+
+validateEnv();

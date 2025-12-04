@@ -13,8 +13,17 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-const pool = new Pool({ connectionString: env.DATABASE_URL });
+const pool = new Pool({
+  connectionString: env.DATABASE_URL,
+  max: 20,
+  min: 2,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+
 const adapter = new PrismaPg(pool);
+
+export { pool };
 
 export const prisma =
   globalThis.prisma ??

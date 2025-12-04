@@ -1,3 +1,8 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Receipt scanning service using OpenAI vision models
+ */
+
 import OpenAI from "openai";
 import sharp from "sharp";
 import type { Receipt, ReceiptResponse } from "./model";

@@ -9,8 +9,6 @@ import { prisma } from "@/lib/prisma";
 import { env } from "@/config/env";
 import { resend } from "@/lib/resend";
 
-const isDevelopment = env.NODE_ENV === "development";
-
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",

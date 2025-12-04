@@ -13,11 +13,34 @@ import { receiptModule } from "./modules/receipt";
 import { cacheService } from "./utils/cache";
 import { env } from "./config/env";
 import { betterAuth, authModule } from "./modules/auth";
+import { prisma, pool } from "./lib/prisma";
 
-// Initialize cache service
 cacheService.connect().catch((error) => {
   console.error("[App] Failed to initialize cache:", error);
 });
+
+const shutdown = async (signal: string) => {
+  console.log(`\n[App] Received ${signal}, shutting down gracefully...`);
+
+  try {
+    await cacheService.disconnect();
+    console.log("[App] Cache disconnected");
+
+    await prisma.$disconnect();
+    console.log("[App] Database disconnected");
+
+    await pool.end();
+    console.log("[App] Database pool closed");
+
+    process.exit(0);
+  } catch (error) {
+    console.error("[App] Error during shutdown:", error);
+    process.exit(1);
+  }
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 const app = new Elysia()
   .use(

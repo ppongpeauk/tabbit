@@ -6,6 +6,27 @@
 import { auth } from "@/lib/auth";
 import { successResponse, errorResponse } from "@/utils/route-helpers";
 import { HTTP_STATUS } from "@/utils/constants";
+import type { User } from "better-auth";
+
+interface AuthError {
+  error?: {
+    message?: string;
+  };
+}
+
+interface AuthSuccess {
+  user?: User;
+  session?: {
+    token?: string;
+  };
+}
+
+interface AuthResponse {
+  success: boolean;
+  message?: string;
+  user?: User;
+  token?: string;
+}
 
 export class AuthService {
   /**
@@ -15,12 +36,7 @@ export class AuthService {
     email: string;
     password: string;
     name?: string;
-  }): Promise<{
-    success: boolean;
-    message?: string;
-    user?: unknown;
-    token?: string;
-  }> {
+  }): Promise<AuthResponse> {
     try {
       const result = await auth.api.signUpEmail({
         body: {
@@ -30,18 +46,15 @@ export class AuthService {
         },
       });
 
-      if (!result || (result as { error?: { message?: string } }).error) {
-        const error = (result as { error?: { message?: string } }).error;
+      if (!result || "error" in result) {
+        const error = result as AuthError;
         return errorResponse(
-          error?.message || "Sign up failed",
+          error.error?.message || "Sign up failed",
           HTTP_STATUS.BAD_REQUEST
         ).response;
       }
 
-      const session = result as {
-        user?: unknown;
-        session?: { token?: string };
-      };
+      const session = result as AuthSuccess;
       return successResponse({
         user: session.user,
         token: session.session?.token,
@@ -61,12 +74,7 @@ export class AuthService {
     email: string;
     password: string;
     rememberMe?: boolean;
-  }): Promise<{
-    success: boolean;
-    message?: string;
-    user?: unknown;
-    token?: string;
-  }> {
+  }): Promise<AuthResponse> {
     try {
       const result = await auth.api.signInEmail({
         body: {
@@ -76,18 +84,15 @@ export class AuthService {
         },
       });
 
-      if (!result || (result as { error?: { message?: string } }).error) {
-        const error = (result as { error?: { message?: string } }).error;
+      if (!result || "error" in result) {
+        const error = result as AuthError;
         return errorResponse(
-          error?.message || "Sign in failed",
+          error.error?.message || "Sign in failed",
           HTTP_STATUS.UNAUTHORIZED
         ).response;
       }
 
-      const session = result as {
-        user?: unknown;
-        session?: { token?: string };
-      };
+      const session = result as AuthSuccess;
       return successResponse({
         user: session.user,
         token: session.session?.token,
@@ -111,10 +116,10 @@ export class AuthService {
         headers,
       });
 
-      if (!result || (result as { error?: { message?: string } }).error) {
-        const error = (result as { error?: { message?: string } }).error;
+      if (!result || "error" in result) {
+        const error = result as AuthError;
         return errorResponse(
-          error?.message || "Sign out failed",
+          error.error?.message || "Sign out failed",
           HTTP_STATUS.BAD_REQUEST
         ).response;
       }
@@ -141,10 +146,10 @@ export class AuthService {
         },
       });
 
-      if (!result || (result as { error?: { message?: string } }).error) {
-        const error = (result as { error?: { message?: string } }).error;
+      if (!result || "error" in result) {
+        const error = result as AuthError;
         return errorResponse(
-          error?.message || "Failed to send password reset email",
+          error.error?.message || "Failed to send password reset email",
           HTTP_STATUS.BAD_REQUEST
         ).response;
       }
@@ -175,10 +180,10 @@ export class AuthService {
         },
       });
 
-      if (!result || (result as { error?: { message?: string } }).error) {
-        const error = (result as { error?: { message?: string } }).error;
+      if (!result || "error" in result) {
+        const error = result as AuthError;
         return errorResponse(
-          error?.message || "Password reset failed",
+          error.error?.message || "Password reset failed",
           HTTP_STATUS.BAD_REQUEST
         ).response;
       }
@@ -205,10 +210,10 @@ export class AuthService {
         },
       });
 
-      if (!result || (result as { error?: { message?: string } }).error) {
-        const error = (result as { error?: { message?: string } }).error;
+      if (!result || "error" in result) {
+        const error = result as AuthError;
         return errorResponse(
-          error?.message || "Email verification failed",
+          error.error?.message || "Email verification failed",
           HTTP_STATUS.BAD_REQUEST
         ).response;
       }
@@ -235,10 +240,10 @@ export class AuthService {
         },
       });
 
-      if (!result || (result as { error?: { message?: string } }).error) {
-        const error = (result as { error?: { message?: string } }).error;
+      if (!result || "error" in result) {
+        const error = result as AuthError;
         return errorResponse(
-          error?.message || "Failed to send verification email",
+          error.error?.message || "Failed to send verification email",
           HTTP_STATUS.BAD_REQUEST
         ).response;
       }
@@ -260,8 +265,13 @@ export class AuthService {
   async getSession(headers: Headers): Promise<{
     success: boolean;
     message?: string;
-    user?: unknown;
-    session?: unknown;
+    user?: User;
+    session?: {
+      id: string;
+      expiresAt: Date;
+      token: string;
+      userId: string;
+    };
   }> {
     try {
       const result = await auth.api.getSession({
@@ -287,4 +297,3 @@ export class AuthService {
 }
 
 export const authService = new AuthService();
-

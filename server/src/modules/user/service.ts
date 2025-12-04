@@ -1,3 +1,8 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description User service with in-memory storage (TODO: migrate to Prisma)
+ */
+
 import type { CreateUserDto, UpdateUserDto, User, UserResponse } from "./model";
 import { cacheService } from "../../utils/cache";
 

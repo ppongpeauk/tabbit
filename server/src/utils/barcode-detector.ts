@@ -1,3 +1,8 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Barcode and QR code detection utilities
+ */
+
 import { readBarcodes, type ReaderOptions } from "zxing-wasm/reader";
 
 export interface DetectedBarcode {

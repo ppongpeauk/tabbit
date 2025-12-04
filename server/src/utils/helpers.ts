@@ -1,3 +1,8 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Utility helper functions
+ */
+
 import { createHash } from "crypto";
 
 /**

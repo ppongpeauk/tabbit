@@ -1,3 +1,8 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Application constants
+ */
+
 export const HTTP_STATUS = {
   OK: 200,
   CREATED: 201,
@@ -20,4 +25,3 @@ export const CACHE_TTL = {
   ONE_HOUR: 3600,
   THIRTY_MINUTES: 1800,
 } as const;
-

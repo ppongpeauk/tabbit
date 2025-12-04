@@ -95,7 +95,7 @@ async function processImage<T extends { status?: number }>(
   } else if (imageBase64) {
     imageBuffer = base64ToBuffer(imageBase64);
   } else {
-    const message = image
+    const message = imageBase64
       ? "Image file is required"
       : "image_base64 is required";
     const { status } = errorResponse(message);
