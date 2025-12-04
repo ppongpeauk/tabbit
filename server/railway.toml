@@ -1,5 +1,5 @@
 [build]
-builder = "DOCKERFILE"
+buildCommand = "bun install && bun run db:generate"
 
 [deploy]
 startCommand = "bun run start"
