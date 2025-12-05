@@ -7,7 +7,7 @@ import { Elysia } from "elysia";
 import { HTTP_STATUS } from "../utils/constants";
 
 export const logger = new Elysia()
-  .derive(({ request }) => {
+  .derive(() => {
     const start = Date.now();
     return { startTime: start };
   })
@@ -16,7 +16,7 @@ export const logger = new Elysia()
     const url = new URL(request.url);
     const status =
       response instanceof Response ? response.status : HTTP_STATUS.OK;
-    const duration = Date.now() - startTime;
+    const duration = startTime !== undefined ? Date.now() - startTime : 0;
 
     console.log(
       `[${new Date().toISOString()}] ${method} ${
@@ -27,11 +27,15 @@ export const logger = new Elysia()
   .onError(({ request, error, startTime }) => {
     const method = request.method;
     const url = new URL(request.url);
-    const duration = Date.now() - startTime;
+    const duration = startTime !== undefined ? Date.now() - startTime : 0;
+    const errorMessage =
+      error && typeof error === "object" && "message" in error
+        ? String(error.message)
+        : "Unknown error";
 
     console.error(
-      `[${new Date().toISOString()}] ${method} ${url.pathname} ERROR: ${
-        error.message
-      } ${duration}ms`
+      `[${new Date().toISOString()}] ${method} ${
+        url.pathname
+      } ERROR: ${errorMessage} ${duration}ms`
     );
   });

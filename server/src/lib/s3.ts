@@ -67,6 +67,9 @@ export async function getPresignedPostUrl(
     throw new Error("AWS_S3_BUCKET_NAME is not configured");
   }
 
+  // Extract the base content type (e.g., "image" from "image/jpeg")
+  const baseContentType = contentType.split("/")[0];
+
   const { url, fields } = await createPresignedPost(s3Client, {
     Bucket: BUCKET_NAME,
     Key: key,
@@ -74,7 +77,7 @@ export async function getPresignedPostUrl(
     Conditions: [
       { bucket: BUCKET_NAME },
       ["eq", "$key", key],
-      ["starts-with", "$Content-Type", "image/"], // Allow any image type
+      ["starts-with", "$Content-Type", `${baseContentType}/`],
       ["content-length-range", 1_000, maxSize], // Min 1KB, max as specified
     ],
   });
@@ -121,4 +124,3 @@ export function generateGroupIconKey(
   const timestamp = Date.now();
   return `groups/${groupId}/icon-${timestamp}.${extension}`;
 }
-

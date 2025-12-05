@@ -5,9 +5,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { subscriptionService } from "../subscription/service";
-
-const MONTHLY_SCAN_LIMIT = 5;
-const TOTAL_RECEIPT_LIMIT = 10;
+import { LIMIT_CONFIG } from "../../config/limit";
 
 /**
  * Calculate the next month reset date (same day next month)
@@ -105,17 +103,17 @@ export class LimitService {
 
     return {
       monthlyScansUsed: user.monthlyScansUsed,
-      monthlyScansLimit: MONTHLY_SCAN_LIMIT,
+      monthlyScansLimit: LIMIT_CONFIG.MONTHLY_SCAN_LIMIT,
       monthlyScansRemaining: Math.max(
         0,
-        MONTHLY_SCAN_LIMIT - user.monthlyScansUsed
+        LIMIT_CONFIG.MONTHLY_SCAN_LIMIT - user.monthlyScansUsed
       ),
       monthlyScansResetDate: user.monthlyScansResetDate,
       totalReceiptsSaved: user.totalReceiptsSaved,
-      totalReceiptsLimit: TOTAL_RECEIPT_LIMIT,
+      totalReceiptsLimit: LIMIT_CONFIG.TOTAL_RECEIPT_LIMIT,
       totalReceiptsRemaining: Math.max(
         0,
-        TOTAL_RECEIPT_LIMIT - user.totalReceiptsSaved
+        LIMIT_CONFIG.TOTAL_RECEIPT_LIMIT - user.totalReceiptsSaved
       ),
       receiptsResetDate: user.receiptsResetDate,
     };
@@ -241,4 +239,3 @@ export class LimitService {
 }
 
 export const limitService = new LimitService();
-

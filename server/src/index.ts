@@ -49,7 +49,7 @@ const app = new Elysia()
   .use(
     swagger({
       path: "/docs",
-      provider: "swagger-ui",
+      provider: "scalar",
       documentation: {
         info: {
           title: "Tabbit API",

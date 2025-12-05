@@ -3,9 +3,8 @@
  * @description Limit checking endpoints for free plan users
  */
 
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import { limitService } from "./service";
-import { handleServiceResult } from "../../utils/route-helpers";
 import { HTTP_STATUS } from "../../utils/constants";
 import { auth } from "../../lib/auth";
 

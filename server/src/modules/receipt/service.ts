@@ -12,6 +12,115 @@ import { hashBuffer, hashString } from "../../utils/helpers";
 import { CACHE_TTL } from "../../utils/constants";
 import { env } from "../../config/env";
 
+/**
+ * Example receipt data when a receipt IS found
+ */
+const EXAMPLE_RECEIPT_FOUND: { receipt: Receipt } = {
+  receipt: {
+    id: "rcpt_123",
+    merchant: {
+      merchantId: "target",
+      name: "Target",
+      address: {
+        line1: "123 Main St",
+        city: "Fairfax",
+        state: "VA",
+        postalCode: "22030",
+        country: "US",
+      },
+      phone: "(555) 123 4567",
+      receiptNumber: "A1B2C3",
+    },
+    transaction: {
+      datetime: "2025-12-01T14:52:00-05:00",
+      timezone: "America/New_York",
+      transactionId: "TXN_987654",
+      registerId: "REG_04",
+      cashierId: "CASH_12",
+      paymentMethod: "VISA •••• 1234",
+      paymentDetails: {
+        cardType: "Credit",
+        last4: "1234",
+        network: "VISA",
+        authCode: "A123BC",
+      },
+    },
+    items: [
+      {
+        id: "item_1",
+        name: "Milk 2%",
+        sku: "MILK2",
+        category: "Groceries",
+        quantity: 1,
+        unitPrice: 3.49,
+        totalPrice: 3.49,
+      },
+      {
+        id: "item_2",
+        name: "Eggs 12ct",
+        sku: "EGG12",
+        category: "Groceries",
+        quantity: 1,
+        unitPrice: 4.29,
+        totalPrice: 4.29,
+      },
+    ],
+    totals: {
+      currency: "USD",
+      subtotal: 7.78,
+      tax: 0.62,
+      taxBreakdown: [
+        {
+          label: "Sales tax",
+          amount: 0.62,
+        },
+      ],
+      total: 8.4,
+      amountPaid: 8.4,
+      changeDue: 0,
+    },
+    returnInfo: {
+      returnPolicyText: [
+        "Returns accepted within 30 days with receipt",
+        "Items must be in original packaging",
+        "No returns on sale items",
+      ],
+      returnPolicyRawText:
+        "Returns accepted within 30 days with receipt. Items must be in original packaging. No returns on sale items.",
+      returnByDate: "2026-01-01",
+      exchangeByDate: "2026-01-15",
+      returnBarcode: "1234567890",
+      hasReturnBarcode: true,
+    },
+    appData: {
+      tags: ["groceries", "personal"],
+      userNotes: "Weekly grocery run",
+      images: [
+        {
+          url: "https://example.com/receipts/rcpt_123/original.jpg",
+          type: "original",
+        },
+      ],
+    },
+    technical: {
+      source: "scan",
+      originalImage: {
+        url: "https://example.com/receipts/rcpt_123/original.jpg",
+        width: 1080,
+        height: 1920,
+      },
+      merchantDetectionConfidence: 0.96,
+    },
+  },
+};
+
+/**
+ * Example response when NO receipt is detected
+ */
+const EXAMPLE_NO_RECEIPT: { receipt: null } = {
+  receipt: null,
+};
+
 const SYSTEM_PROMPT = `
 You are a world-class receipt processing expert. Your task is to accurately extract information from a receipt image, including line item totals, and provide it in a structured JSON format.
 
@@ -54,107 +163,13 @@ IMPORTANT: For returnInfo.returnByDate and returnInfo.exchangeByDate:
 Here is an example of a desired JSON output when a receipt IS found:
 
 \`\`\`json
-{
-  "receipt": {
-    "id": "rcpt_123",
-    "merchant": {
-      "merchantId": "target",
-      "name": "Target",
-      "address": {
-        "line1": "123 Main St",
-        "city": "Fairfax",
-        "state": "VA",
-        "postalCode": "22030",
-        "country": "US"
-      },
-      "phone": "(555) 123 4567",
-      "receiptNumber": "A1B2C3"
-    },
-    "transaction": {
-      "datetime": "2025-12-01T14:52:00-05:00",
-      "timezone": "America/New_York",
-      "transactionId": "TXN_987654",
-      "registerId": "REG_04",
-      "cashierId": "CASH_12",
-      "paymentMethod": "VISA •••• 1234",
-      "paymentDetails": {
-        "cardType": "Credit",
-        "last4": "1234",
-        "network": "VISA",
-        "authCode": "A123BC"
-      }
-    },
-    "items": [
-      {
-        "id": "item_1",
-        "name": "Milk 2%",
-        "sku": "MILK2",
-        "category": "Groceries",
-        "quantity": 1,
-        "unitPrice": 3.49,
-        "totalPrice": 3.49
-      },
-      {
-        "id": "item_2",
-        "name": "Eggs 12ct",
-        "sku": "EGG12",
-        "category": "Groceries",
-        "quantity": 1,
-        "unitPrice": 4.29,
-        "totalPrice": 4.29
-      }
-    ],
-    "totals": {
-      "currency": "USD",
-      "subtotal": 7.78,
-      "tax": 0.62,
-      "taxBreakdown": [
-        {
-          "label": "Sales tax",
-          "amount": 0.62
-        }
-      ],
-      "total": 8.4,
-      "amountPaid": 8.4,
-      "changeDue": 0
-    },
-    "returnInfo": {
-      "returnPolicyText": ["Returns accepted within 30 days with receipt", "Items must be in original packaging", "No returns on sale items"],
-      "returnPolicyRawText": "Returns accepted within 30 days with receipt. Items must be in original packaging. No returns on sale items.",
-      "returnByDate": "2026-01-01",
-      "exchangeByDate": "2026-01-15",
-      "returnBarcode": "1234567890",
-      "hasReturnBarcode": true
-    },
-    "appData": {
-      "tags": ["groceries", "personal"],
-      "userNotes": "Weekly grocery run",
-      "images": [
-        {
-          "url": "https://example.com/receipts/rcpt_123/original.jpg",
-          "type": "original"
-        }
-      ]
-    },
-    "technical": {
-      "source": "scan",
-      "originalImage": {
-        "url": "https://example.com/receipts/rcpt_123/original.jpg",
-        "width": 1080,
-        "height": 1920
-      },
-      "merchantDetectionConfidence": 0.96
-    }
-  }
-}
+${JSON.stringify(EXAMPLE_RECEIPT_FOUND, null, 2)}
 \`\`\`
 
 Here is an example when NO receipt is detected:
 
 \`\`\`json
-{
-  "receipt": null
-}
+${JSON.stringify(EXAMPLE_NO_RECEIPT, null, 2)}
 \`\`\`
 
 Please extract the information from the receipt image and provide it in the following JSON schema. The receipt field should be null if no receipt is detected:

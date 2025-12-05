@@ -5,7 +5,12 @@
 
 import { Elysia, t } from "elysia";
 import { groupService } from "./service";
-import { createGroupSchema, updateGroupSchema, joinGroupSchema } from "./model";
+import {
+  createGroupSchema,
+  updateGroupSchema,
+  joinGroupSchema,
+  type GroupResponse,
+} from "./model";
 import { HTTP_STATUS } from "../../utils/constants";
 import { handleServiceResult } from "../../utils/route-helpers";
 import { auth } from "../../lib/auth";
@@ -34,7 +39,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
       }
 
       const result = await groupService.getUserGroups(user.id);
-      const { result: response, status } = handleServiceResult(
+      const { result: response, status } = handleServiceResult<GroupResponse>(
         result,
         HTTP_STATUS.OK
       );
@@ -59,7 +64,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
       }
 
       const result = await groupService.getGroupById(id, user.id);
-      const { result: response, status } = handleServiceResult(
+      const { result: response, status } = handleServiceResult<GroupResponse>(
         result,
         HTTP_STATUS.OK,
         HTTP_STATUS.NOT_FOUND
@@ -87,7 +92,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
       }
 
       const result = await groupService.createGroup(user.id, body);
-      const { result: response, status } = handleServiceResult(
+      const { result: response, status } = handleServiceResult<GroupResponse>(
         result,
         HTTP_STATUS.CREATED
       );
@@ -112,7 +117,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
       }
 
       const result = await groupService.updateGroup(id, user.id, body);
-      const { result: response, status } = handleServiceResult(
+      const { result: response, status } = handleServiceResult<GroupResponse>(
         result,
         HTTP_STATUS.OK,
         HTTP_STATUS.NOT_FOUND
@@ -141,7 +146,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
       }
 
       const result = await groupService.joinGroup(user.id, body.code);
-      const { result: response, status } = handleServiceResult(
+      const { result: response, status } = handleServiceResult<GroupResponse>(
         result,
         HTTP_STATUS.OK
       );
@@ -166,7 +171,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
       }
 
       const result = await groupService.leaveGroup(id, user.id);
-      const { result: response, status } = handleServiceResult(
+      const { result: response, status } = handleServiceResult<GroupResponse>(
         result,
         HTTP_STATUS.OK
       );
@@ -193,7 +198,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
       }
 
       const result = await groupService.deleteGroup(id, user.id);
-      const { result: response, status } = handleServiceResult(
+      const { result: response, status } = handleServiceResult<GroupResponse>(
         result,
         HTTP_STATUS.OK,
         HTTP_STATUS.NOT_FOUND
@@ -310,7 +315,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
           user.id,
           body.key
         );
-        const { result: response, status } = handleServiceResult(
+        const { result: response, status } = handleServiceResult<GroupResponse>(
           result,
           HTTP_STATUS.OK
         );
@@ -387,4 +392,3 @@ export const groupModule = new Elysia({ prefix: "/groups" })
       },
     }
   );
-

@@ -68,13 +68,13 @@ export function errorResponse(
 /**
  * Handles service result with automatic status code mapping
  */
-export function handleServiceResult<T>(
-  result: { success: boolean; [key: string]: unknown },
+export function handleServiceResult<T extends { success: boolean }>(
+  result: T,
   successStatus: number = HTTP_STATUS.OK,
   errorStatus: number = HTTP_STATUS.BAD_REQUEST
 ): { result: T; status: number } {
   return {
-    result: result as T,
+    result,
     status: result.success ? successStatus : errorStatus,
   };
 }
