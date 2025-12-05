@@ -7,17 +7,14 @@ import { View, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { SymbolView } from "expo-symbols";
 import { Colors } from "@/constants/theme";
-import { HeaderButton } from "@react-navigation/elements";
-import { router } from "expo-router";
-import * as Haptics from "expo-haptics";
 import type { Group } from "@/utils/api";
+import { GlassView } from "expo-glass-effect";
 
 interface GroupHeaderProps {
   group: Group | null;
   iconUrl: string | null;
   colorScheme: "light" | "dark";
   onPress?: () => void;
-  onShare?: () => void;
 }
 
 export function GroupHeader({
@@ -25,20 +22,8 @@ export function GroupHeader({
   iconUrl,
   colorScheme,
   onPress,
-  onShare,
 }: GroupHeaderProps) {
   const isDark = colorScheme === "dark";
-  const memberCount = group?.members?.length || 0;
-
-  const handleShare = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onShare?.();
-  };
-
-  const handleAddReceipt = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/camera");
-  };
 
   const headerContent = (
     <View style={styles.container}>
@@ -62,7 +47,8 @@ export function GroupHeader({
       {iconUrl ? (
         <Image source={{ uri: iconUrl }} style={styles.icon} />
       ) : (
-        <View
+        <GlassView
+          glassEffectStyle="regular"
           style={[
             styles.iconPlaceholder,
             {
@@ -73,7 +59,7 @@ export function GroupHeader({
           ]}
         >
           <ThemedText size="base">👥</ThemedText>
-        </View>
+        </GlassView>
       )}
       <SymbolView
         name="chevron.down"
@@ -92,22 +78,6 @@ export function GroupHeader({
       ) : (
         headerContent
       ),
-    headerRight: () => (
-      <View style={styles.headerRight}>
-        <HeaderButton onPress={handleShare}>
-          <SymbolView
-            name="square.and.arrow.up"
-            tintColor={isDark ? Colors.dark.text : Colors.light.text}
-          />
-        </HeaderButton>
-        <HeaderButton onPress={handleAddReceipt}>
-          <SymbolView
-            name="camera"
-            tintColor={isDark ? Colors.dark.text : Colors.light.text}
-          />
-        </HeaderButton>
-      </View>
-    ),
   };
 }
 
@@ -119,14 +89,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   icon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
   },
   iconPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -142,7 +112,16 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     flexDirection: "row",
-    gap: 0,
     alignItems: "center",
+    paddingRight: 4,
+  },
+  settledLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 8,
+  },
+  settledText: {
+    marginTop: 1,
   },
 });

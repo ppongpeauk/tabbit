@@ -121,12 +121,14 @@ export default function GroupsLayout() {
         options={{
           title: "Group",
           headerTitle: "Group",
+          headerBackButtonDisplayMode: "minimal",
         }}
       />
       <Stack.Screen
         name="[id]/details"
         options={{
           title: "Group",
+          headerBackButtonDisplayMode: "minimal",
         }}
       />
     </Stack>

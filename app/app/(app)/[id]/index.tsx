@@ -23,6 +23,7 @@ import {
   useScannedBarcode,
   shouldShowReturnInfo,
 } from "@/components/receipt-detail";
+import { useHeaderHeight } from "@react-navigation/elements";
 
 export default function ReceiptDetailScreen() {
   const { id } = useLocalSearchParams<{
@@ -34,7 +35,7 @@ export default function ReceiptDetailScreen() {
   const [showRawReturnText, setShowRawReturnText] = useState(false);
   const colorScheme = useColorScheme();
   const navigation = useNavigation();
-
+  const headerHeight = useHeaderHeight();
   useEffect(() => {
     const loadData = async () => {
       const [receipts, loadedFriends] = await Promise.all([
@@ -155,7 +156,7 @@ export default function ReceiptDetailScreen() {
     <View style={styles.container}>
       <ThemedView style={styles.container}>
         <ScrollView
-          style={styles.scrollView}
+          style={[styles.scrollView, { paddingTop: headerHeight }]}
           contentContainerStyle={styles.contentContainer}
           automaticallyAdjustContentInsets
         >
@@ -188,7 +189,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 16,
     paddingBottom: 40,
     gap: 16,
   },

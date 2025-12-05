@@ -21,8 +21,52 @@ export function MerchantInfoCard({ receipt }: MerchantInfoCardProps) {
   const hasAddress = receipt.merchant.address?.line1;
 
   return (
-    <View style={[styles.card, getCardStyle(isDark)]}>
-      <ThemedText size="xl" weight="bold" family="serif">
+    <View>
+      {/* Map Preview */}
+      {Platform.OS === "ios" && (
+        <View style={styles.mapContainer}>
+          <AppleMaps.View
+            style={styles.map}
+            cameraPosition={{
+              coordinates: {
+                latitude: 37.7749, // Default to SF, would need geocoding
+                longitude: -122.4194,
+              },
+              zoom: 15,
+            }}
+            markers={[
+              {
+                coordinates: {
+                  latitude: 37.7749,
+                  longitude: -122.4194,
+                },
+                title: receipt.merchant.name,
+                systemImage: "mappin",
+              },
+            ]}
+            properties={{
+              isMyLocationEnabled: false,
+            }}
+            uiSettings={{
+              myLocationButtonEnabled: false,
+              compassEnabled: false,
+              scaleBarEnabled: false,
+              togglePitchEnabled: false,
+            }}
+          />
+          <TouchableOpacity
+            style={styles.mapOverlay}
+            onPress={() => handleAddressPress(receipt.merchant.address!)}
+            activeOpacity={1}
+          />
+        </View>
+      )}
+      <ThemedText
+        size="2xl"
+        weight="bold"
+        family="sans"
+        style={{ marginTop: 16 }}
+      >
         {receipt.merchant.name}
       </ThemedText>
 
@@ -38,7 +82,7 @@ export function MerchantInfoCard({ receipt }: MerchantInfoCardProps) {
             tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
             style={styles.phoneIcon}
           />
-          <ThemedText size="base" style={{ flex: 1 }}>
+          <ThemedText size="lg" style={{ flex: 1 }}>
             {receipt.merchant.phone}
           </ThemedText>
           <SymbolView
@@ -57,7 +101,7 @@ export function MerchantInfoCard({ receipt }: MerchantInfoCardProps) {
             activeOpacity={0.7}
           >
             <View style={styles.addressRow}>
-              <ThemedText size="sm" style={styles.addressText}>
+              <ThemedText size="base" style={styles.addressText}>
                 {merchantAddress}
               </ThemedText>
               <SymbolView
@@ -67,46 +111,6 @@ export function MerchantInfoCard({ receipt }: MerchantInfoCardProps) {
               />
             </View>
           </TouchableOpacity>
-
-          {/* Map Preview */}
-          {Platform.OS === "ios" && (
-            <View style={styles.mapContainer}>
-              <AppleMaps.View
-                style={styles.map}
-                cameraPosition={{
-                  coordinates: {
-                    latitude: 37.7749, // Default to SF, would need geocoding
-                    longitude: -122.4194,
-                  },
-                  zoom: 15,
-                }}
-                markers={[
-                  {
-                    coordinates: {
-                      latitude: 37.7749,
-                      longitude: -122.4194,
-                    },
-                    title: receipt.merchant.name,
-                    systemImage: "mappin",
-                  },
-                ]}
-                properties={{
-                  isMyLocationEnabled: false,
-                }}
-                uiSettings={{
-                  myLocationButtonEnabled: false,
-                  compassEnabled: false,
-                  scaleBarEnabled: false,
-                  togglePitchEnabled: false,
-                }}
-              />
-              <TouchableOpacity
-                style={styles.mapOverlay}
-                onPress={() => handleAddressPress(receipt.merchant.address!)}
-                activeOpacity={1}
-              />
-            </View>
-          )}
         </View>
       )}
     </View>
@@ -137,7 +141,7 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     width: "100%",
-    height: 150,
+    height: 120,
     borderRadius: 8,
     overflow: "hidden",
     position: "relative",

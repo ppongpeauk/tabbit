@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
   RefreshControl,
+  Platform,
   type SectionListRenderItemInfo,
 } from "react-native";
 import { useFocusEffect, router } from "expo-router";
@@ -14,9 +15,9 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getReceipts, type StoredReceipt } from "@/utils/storage";
 import { formatCurrency, formatReceiptDateTime } from "@/utils/format";
 import { GlassView } from "expo-glass-effect";
-import { ContextMenu, Host, Button } from "@expo/ui/swift-ui";
 import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface ReceiptSection {
   title: string;
@@ -72,6 +73,13 @@ export default function ReceiptsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
+
+  // Calculate bottom tab bar height
+  const bottomTabBarHeight = useMemo(() => {
+    const tabBarBaseHeight = Platform.OS === "ios" ? 49 : 56;
+    return tabBarBaseHeight + insets.bottom;
+  }, [insets.bottom]);
 
   const loadReceipts = useCallback(async () => {
     const data = await getReceipts();
@@ -94,7 +102,7 @@ export default function ReceiptsScreen() {
     setRefreshing(false);
   }, [loadReceipts]);
 
-  const handleScanWithCamera = useCallback(() => {
+  const handleScanReceipt = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push("/camera");
   }, []);
@@ -162,44 +170,59 @@ export default function ReceiptsScreen() {
 
     return (
       <TouchableOpacity
-        style={[
-          styles.receiptItem,
-          {
-            backgroundColor: isDark
-              ? "rgba(255, 255, 255, 0.05)"
-              : "rgba(0, 0, 0, 0)",
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(0, 0, 0, 0.1)",
-          },
-        ]}
+        style={styles.receiptItem}
         activeOpacity={0.7}
         onPress={handlePress}
       >
-        <View style={styles.receiptEmoji}>
-          <ThemedText style={styles.emojiText}>{receiptEmoji}</ThemedText>
+        <View
+          style={[
+            styles.receiptEmoji,
+            {
+              backgroundColor: isDark
+                ? "rgba(255, 255, 255, 0.05)"
+                : "rgba(0, 0, 0, 0.05)",
+            },
+          ]}
+        >
+          <ThemedText
+            size="lg"
+            style={{ color: isDark ? Colors.dark.text : Colors.light.text }}
+          >
+            {receiptEmoji}
+          </ThemedText>
         </View>
-        <View style={styles.receiptContent}>
-          <View style={styles.receiptTopRow}>
-            <View style={styles.receiptTitleContainer}>
-              <ThemedText style={styles.receiptTitle} weight="bold">
-                {displayTitle}
-              </ThemedText>
-              {hasCustomTitle && (
-                <ThemedText style={styles.receiptMerchantName}>
-                  {item.merchant.name}
-                </ThemedText>
-              )}
-            </View>
-            <ThemedText style={styles.receiptDateTime}>
-              {formatReceiptDateTime(item.transaction.datetime, isToday)}
+        <View style={styles.receiptInfo}>
+          <View style={styles.receiptHeader}>
+            <ThemedText weight="semibold" size="base">
+              {displayTitle}
             </ThemedText>
-          </View>
-          <View style={styles.receiptBottomRow}>
-            <ThemedText weight="semibold" style={styles.receiptTotal}>
+            <ThemedText
+              weight="bold"
+              size="base"
+              style={{
+                color: isDark ? Colors.dark.tint : Colors.light.tint,
+              }}
+            >
               {formatCurrency(item.totals.total, item.totals.currency)}
             </ThemedText>
-            <View style={styles.receiptBottomRight} />
+          </View>
+          <View style={styles.receiptMetaRow}>
+            <ThemedText
+              size="sm"
+              style={{ color: isDark ? Colors.dark.icon : Colors.light.icon }}
+            >
+              {formatReceiptDateTime(item.transaction.datetime, isToday)}
+            </ThemedText>
+            {hasCustomTitle && (
+              <ThemedText
+                size="sm"
+                style={{
+                  color: isDark ? Colors.dark.icon : Colors.light.icon,
+                }}
+              >
+                {item.merchant.name}
+              </ThemedText>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -258,29 +281,94 @@ export default function ReceiptsScreen() {
         }
         stickySectionHeadersEnabled={false}
       />
-      <Host matchContents>
-        <ContextMenu>
-          <ContextMenu.Items>
-            <Button systemImage="camera.fill" onPress={handleScanWithCamera}>
-              Scan with Camera
-            </Button>
-            <Button systemImage="pencil" onPress={handleManualEntry}>
-              Manual Entry
-            </Button>
-          </ContextMenu.Items>
-          <ContextMenu.Trigger>
-            <View style={styles.fabContainer}>
-              <GlassView style={styles.fab}>
-                <SymbolView
-                  name="plus"
-                  tintColor={isDark ? Colors.dark.text : Colors.light.text}
-                  size={24}
-                />
-              </GlassView>
-            </View>
-          </ContextMenu.Trigger>
-        </ContextMenu>
-      </Host>
+      {/* Toolbar above bottom tab bar */}
+      <View
+        style={[
+          styles.toolbarContainer,
+          {
+            bottom: bottomTabBarHeight + 8,
+          },
+        ]}
+      >
+        <View style={styles.toolbar}>
+          <TouchableOpacity
+            onPress={handleScanReceipt}
+            activeOpacity={0.7}
+            style={styles.toolbarButton}
+          >
+            <GlassView
+              style={[
+                styles.glassButton,
+                {
+                  backgroundColor:
+                    Platform.OS === "ios"
+                      ? isDark
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(255, 255, 255, 0.7)"
+                      : isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(255, 255, 255, 0.8)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)",
+                },
+              ]}
+            >
+              <SymbolView
+                name="camera.fill"
+                tintColor={isDark ? Colors.dark.text : Colors.light.text}
+                size={24}
+              />
+              <ThemedText
+                size="base"
+                weight="semibold"
+                style={[
+                  styles.toolbarButtonLabel,
+                  {
+                    color: isDark ? Colors.dark.text : Colors.light.text,
+                  },
+                ]}
+              >
+                Scan
+              </ThemedText>
+            </GlassView>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleManualEntry}
+            activeOpacity={0.7}
+            style={{
+              aspectRatio: 1,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <GlassView
+              style={[
+                styles.glassButton,
+                {
+                  backgroundColor:
+                    Platform.OS === "ios"
+                      ? isDark
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(255, 255, 255, 0.7)"
+                      : isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(255, 255, 255, 0.8)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)",
+                },
+              ]}
+            >
+              <SymbolView
+                name="pencil"
+                tintColor={isDark ? Colors.dark.text : Colors.light.text}
+                size={24}
+              />
+            </GlassView>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }
@@ -308,56 +396,30 @@ const styles = StyleSheet.create({
   },
   receiptItem: {
     flexDirection: "row",
-    alignItems: "flex-start",
     paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
+    gap: 12,
   },
   receiptEmoji: {
-    alignItems: "flex-start",
-    justifyContent: "flex-start",
-    marginRight: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  emojiText: {
-    fontSize: 16,
-  },
-  receiptContent: {
+  receiptInfo: {
     flex: 1,
+    justifyContent: "center",
+    gap: 4,
   },
-  receiptTopRow: {
+  receiptHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8,
+    alignItems: "center",
   },
-  receiptTitleContainer: {
-    flex: 1,
-    marginRight: 12,
-  },
-  receiptTitle: {
-    fontSize: 16,
-  },
-  receiptMerchantName: {
-    fontSize: 14,
-    lineHeight: 20,
-    opacity: 0.6,
-  },
-  receiptDateTime: {
-    fontSize: 14,
-    opacity: 0.7,
-  },
-  receiptBottomRow: {
+  receiptMetaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
-  },
-  receiptTotal: {
-    fontSize: 16,
-  },
-  receiptBottomRight: {
-    width: 60,
+    alignItems: "center",
   },
   emptyContainer: {
     justifyContent: "center",
@@ -371,17 +433,30 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     fontSize: 16,
   },
-  fabContainer: {
+  toolbarContainer: {
     position: "absolute",
-    bottom: 100,
-    right: 20,
-    zIndex: 1000,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    paddingHorizontal: 16,
   },
-  fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
+  toolbar: {
+    flexDirection: "row",
+    gap: 8,
     alignItems: "center",
   },
+  toolbarButton: {
+    flex: 1,
+  },
+  glassButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    gap: 8,
+    borderWidth: Platform.OS === "ios" ? 0 : 1,
+  },
+  toolbarButtonLabel: {},
 });

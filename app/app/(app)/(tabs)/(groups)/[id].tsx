@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   type ViewStyle,
+  Platform,
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import {
@@ -35,6 +36,8 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { SwipeableTabView } from "@/components/swipeable-tab-view";
 import { SymbolView } from "expo-symbols";
 import { formatCurrency } from "@/utils/format";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { GlassView } from "expo-glass-effect";
 import type React from "react";
 
 export default function GroupDetailScreen() {
@@ -42,9 +45,17 @@ export default function GroupDetailScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
   const [iconUrl, setIconUrl] = useState<string | null>(null);
+
+  // Calculate bottom tab bar height
+  // Native tabs are typically 49px on iPhone, plus safe area bottom
+  const bottomTabBarHeight = useMemo(() => {
+    const tabBarBaseHeight = Platform.OS === "ios" ? 49 : 56;
+    return tabBarBaseHeight + insets.bottom;
+  }, [insets.bottom]);
 
   const loadGroup = useCallback(async () => {
     if (!id) return;
@@ -104,6 +115,17 @@ export default function GroupDetailScreen() {
     shareBottomSheetRef.current?.present();
   }, []);
 
+  const handleScanReceipt = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push("/camera");
+  }, []);
+
+  const handleSettle = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // TODO: Navigate to settle screen
+    console.log("Settle");
+  }, []);
+
   const tabs = ["Receipts", "Activity", "Balances"];
 
   // Placeholder data types
@@ -115,6 +137,7 @@ export default function GroupDetailScreen() {
     date: string;
     emoji: string;
     member: string;
+    paidAmount: number;
   };
 
   type ActivityItem = {
@@ -145,6 +168,7 @@ export default function GroupDetailScreen() {
         date: "2 hours ago",
         emoji: "🛒",
         member: "Alice",
+        paidAmount: 65.57,
       },
       {
         id: "2",
@@ -154,6 +178,7 @@ export default function GroupDetailScreen() {
         date: "Yesterday",
         emoji: "☕",
         member: "Bob",
+        paidAmount: 12.5,
       },
       {
         id: "3",
@@ -163,6 +188,7 @@ export default function GroupDetailScreen() {
         date: "2 days ago",
         emoji: "🎯",
         member: "Charlie",
+        paidAmount: 78.39,
       },
       {
         id: "4",
@@ -172,6 +198,7 @@ export default function GroupDetailScreen() {
         date: "3 days ago",
         emoji: "🛍️",
         member: "Alice",
+        paidAmount: 0,
       },
       {
         id: "5",
@@ -181,6 +208,7 @@ export default function GroupDetailScreen() {
         date: "Last week",
         emoji: "💊",
         member: "Bob",
+        paidAmount: 15.5,
       },
     ],
     []
@@ -282,6 +310,11 @@ export default function GroupDetailScreen() {
 
   const renderReceiptItem = useCallback(
     ({ item: receipt }: { item: ReceiptItem }) => {
+      const progress = Math.min(receipt.paidAmount / receipt.amount, 1);
+      const progressPercentage = Math.round(progress * 100);
+      const remainingBalance = Math.max(0, receipt.amount - receipt.paidAmount);
+      const isFullyPaid = remainingBalance <= 0.01;
+
       return (
         <TouchableOpacity style={styles.receiptCard} activeOpacity={0.7}>
           <View style={styles.receiptEmoji}>
@@ -302,12 +335,48 @@ export default function GroupDetailScreen() {
                 {formatCurrency(receipt.amount, receipt.currency)}
               </ThemedText>
             </View>
-            <ThemedText
-              size="sm"
-              style={{ color: isDark ? Colors.dark.icon : Colors.light.icon }}
-            >
-              {receipt.member} • {receipt.date}
-            </ThemedText>
+            <View style={styles.receiptMetaRow}>
+              <ThemedText
+                size="sm"
+                style={{ color: isDark ? Colors.dark.icon : Colors.light.icon }}
+              >
+                {receipt.member} • {receipt.date}
+              </ThemedText>
+              {!isFullyPaid && (
+                <ThemedText
+                  size="sm"
+                  style={{
+                    color: isDark ? Colors.dark.icon : Colors.light.icon,
+                  }}
+                >
+                  {formatCurrency(remainingBalance, receipt.currency)} left
+                </ThemedText>
+              )}
+            </View>
+            <View style={styles.progressBarContainer}>
+              <View
+                style={[
+                  styles.progressBarBackground,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 0, 0, 0.1)",
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    {
+                      width: `${progressPercentage}%`,
+                      backgroundColor: isDark
+                        ? Colors.dark.tint
+                        : Colors.light.tint,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
           </View>
         </TouchableOpacity>
       );
@@ -318,50 +387,39 @@ export default function GroupDetailScreen() {
   const renderActivityItem = useCallback(
     ({ item: activity }: { item: ActivityItem }) => {
       return (
-        <View
-          style={[
-            styles.activityCard,
-            {
-              backgroundColor: isDark
-                ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(0, 0, 0, 0.02)",
-              borderColor: isDark
-                ? "rgba(255, 255, 255, 0.1)"
-                : "rgba(0, 0, 0, 0.1)",
-            },
-          ]}
-        >
+        <View style={styles.activityCard}>
           <View style={styles.activityEmoji}>
             <ThemedText size="lg">{activity.emoji}</ThemedText>
           </View>
           <View style={styles.activityInfo}>
-            <ThemedText size="base">
-              <ThemedText weight="semibold">{activity.member}</ThemedText>{" "}
-              {activity.action}
-              {activity.detail && (
-                <>
-                  {" "}
-                  <ThemedText
-                    style={{
-                      color: isDark ? Colors.dark.icon : Colors.light.icon,
-                    }}
-                  >
-                    {activity.detail}
-                  </ThemedText>
-                </>
-              )}
-            </ThemedText>
-            <ThemedText
-              size="sm"
-              style={[
-                styles.activityTime,
-                {
+            <View style={styles.activityHeader}>
+              <ThemedText size="base">
+                <ThemedText weight="semibold">{activity.member}</ThemedText>{" "}
+                {activity.action}
+                {activity.detail && (
+                  <>
+                    {" "}
+                    <ThemedText
+                      style={{
+                        color: isDark ? Colors.dark.icon : Colors.light.icon,
+                      }}
+                    >
+                      {activity.detail}
+                    </ThemedText>
+                  </>
+                )}
+              </ThemedText>
+            </View>
+            <View style={styles.activityMetaRow}>
+              <ThemedText
+                size="sm"
+                style={{
                   color: isDark ? Colors.dark.icon : Colors.light.icon,
-                },
-              ]}
-            >
-              {activity.time}
-            </ThemedText>
+                }}
+              >
+                {activity.time}
+              </ThemedText>
+            </View>
           </View>
         </View>
       );
@@ -372,71 +430,54 @@ export default function GroupDetailScreen() {
   const renderBalanceItem = useCallback(
     ({ item: balance }: { item: BalanceItem }) => {
       return (
-        <View
-          style={[
-            styles.balanceCard,
-            {
-              backgroundColor: isDark
-                ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(0, 0, 0, 0.02)",
-              borderColor: isDark
-                ? "rgba(255, 255, 255, 0.1)"
-                : "rgba(0, 0, 0, 0.1)",
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.balanceAvatar,
-              {
-                backgroundColor: isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.05)",
-              },
-            ]}
-          >
+        <View style={styles.balanceCard}>
+          <View style={styles.balanceAvatar}>
             <ThemedText size="base" weight="semibold">
               {balance.initials}
             </ThemedText>
           </View>
           <View style={styles.balanceInfo}>
-            <ThemedText size="base" weight="semibold">
-              {balance.member}
-            </ThemedText>
-            <ThemedText
-              size="sm"
-              style={{
-                color: isDark ? Colors.dark.icon : Colors.light.icon,
-              }}
-            >
-              {balance.status === "owed"
-                ? "is owed"
-                : balance.status === "owes"
-                ? "owes"
-                : "settled up"}
-            </ThemedText>
-          </View>
-          <View style={styles.balanceAmount}>
-            {balance.status === "settled" ? (
-              <View style={styles.settledBadge}>
-                <SymbolView
-                  name="checkmark.circle.fill"
-                  tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
-                  size={20}
-                />
+            <View style={styles.balanceHeader}>
+              <ThemedText size="base" weight="semibold">
+                {balance.member}
+              </ThemedText>
+              <View style={styles.balanceAmount}>
+                {balance.status === "settled" ? (
+                  <View style={styles.settledBadge}>
+                    <SymbolView
+                      name="checkmark.circle.fill"
+                      tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
+                      size={20}
+                    />
+                  </View>
+                ) : (
+                  <ThemedText
+                    weight="bold"
+                    size="base"
+                    style={{
+                      color: isDark ? Colors.dark.tint : Colors.light.tint,
+                    }}
+                  >
+                    {balance.status === "owed" ? "+" : "-"}
+                    {formatCurrency(Math.abs(balance.amount), balance.currency)}
+                  </ThemedText>
+                )}
               </View>
-            ) : (
+            </View>
+            <View style={styles.balanceMetaRow}>
               <ThemedText
-                weight="bold"
-                size="lg"
+                size="sm"
                 style={{
-                  color: balance.status === "owed" ? "#34C759" : "#FF3B30",
+                  color: isDark ? Colors.dark.icon : Colors.light.icon,
                 }}
               >
-                {balance.status === "owed" ? "+" : "-"}
-                {formatCurrency(Math.abs(balance.amount), balance.currency)}
+                {balance.status === "owed"
+                  ? "is owed"
+                  : balance.status === "owes"
+                  ? "owes"
+                  : "settled up"}
               </ThemedText>
-            )}
+            </View>
           </View>
         </View>
       );
@@ -531,7 +572,6 @@ export default function GroupDetailScreen() {
       iconUrl,
       colorScheme: colorScheme || "light",
       onPress: handleHeaderPress,
-      onShare: handleShare,
     });
 
     navigation.setOptions({
@@ -543,15 +583,7 @@ export default function GroupDetailScreen() {
           : Colors.light.background,
       },
     });
-  }, [
-    navigation,
-    group,
-    iconUrl,
-    colorScheme,
-    handleHeaderPress,
-    handleShare,
-    isDark,
-  ]);
+  }, [navigation, group, iconUrl, colorScheme, handleHeaderPress, isDark]);
 
   if (loading) {
     return (
@@ -619,6 +651,136 @@ export default function GroupDetailScreen() {
         style={containerStyle}
       />
       <ShareBottomSheet group={group} bottomSheetRef={shareBottomSheetRef} />
+      {/* Toolbar above bottom tab bar */}
+      <View
+        style={[
+          styles.toolbarContainer,
+          {
+            bottom: bottomTabBarHeight + 8,
+          },
+        ]}
+      >
+        <View style={styles.toolbar}>
+          <TouchableOpacity
+            onPress={handleScanReceipt}
+            activeOpacity={0.7}
+            style={styles.toolbarButton}
+          >
+            <GlassView
+              style={[
+                styles.glassButton,
+                {
+                  backgroundColor:
+                    Platform.OS === "ios"
+                      ? isDark
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(255, 255, 255, 0.7)"
+                      : isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(255, 255, 255, 0.8)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)",
+                },
+              ]}
+            >
+              <SymbolView
+                name="camera.fill"
+                tintColor={isDark ? Colors.dark.text : Colors.light.text}
+                size={24}
+              />
+              <ThemedText
+                size="base"
+                weight="semibold"
+                style={[
+                  styles.toolbarButtonLabel,
+                  {
+                    color: isDark ? Colors.dark.text : Colors.light.text,
+                  },
+                ]}
+              >
+                Scan
+              </ThemedText>
+            </GlassView>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleSettle}
+            activeOpacity={0.7}
+            style={styles.toolbarButton}
+          >
+            <GlassView
+              style={[
+                styles.glassButton,
+                {
+                  backgroundColor:
+                    Platform.OS === "ios"
+                      ? isDark
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(255, 255, 255, 0.7)"
+                      : isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(255, 255, 255, 0.8)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)",
+                },
+              ]}
+            >
+              <SymbolView
+                name="checkmark.circle.fill"
+                tintColor={isDark ? Colors.dark.text : Colors.light.text}
+                size={24}
+              />
+              <ThemedText
+                size="base"
+                weight="semibold"
+                style={[
+                  styles.toolbarButtonLabel,
+                  {
+                    color: isDark ? Colors.dark.text : Colors.light.text,
+                  },
+                ]}
+              >
+                Settle Up
+              </ThemedText>
+            </GlassView>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleSettle}
+            activeOpacity={0.7}
+            style={{
+              aspectRatio: 1,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <GlassView
+              style={[
+                styles.glassButton,
+                {
+                  backgroundColor:
+                    Platform.OS === "ios"
+                      ? isDark
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(255, 255, 255, 0.7)"
+                      : isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(255, 255, 255, 0.8)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)",
+                },
+              ]}
+            >
+              <SymbolView
+                name="pencil.and.list.clipboard"
+                tintColor={isDark ? Colors.dark.text : Colors.light.text}
+                size={24}
+              />
+            </GlassView>
+          </TouchableOpacity>
+        </View>
+      </View>
     </>
   );
 }
@@ -660,18 +822,33 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  receiptMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  progressBarContainer: {
+    marginTop: 8,
+  },
+  progressBarBackground: {
+    height: 3,
+    borderRadius: 1.5,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    borderRadius: 3,
+  },
 
   activityCard: {
     flexDirection: "row",
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
     gap: 12,
   },
   activityEmoji: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(0, 0, 0, 0.05)",
@@ -681,16 +858,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
   },
-  activityTime: {
-    marginTop: 2,
-    opacity: 0.7,
+  activityHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  activityMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   balanceCard: {
     flexDirection: "row",
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: "center",
     gap: 12,
   },
   balanceAvatar: {
@@ -699,10 +879,22 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
   },
   balanceInfo: {
     flex: 1,
-    gap: 2,
+    justifyContent: "center",
+    gap: 4,
+  },
+  balanceHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  balanceMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   balanceAmount: {
     alignItems: "flex-end",
@@ -727,4 +919,31 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
   },
+  toolbarContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  toolbar: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+  },
+  toolbarButton: {
+    flex: 1,
+  },
+  glassButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+
+    gap: 8,
+    borderWidth: Platform.OS === "ios" ? 0 : 1,
+  },
+  toolbarButtonLabel: {},
 });

@@ -80,12 +80,12 @@ function HeaderRight() {
           {scansRemaining} / {limitStatus.monthlyScansLimit}
         </ThemedText>
       </View>
-      <HeaderButton onPress={handleCameraPress}>
+      {/* <HeaderButton onPress={handleCameraPress}>
         <SymbolView
           name="camera"
           tintColor={isDark ? Colors.dark.text : Colors.light.text}
         />
-      </HeaderButton>
+      </HeaderButton> */}
     </View>
   );
 }
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 4,
     alignItems: "center",
-    marginLeft: 10,
+    marginHorizontal: 10,
   },
   limitText: {},
   limitTextWarning: {

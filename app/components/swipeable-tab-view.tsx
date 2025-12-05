@@ -66,7 +66,6 @@ const TabLabel = ({
       <Animated.View style={opacityStyle}>
         <ThemedText
           style={[
-            styles.tabLabel,
             {
               color: isActive
                 ? isDark
@@ -270,9 +269,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  tabLabel: {
-    fontSize: 16,
-  },
+  tabLabel: {},
   tabIndicator: {
     position: "absolute",
     bottom: 0,

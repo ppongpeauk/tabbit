@@ -14,7 +14,7 @@ export function ItemsCard({ receipt }: ItemsCardProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   return (
-    <View style={[styles.card, getCardStyle(isDark)]}>
+    <View>
       <View
         style={{
           flexDirection: "row",

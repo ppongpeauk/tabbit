@@ -15,7 +15,7 @@ export function TransactionDetailsCard({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   return (
-    <View style={[styles.card, getCardStyle(isDark)]}>
+    <View>
       <ThemedText size="xl" weight="bold" style={{ marginBottom: 4 }}>
         Transaction Details
       </ThemedText>

@@ -35,9 +35,9 @@ export function ReturnInfoCard({
     : {};
 
   return (
-    <CardWrapper {...wrapperProps} style={[styles.card, getCardStyle(isDark)]}>
+    <CardWrapper {...wrapperProps}>
       <View style={styles.returnInfoHeader}>
-        <ThemedText type="subtitle" style={{ marginBottom: 4 }}>
+        <ThemedText size="xl" weight="bold" style={{ marginBottom: 4 }}>
           Return Information
         </ThemedText>
         {canToggle && (
@@ -115,4 +115,3 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 });
-
