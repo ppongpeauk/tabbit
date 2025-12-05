@@ -17,6 +17,12 @@ export const env = {
   // RevenueCat
   REVENUECAT_SECRET_KEY: process.env.REVENUECAT_SECRET_KEY || "",
   REVENUECAT_WEBHOOK_SECRET: process.env.REVENUECAT_WEBHOOK_SECRET || "",
+  // S3 / Railway Buckets
+  AWS_ENDPOINT_URL: process.env.AWS_ENDPOINT_URL || "",
+  AWS_S3_BUCKET_NAME: process.env.AWS_S3_BUCKET_NAME || "",
+  AWS_DEFAULT_REGION: process.env.AWS_DEFAULT_REGION || "auto",
+  AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID || "",
+  AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY || "",
 } as const;
 
 export function validateEnv(): void {

@@ -1,30 +1,12 @@
 import { Stack } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Colors } from "@/constants/theme";
+import { getHeaderScreenOptions } from "@/utils/navigation";
 
 export default function SettingsLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <Stack
-      screenOptions={{
-        headerBackTitleStyle: {
-          fontFamily: "DMSans",
-        },
-        headerTitleStyle: {
-          fontFamily: "DMSans-SemiBold",
-        },
-        headerLargeTitleStyle: {
-          fontFamily: "DMSans-SemiBold",
-        },
-        headerStyle: {
-          backgroundColor:
-            colorScheme === "dark"
-              ? Colors.dark.background
-              : Colors.light.background,
-        },
-      }}
-    >
+    <Stack screenOptions={getHeaderScreenOptions(colorScheme, true)}>
       <Stack.Screen
         name="index"
         options={{
@@ -48,6 +30,12 @@ export default function SettingsLayout() {
         name="import-contacts"
         options={{
           title: "Import Contacts",
+        }}
+      />
+      <Stack.Screen
+        name="permissions"
+        options={{
+          title: "App Permissions",
         }}
       />
     </Stack>

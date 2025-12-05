@@ -5,15 +5,19 @@ export default function TabsLayout() {
   return (
     <NativeTabs
       minimizeBehavior="onScrollDown"
-      labelStyle={{ fontFamily: Fonts.serif, fontSize: 10 }}
+      labelStyle={{ fontFamily: Fonts.sans, fontSize: 10, fontWeight: "600" }}
     >
       <NativeTabs.Trigger name="(receipts)">
         <Label>Home</Label>
-        <Icon sf="house" />
+        <Icon sf="house.fill" />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="(groups)">
+        <Label>Groups</Label>
+        <Icon sf="person.2.fill" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="(settings)">
         <Label>Settings</Label>
-        <Icon sf="gearshape" />
+        <Icon sf="gearshape.fill" />
       </NativeTabs.Trigger>
       {/* <NativeTabs.Trigger name="search" role="search">
         <Label>Search</Label>

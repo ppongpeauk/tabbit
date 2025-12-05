@@ -24,6 +24,11 @@ export function FormTextInput({
 
   const hasLeftIcon = !!leftIcon;
   const hasRightIcon = !!rightIcon;
+  const isMultiline = textInputProps.multiline === true;
+  const hasCustomHeight =
+    isMultiline ||
+    (style && "minHeight" in style) ||
+    (style && "height" in style);
 
   const renderIcon = (icon: ReactNode) => {
     if (!icon) return null;
@@ -45,7 +50,14 @@ export function FormTextInput({
       )}
       <View style={styles.inputContainer}>
         {hasLeftIcon && (
-          <View style={styles.leftIconContainer}>{renderIcon(leftIcon)}</View>
+          <View
+            style={[
+              styles.leftIconContainer,
+              hasCustomHeight && styles.leftIconContainerTopAligned,
+            ]}
+          >
+            {renderIcon(leftIcon)}
+          </View>
         )}
         <TextInput
           {...textInputProps}
@@ -101,6 +113,10 @@ const styles = StyleSheet.create({
     zIndex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  leftIconContainerTopAligned: {
+    justifyContent: "flex-start",
+    paddingTop: 12,
   },
   rightIconContainer: {
     position: "absolute",

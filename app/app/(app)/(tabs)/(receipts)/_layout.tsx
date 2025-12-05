@@ -7,9 +7,7 @@ import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useLimits } from "@/hooks/use-limits";
 import { useRevenueCat } from "@/contexts/revenuecat-context";
-
-const HEADER_FONT_FAMILY = "DMSans";
-const HEADER_FONT_FAMILY_BOLD = "DMSans-SemiBold";
+import { Fonts } from "@/constants/theme";
 
 /**
  * Header right component with limit indicator and camera button
@@ -107,13 +105,13 @@ export default function ReceiptsLayout() {
           headerTransparent: true,
           headerBlurEffect: "none",
           headerBackTitleStyle: {
-            fontFamily: HEADER_FONT_FAMILY,
+            fontFamily: Fonts.sansBold,
           },
           headerTitleStyle: {
-            fontFamily: HEADER_FONT_FAMILY_BOLD,
+            fontFamily: Fonts.sansBold,
           },
           headerLargeTitleStyle: {
-            fontFamily: HEADER_FONT_FAMILY_BOLD,
+            fontFamily: Fonts.sansBold,
           },
           headerRight: () => <HeaderRight />,
         }}

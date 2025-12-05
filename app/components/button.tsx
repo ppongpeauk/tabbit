@@ -219,7 +219,7 @@ export function Button({
         style,
       ]}
     >
-      <View style={styles.content}>
+      <View style={[styles.content, fullWidth && styles.contentFullWidth]}>
         {loading && (
           <ActivityIndicator
             size="small"
@@ -276,6 +276,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+  },
+  contentFullWidth: {
+    width: "100%",
   },
   text: {
     textAlign: "center",

@@ -37,6 +37,7 @@ interface RevenueCatContextType {
   restorePurchases: () => Promise<boolean>;
   checkEntitlement: () => Promise<boolean>;
   getPackages: () => PurchasesPackage[] | null;
+  redeemPromoCode: () => Promise<boolean>;
 }
 
 const RevenueCatContext = createContext<RevenueCatContextType | undefined>(
@@ -243,6 +244,52 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
     return currentOffering?.availablePackages || null;
   };
 
+  const redeemPromoCode = async (): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      await Purchases.presentCodeRedemptionSheet();
+      // Refresh customer info after redemption to check if entitlement was granted
+      const updatedInfo = await Purchases.getCustomerInfo();
+      setCustomerInfo(updatedInfo);
+      const hasPro =
+        updatedInfo.entitlements.active[ENTITLEMENT_ID] !== undefined;
+      setIsPro(hasPro);
+
+      if (hasPro && user?.id) {
+        await syncSubscriptionWithServer();
+        Alert.alert(
+          "Promo Code Redeemed!",
+          "Thank you for subscribing to Tabbit Pro!",
+          [{ text: "OK" }]
+        );
+        return true;
+      }
+      // Refresh offerings as well
+      await refreshCustomerInfo();
+      return true;
+    } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === "object" &&
+        "userCancelled" in err &&
+        err.userCancelled
+      ) {
+        // User cancelled the redemption sheet, don't show error
+        return false;
+      }
+
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to redeem promo code. Please try again.";
+      console.error("Promo code redemption error:", err);
+      Alert.alert("Redemption Failed", errorMessage, [{ text: "OK" }]);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <RevenueCatContext.Provider
       value={{
@@ -255,6 +302,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
         restorePurchases,
         checkEntitlement,
         getPackages,
+        redeemPromoCode,
       }}
     >
       {children}

@@ -276,3 +276,540 @@ export async function scanReceipt(
     };
   }
 }
+
+// Group types
+export interface GroupMember {
+  id: string;
+  userId: string;
+  role: "admin" | "member";
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  };
+}
+
+export interface Group {
+  id: string;
+  name: string;
+  description: string | null;
+  iconKey: string | null;
+  code: string;
+  creatorId: string;
+  createdAt: string;
+  updatedAt: string;
+  members: GroupMember[];
+}
+
+export interface GroupResponse {
+  success: boolean;
+  message?: string;
+  group?: Group;
+  groups?: Group[];
+}
+
+export interface PresignedUploadResponse {
+  success: boolean;
+  message?: string;
+  uploadUrl?: string;
+  fields?: Record<string, string>;
+  key?: string;
+}
+
+export interface PresignedUrlResponse {
+  success: boolean;
+  message?: string;
+  url?: string;
+}
+
+/**
+ * Get auth token from secure storage
+ */
+async function getAuthToken(): Promise<string | null> {
+  try {
+    const { getItemAsync } = await import("expo-secure-store");
+    return await getItemAsync("tabbit.token");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get all groups for the authenticated user
+ */
+export async function getGroups(): Promise<GroupResponse> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, message: "Not authenticated" };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/groups`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+      return {
+        success: false,
+        message: errorData.message || `HTTP ${response.status}`,
+      };
+    }
+
+    return await response.json();
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch groups. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Get a group by ID
+ */
+export async function getGroup(groupId: string): Promise<GroupResponse> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, message: "Not authenticated" };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/groups/${groupId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+      return {
+        success: false,
+        message: errorData.message || `HTTP ${response.status}`,
+      };
+    }
+
+    return await response.json();
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch group. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Create a new group
+ */
+export async function createGroup(data: {
+  name: string;
+  description?: string;
+}): Promise<GroupResponse> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, message: "Not authenticated" };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/groups`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+      return {
+        success: false,
+        message: errorData.message || `HTTP ${response.status}`,
+      };
+    }
+
+    return await response.json();
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to create group. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Join a group by code
+ */
+export async function joinGroup(code: string): Promise<GroupResponse> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, message: "Not authenticated" };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/groups/join`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ code }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+      return {
+        success: false,
+        message: errorData.message || `HTTP ${response.status}`,
+      };
+    }
+
+    return await response.json();
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to join group. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Update a group
+ */
+export async function updateGroup(
+  groupId: string,
+  data: { name?: string; description?: string }
+): Promise<GroupResponse> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, message: "Not authenticated" };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/groups/${groupId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+      return {
+        success: false,
+        message: errorData.message || `HTTP ${response.status}`,
+      };
+    }
+
+    return await response.json();
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to update group. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Leave a group
+ */
+export async function leaveGroup(groupId: string): Promise<GroupResponse> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, message: "Not authenticated" };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/groups/${groupId}/leave`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+      return {
+        success: false,
+        message: errorData.message || `HTTP ${response.status}`,
+      };
+    }
+
+    return await response.json();
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to leave group. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Delete a group
+ */
+export async function deleteGroup(groupId: string): Promise<GroupResponse> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, message: "Not authenticated" };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/groups/${groupId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+      return {
+        success: false,
+        message: errorData.message || `HTTP ${response.status}`,
+      };
+    }
+
+    return await response.json();
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to delete group. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Get presigned POST URL for uploading group icon
+ */
+export async function getGroupIconUploadUrl(
+  groupId: string,
+  extension: string = "jpg"
+): Promise<PresignedUploadResponse> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, message: "Not authenticated" };
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/groups/${groupId}/icon/presigned`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ extension }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+      return {
+        success: false,
+        message: errorData.message || `HTTP ${response.status}`,
+      };
+    }
+
+    return await response.json();
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to get upload URL. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Confirm icon upload and update group
+ */
+export async function confirmGroupIconUpload(
+  groupId: string,
+  key: string
+): Promise<GroupResponse> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, message: "Not authenticated" };
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/groups/${groupId}/icon/confirm`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ key }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+      return {
+        success: false,
+        message: errorData.message || `HTTP ${response.status}`,
+      };
+    }
+
+    return await response.json();
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to confirm icon upload. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Upload image file to presigned POST URL
+ */
+export async function uploadImageToPresignedUrl(
+  uploadUrl: string,
+  fields: Record<string, string>,
+  fileUri: string,
+  contentType: string
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    // Read file as blob
+    const response = await fetch(fileUri);
+    const blob = await response.blob();
+
+    // Create FormData
+    const formData = new FormData();
+    Object.entries(fields).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+    formData.append("Content-Type", contentType);
+    formData.append("file", blob as unknown as Blob);
+
+    // Upload to S3
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!uploadResponse.ok) {
+      return {
+        success: false,
+        message: `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`,
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to upload image. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Get presigned URL for viewing an image
+ */
+export async function getPresignedUrl(
+  key: string
+): Promise<PresignedUrlResponse> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, message: "Not authenticated" };
+    }
+
+    // URL-encode the key to handle special characters
+    const encodedKey = encodeURIComponent(key);
+
+    const response = await fetch(
+      `${API_BASE_URL}/groups/presigned/${encodedKey}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+      return {
+        success: false,
+        message: errorData.message || `HTTP ${response.status}`,
+      };
+    }
+
+    return await response.json();
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to get image URL. Please check your connection and try again.",
+    };
+  }
+}

@@ -14,3 +14,4 @@ export function useProEntitlement() {
     refresh: checkEntitlement,
   };
 }
+

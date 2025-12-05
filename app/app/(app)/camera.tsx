@@ -171,8 +171,17 @@ export default function CameraScreen() {
     imageUri: string
   ) => {
     if (!response.success || !response.receipt) {
-      // No receipt detected - show alert and re-enable button
       setProcessing(false);
+
+      if (response.message?.toLowerCase().includes("authentication")) {
+        Alert.alert(
+          "Authentication Error",
+          "Your session has expired. Please sign in again.",
+          [{ text: "OK", onPress: () => router.push("/sign-in") }]
+        );
+        return;
+      }
+
       Alert.alert(
         "No Receipt Detected",
         response.message ||

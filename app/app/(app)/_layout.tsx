@@ -4,6 +4,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
 import { View, ActivityIndicator } from "react-native";
+import { getHeaderScreenOptions } from "@/utils/navigation";
 
 export default function AuthenticatedLayout() {
   const colorScheme = useColorScheme();
@@ -44,23 +45,7 @@ export default function AuthenticatedLayout() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerBackTitleStyle: {
-          fontFamily: "DMSans",
-        },
-        headerTitleStyle: {
-          fontFamily: "DMSans-Bold",
-          fontWeight: "700",
-        },
-        headerStyle: {
-          backgroundColor:
-            colorScheme === "dark"
-              ? Colors.dark.background
-              : Colors.light.background,
-        },
-      }}
-    >
+    <Stack screenOptions={getHeaderScreenOptions(colorScheme)}>
       <Stack.Screen
         name="(tabs)"
         initialParams={{
@@ -110,4 +95,3 @@ export default function AuthenticatedLayout() {
     </Stack>
   );
 }
-

@@ -39,4 +39,6 @@ export const Fonts = {
   serif: "LiterataSerif",
   /** Mono font for code and monospace text */
   mono: "InconsolataMono",
+  /** Bold variant of sans font for headers */
+  sansBold: "DMSans-SemiBold",
 };

@@ -55,10 +55,11 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const { signOut, user } = useAuth();
-  const { isPro, restorePurchases } = useRevenueCat();
+  const { isPro, restorePurchases, redeemPromoCode } = useRevenueCat();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
   const handleAboutPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -96,6 +97,22 @@ export default function SettingsScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsRestoring(false);
+    }
+  };
+
+  const handleRedeemPromoCode = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsRedeeming(true);
+    try {
+      const success = await redeemPromoCode();
+      if (success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (error) {
+      console.error("Error redeeming promo code:", error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsRedeeming(false);
     }
   };
 
@@ -172,7 +189,7 @@ export default function SettingsScreen() {
 
   const handleAppPermissionsPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert("App Permissions", "App permissions settings coming soon");
+    router.push("./permissions");
   };
 
   const handleAppIntegrationsPress = () => {
@@ -224,6 +241,12 @@ export default function SettingsScreen() {
                 showChevron: true,
               },
             ]),
+        {
+          id: "promo",
+          label: "Have a promo code?",
+          onPress: handleRedeemPromoCode,
+          showChevron: false,
+        },
         {
           id: "restore",
           label: "Restore Purchases",
@@ -301,7 +324,9 @@ export default function SettingsScreen() {
       >
         {section.data.map((item, index) => {
           const isDestructive = item.variant === "destructive";
-          const isDisabled = item.id === "restore" && isRestoring;
+          const isDisabled =
+            (item.id === "restore" && isRestoring) ||
+            (item.id === "promo" && isRedeeming);
 
           return (
             <View key={item.id}>

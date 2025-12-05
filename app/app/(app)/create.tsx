@@ -451,6 +451,17 @@ export default function CreateReceiptScreen() {
             return;
           }
 
+          // Check if it's an authentication error
+          if (response.message?.toLowerCase().includes("authentication")) {
+            Alert.alert(
+              "Authentication Error",
+              "Your session has expired. Please sign in again.",
+              [{ text: "OK", onPress: () => router.push("/sign-in") }]
+            );
+            setLoading(false);
+            return;
+          }
+
           setError(
             response.message ||
               "Failed to scan receipt. Please try again with a clearer image."

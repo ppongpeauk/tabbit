@@ -14,6 +14,8 @@ import { AuthProvider } from "@/contexts/auth-context";
 import { Colors } from "@/constants/theme";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { RevenueCatProvider } from "@/contexts/revenuecat-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -126,12 +128,16 @@ export default function RootLayout() {
   }
 
   return (
-    <KeyboardProvider>
-      <AuthProvider>
-        <RevenueCatProvider>
-          <RootLayoutNav />
-        </RevenueCatProvider>
-      </AuthProvider>
-    </KeyboardProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <KeyboardProvider>
+          <AuthProvider>
+            <RevenueCatProvider>
+              <RootLayoutNav />
+            </RevenueCatProvider>
+          </AuthProvider>
+        </KeyboardProvider>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
