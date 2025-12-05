@@ -21,10 +21,7 @@ export function CameraControlButton({
   return (
     <PlatformPressable onPress={onPress} disabled={disabled}>
       <GlassView
-        style={[
-          styles.controlButton,
-          disabled && styles.controlButtonDisabled,
-        ]}
+        style={[styles.controlButton, disabled && styles.controlButtonDisabled]}
       >
         <SymbolView
           name={iconName}
@@ -48,11 +45,3 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 });
-
-
-
-
-
-
-
-

@@ -23,7 +23,6 @@ export function useScannedBarcode({
           const scannedBarcodeValue = await AsyncStorage.getItem(storageKey);
 
           if (scannedBarcodeValue && receipt) {
-            // Update receipt with scanned barcode
             const updatedReceipt = {
               ...receipt,
               returnInfo: {
@@ -36,7 +35,6 @@ export function useScannedBarcode({
               returnInfo: updatedReceipt.returnInfo,
             });
             onReceiptUpdate(updatedReceipt);
-            // Clear the stored barcode to avoid re-triggering
             await AsyncStorage.removeItem(storageKey);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
@@ -49,11 +47,3 @@ export function useScannedBarcode({
     }, [receipt, receiptId, onReceiptUpdate])
   );
 }
-
-
-
-
-
-
-
-

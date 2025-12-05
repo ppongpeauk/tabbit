@@ -13,21 +13,20 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SymbolView } from "expo-symbols";
 import { GlassView } from "expo-glass-effect";
 import { Colors, Fonts } from "@/constants/theme";
-import { ThemedText } from "@/components/themed-text";
 import { PlatformPressable } from "@react-navigation/elements";
 import { scanBarcodeImage } from "@/utils/api";
 import {
   CameraGuideOverlay,
   CameraCaptureButton,
   CameraControlButton,
+  CameraPermissionPrompt,
 } from "@/components/camera";
 
 export default function BarcodeScannerScreen() {
   const params = useLocalSearchParams<{ onScan?: string }>();
-  const [facing, setFacing] = useState<CameraType>("back");
+  const [facing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<"on" | "off">("off");
   const [permission, requestPermission] = useCameraPermissions();
-  const [scanning, setScanning] = useState(false);
   const [processing, setProcessing] = useState(false);
   const cameraRef = useRef<CameraView>(null);
 
@@ -37,27 +36,11 @@ export default function BarcodeScannerScreen() {
 
   if (!permission.granted) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          gap: 20,
-          padding: 20,
-        }}
-      >
-        <ThemedText type="default">
-          We need your permission to use the camera to scan barcodes.
-        </ThemedText>
-        <PlatformPressable
-          style={styles.allowButton}
-          onPress={requestPermission}
-        >
-          <ThemedText type="defaultSemiBold" lightColor="#fff" darkColor="#fff">
-            Allow
-          </ThemedText>
-        </PlatformPressable>
-      </View>
+      <CameraPermissionPrompt
+        description="We need access to your camera to scan barcodes and QR codes. Your privacy is important to us—we only use the camera when you're actively scanning."
+        iconName="barcode.viewfinder"
+        onRequestPermission={requestPermission}
+      />
     );
   }
 
@@ -210,13 +193,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  allowButton: {
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: "#0a7ea4",
     justifyContent: "center",
     alignItems: "center",
   },

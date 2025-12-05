@@ -11,12 +11,16 @@ import {
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Stack } from "expo-router";
 import { AuthProvider } from "@/contexts/auth-context";
+import { Colors } from "@/constants/theme";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+import { RevenueCatProvider } from "@/contexts/revenuecat-context";
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -28,6 +32,7 @@ function RootLayoutNav() {
         <Stack.Screen
           name="index"
           options={{
+            headerTitle: "Start",
             headerShown: false,
             gestureEnabled: false,
           }}
@@ -35,15 +40,52 @@ function RootLayoutNav() {
         <Stack.Screen
           name="sign-in"
           options={{
-            headerShown: false,
+            headerShown: true,
+            title: "Sign In",
             presentation: "card",
+            headerTintColor: isDark ? Colors.dark.text : Colors.light.text,
+            headerTitleStyle: {
+              color: isDark ? Colors.dark.text : Colors.light.text,
+            },
+            headerStyle: {
+              backgroundColor: isDark
+                ? Colors.dark.background
+                : Colors.light.background,
+            },
           }}
         />
         <Stack.Screen
           name="sign-up"
           options={{
-            headerShown: false,
+            headerShown: true,
+            title: "Sign Up",
             presentation: "card",
+            headerTintColor: isDark ? Colors.dark.text : Colors.light.text,
+            headerTitleStyle: {
+              color: isDark ? Colors.dark.text : Colors.light.text,
+            },
+            headerStyle: {
+              backgroundColor: isDark
+                ? Colors.dark.background
+                : Colors.light.background,
+            },
+          }}
+        />
+        <Stack.Screen
+          name="forgot-password"
+          options={{
+            headerShown: true,
+            title: "Reset Password",
+            presentation: "modal",
+            headerTintColor: isDark ? Colors.dark.text : Colors.light.text,
+            headerTitleStyle: {
+              color: isDark ? Colors.dark.text : Colors.light.text,
+            },
+            headerStyle: {
+              backgroundColor: isDark
+                ? Colors.dark.background
+                : Colors.light.background,
+            },
           }}
         />
         <Stack.Screen
@@ -84,8 +126,12 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <KeyboardProvider>
+      <AuthProvider>
+        <RevenueCatProvider>
+          <RootLayoutNav />
+        </RevenueCatProvider>
+      </AuthProvider>
+    </KeyboardProvider>
   );
 }

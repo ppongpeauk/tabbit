@@ -11,7 +11,12 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
 import { ThemedText } from "./themed-text";
 
-export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "destructive";
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "outline"
+  | "ghost"
+  | "destructive";
 export type ButtonSize = "sm" | "base" | "lg";
 
 export interface ButtonProps extends Omit<PressableProps, "style"> {
@@ -160,11 +165,13 @@ export function Button({
     if (!icon) return null;
     if (isValidElement(icon)) {
       // Handle SymbolView and other icon components
-      const iconProps: { color?: string; tintColor?: string; size?: number } = {};
+      const iconProps: { color?: string; tintColor?: string; size?: number } =
+        {};
 
       // Check if icon already has tintColor prop (SymbolView) or color prop
       const hasTintColor = icon.props && "tintColor" in icon.props;
-      const iconTypeName = icon.type && typeof icon.type === "function" ? icon.type.name : "";
+      const iconTypeName =
+        icon.type && typeof icon.type === "function" ? icon.type.name : "";
 
       // SymbolView uses tintColor, regular icons use color
       if (hasTintColor || iconTypeName === "SymbolView") {
@@ -205,54 +212,52 @@ export function Button({
           borderWidth: variant === "outline" ? 1 : 0,
           paddingVertical: sizeStyles.paddingVertical,
           paddingHorizontal: sizeStyles.paddingHorizontal,
-          opacity: isDisabled ? 0.6 : 1,
+          opacity: isDisabled && !loading ? 0.6 : 1,
           width: fullWidth ? "100%" : undefined,
+          minHeight: sizeStyles.paddingVertical * 2 + sizeStyles.fontSize + 4,
         },
         style,
       ]}
     >
       <View style={styles.content}>
-        {loading ? (
+        {loading && (
           <ActivityIndicator
             size="small"
             color={variantStyles.textColor}
             style={styles.loader}
           />
+        )}
+        {leftIcon && !loading && (
+          <View style={styles.leftIcon}>{renderIcon(leftIcon, "left")}</View>
+        )}
+        {typeof children === "string" ? (
+          <ThemedText
+            weight="semibold"
+            size={
+              sizeStyles.fontSize === 14
+                ? "sm"
+                : sizeStyles.fontSize === 18
+                ? "lg"
+                : "base"
+            }
+            style={[
+              styles.text,
+              {
+                color: isDisabled
+                  ? isDark
+                    ? "rgba(255, 255, 255, 0.4)"
+                    : "rgba(0, 0, 0, 0.4)"
+                  : variantStyles.textColor,
+              },
+            ]}
+          >
+            {children}
+          </ThemedText>
         ) : (
-          <>
-            {leftIcon && (
-              <View style={styles.leftIcon}>{renderIcon(leftIcon, "left")}</View>
-            )}
-            {typeof children === "string" ? (
-              <ThemedText
-                weight="semibold"
-                size={
-                  sizeStyles.fontSize === 14
-                    ? "sm"
-                    : sizeStyles.fontSize === 18
-                    ? "lg"
-                    : "base"
-                }
-                style={[
-                  styles.text,
-                  {
-                    color: isDisabled
-                      ? isDark
-                        ? "rgba(255, 255, 255, 0.4)"
-                        : "rgba(0, 0, 0, 0.4)"
-                      : variantStyles.textColor,
-                  },
-                ]}
-              >
-                {children}
-              </ThemedText>
-            ) : (
-              children
-            )}
-            {rightIcon && (
-              <View style={styles.rightIcon}>{renderIcon(rightIcon, "right")}</View>
-            )}
-          </>
+          children
+        )}
+        {rightIcon && !loading && (
+          <View style={styles.rightIcon}>{renderIcon(rightIcon, "right")}</View>
         )}
       </View>
     </Pressable>
@@ -285,4 +290,3 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
 });
-

@@ -416,7 +416,6 @@ export class ReceiptService {
         skipPreprocessing = false,
       } = options;
 
-      // STEP 1: Preprocess/resize image FIRST (before any other processing)
       let processedImage = imageBuffer;
       if (!skipPreprocessing) {
         processedImage = await this.preprocessImage(imageBuffer);
@@ -425,7 +424,6 @@ export class ReceiptService {
         );
       }
 
-      // STEP 2: Detect barcodes using the preprocessed/resized image
       let barcodes: Array<{ type: string; content: string }> = [];
       try {
         barcodes = await detectBarcodes(processedImage);
@@ -434,7 +432,6 @@ export class ReceiptService {
         console.warn("[ReceiptService] Barcode detection failed:", error);
       }
 
-      // STEP 3: Generate cache key
       const imageHash = hashBuffer(processedImage);
       const systemPrompt = SYSTEM_PROMPT.replace(
         "{json_schema_content}",
@@ -447,7 +444,6 @@ export class ReceiptService {
 
       const cacheKey = this.generateCacheKey(imageHash, promptHash);
 
-      // STEP 4: Check cache before calling LLM (if caching is enabled)
       if (!env.DISABLE_IMAGE_CACHE) {
         const cachedResult = await cacheService.get<ReceiptResponse>(cacheKey);
         if (cachedResult) {
@@ -465,10 +461,8 @@ export class ReceiptService {
         console.log(`[ReceiptService] Image caching disabled, calling LLM`);
       }
 
-      // STEP 5: Encode preprocessed image to base64 for LLM
       const imageBase64 = this.encodeImageToBase64(processedImage);
 
-      // STEP 6: Call OpenAI API
       const response = await this.openai.chat.completions.create({
         model,
         response_format: { type: "json_object" },
@@ -528,7 +522,6 @@ export class ReceiptService {
         usage: receiptData.usage,
       };
 
-      // STEP 7: Cache the result with 1 day TTL (if caching is enabled)
       if (!env.DISABLE_IMAGE_CACHE) {
         await cacheService.set(cacheKey, result, CACHE_TTL.ONE_DAY);
         console.log(`[ReceiptService] Cached result for key: ${cacheKey}`);

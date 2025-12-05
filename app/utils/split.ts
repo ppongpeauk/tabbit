@@ -1,5 +1,4 @@
 import type { StoredReceipt } from "./storage";
-import type { ReceiptItem } from "./api";
 
 export enum SplitStrategy {
   EQUAL = "equal",
@@ -74,7 +73,10 @@ export function calculateItemizedSplit(
 
     // If quantities are specified, use them for proportional split
     if (assignment.quantities && assignment.quantities.length === friendCount) {
-      const totalQuantity = assignment.quantities.reduce((sum, qty) => sum + qty, 0);
+      const totalQuantity = assignment.quantities.reduce(
+        (sum, qty) => sum + qty,
+        0
+      );
       if (totalQuantity > 0) {
         assignment.friendIds.forEach((friendId, index) => {
           const quantity = assignment.quantities![index];
@@ -107,7 +109,10 @@ export function calculateProportionalTaxTip(
   taxDistribution: Record<string, number>;
   tipDistribution?: Record<string, number>;
 } {
-  const totalBase = Object.values(baseShares).reduce((sum, amount) => sum + amount, 0);
+  const totalBase = Object.values(baseShares).reduce(
+    (sum, amount) => sum + amount,
+    0
+  );
 
   if (totalBase === 0) {
     const friendIds = Object.keys(baseShares);
@@ -132,7 +137,9 @@ export function calculateProportionalTaxTip(
 
   // Calculate percentage of total for each friend
   const taxDistribution: Record<string, number> = {};
-  const tipDistribution: Record<string, number> | undefined = tip ? {} : undefined;
+  const tipDistribution: Record<string, number> | undefined = tip
+    ? {}
+    : undefined;
 
   Object.keys(baseShares).forEach((friendId) => {
     const percentage = baseShares[friendId] / totalBase;
@@ -144,7 +151,8 @@ export function calculateProportionalTaxTip(
 
   return {
     taxDistribution: roundAmounts(taxDistribution, tax),
-    tipDistribution: tipDistribution && tip ? roundAmounts(tipDistribution, tip) : undefined,
+    tipDistribution:
+      tipDistribution && tip ? roundAmounts(tipDistribution, tip) : undefined,
   };
 }
 
@@ -283,7 +291,10 @@ export function validateSplit(
       if (!item) return;
 
       if (assignment.quantities) {
-        const totalQuantity = assignment.quantities.reduce((sum, qty) => sum + qty, 0);
+        const totalQuantity = assignment.quantities.reduce(
+          (sum, qty) => sum + qty,
+          0
+        );
         if (totalQuantity > item.quantity) {
           errors.push(
             `Item "${item.name}": assigned quantities (${totalQuantity}) exceed item quantity (${item.quantity})`

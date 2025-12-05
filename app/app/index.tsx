@@ -1,24 +1,51 @@
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/button";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/contexts/auth-context";
-import { router, useRootNavigationState } from "expo-router";
-import { useEffect } from "react";
+import { router, useRootNavigationState, Redirect } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { useEffect } from "react";
 
 export default function WelcomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const navigationState = useRootNavigationState();
 
+  // Redirect authenticated users to the app
   useEffect(() => {
-    if (user && navigationState?.key) {
+    if (!isLoading && user && navigationState?.key) {
       router.replace("/(app)/(tabs)/(receipts)");
     }
-  }, [user, navigationState]);
+  }, [user, isLoading, navigationState?.key]);
+
+  // Show loading while checking auth state or waiting for navigation
+  if (isLoading || (user && !navigationState?.key)) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: isDark
+              ? Colors.dark.background
+              : Colors.light.background,
+          },
+        ]}
+      >
+        <ActivityIndicator
+          size="large"
+          color={isDark ? Colors.dark.tint : Colors.light.tint}
+        />
+      </View>
+    );
+  }
+
+  // Redirect if authenticated and navigation is ready
+  if (user && navigationState?.key) {
+    return <Redirect href="/(app)/(tabs)/(receipts)" />;
+  }
 
   const handleGetStarted = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -83,9 +110,23 @@ export default function WelcomeScreen() {
           Get Started
         </Button>
 
-        <Button variant="ghost" size="base" onPress={handleSignIn} fullWidth>
+        <Button variant="outline" size="base" onPress={handleSignIn} fullWidth>
           Sign In
         </Button>
+
+        <ThemedText
+          style={[
+            styles.termsText,
+            {
+              color: isDark
+                ? Colors.dark.text + "80"
+                : Colors.light.text + "80",
+            },
+          ]}
+          size="sm"
+        >
+          By continuing, you agree to our Terms of Service and Privacy Policy.
+        </ThemedText>
       </View>
     </View>
   );
@@ -120,5 +161,9 @@ const styles = StyleSheet.create({
   actionsSection: {
     gap: 16,
     width: "100%",
+  },
+  termsText: {
+    textAlign: "center",
+    paddingHorizontal: 16,
   },
 });

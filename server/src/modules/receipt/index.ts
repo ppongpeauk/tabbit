@@ -9,6 +9,9 @@ import { defaultReceiptSchema } from "./model";
 import { detectBarcodes } from "../../utils/barcode-detector";
 import { HTTP_STATUS } from "../../utils/constants";
 import { errorResponse } from "../../utils/route-helpers";
+import { auth } from "../../lib/auth";
+import { limitService } from "../limits/service";
+import { prisma } from "../../lib/prisma";
 
 /**
  * Convert skip_preprocessing parameter to boolean
@@ -111,15 +114,45 @@ async function processImage<T extends { status?: number }>(
 }
 
 export const receiptModule = new Elysia({ prefix: "/receipts" })
+  .derive(async ({ request }) => {
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+    return { user: session?.user || null };
+  })
   .post(
     "/scan",
-    async ({ body, set }) => {
+    async ({ body, set, user }) => {
       const { image, model, skip_preprocessing } = body;
       const skipPreprocessing = parseSkipPreprocessing(skip_preprocessing);
+
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return {
+          success: false,
+          message: "Authentication required",
+        };
+      }
+
+      const canScan = await limitService.canScan(user.id);
+      if (!canScan.allowed) {
+        set.status = HTTP_STATUS.FORBIDDEN;
+        return {
+          success: false,
+          message: canScan.reason || "Scan limit reached",
+          limitExceeded: true,
+        };
+      }
 
       const processed = await processImage(image, undefined, async (buffer) =>
         handleReceiptScan(buffer, model, skipPreprocessing)
       );
+
+      if (processed.response.success) {
+        await limitService.incrementScanCount(user.id).catch((error) => {
+          console.error("Failed to increment scan count:", error);
+        });
+      }
 
       set.status = processed.status;
       return processed.response;
@@ -143,15 +176,39 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
   )
   .post(
     "/scan-base64",
-    async ({ body, set }) => {
+    async ({ body, set, user }) => {
       const { image_base64, model, skip_preprocessing } = body;
       const skipPreprocessing = parseSkipPreprocessing(skip_preprocessing);
+
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return {
+          success: false,
+          message: "Authentication required",
+        };
+      }
+
+      const canScan = await limitService.canScan(user.id);
+      if (!canScan.allowed) {
+        set.status = HTTP_STATUS.FORBIDDEN;
+        return {
+          success: false,
+          message: canScan.reason || "Scan limit reached",
+          limitExceeded: true,
+        };
+      }
 
       const processed = await processImage(
         undefined,
         image_base64,
         async (buffer) => handleReceiptScan(buffer, model, skipPreprocessing)
       );
+
+      if (processed.response.success) {
+        await limitService.incrementScanCount(user.id).catch((error) => {
+          console.error("Failed to increment scan count:", error);
+        });
+      }
 
       set.status = processed.status;
       return processed.response;
@@ -216,6 +273,66 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
         summary: "Detect barcodes and QR codes from base64",
         description:
           "Detect and decode barcodes and QR codes from a base64-encoded image",
+      },
+    }
+  )
+  .post(
+    "/save",
+    async ({ body, set, user }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return { success: false, message: "Unauthorized" };
+      }
+
+      // Check receipt save limit
+      const canSave = await limitService.canSaveReceipt(user.id);
+      if (!canSave.allowed) {
+        set.status = HTTP_STATUS.FORBIDDEN;
+        return {
+          success: false,
+          message: canSave.reason || "Receipt storage limit reached",
+          limitExceeded: true,
+        };
+      }
+
+      try {
+        // Save receipt to database
+        const receipt = await prisma.receipt.create({
+          data: {
+            userId: user.id,
+            data: body.receipt,
+          },
+        });
+
+        // Increment receipt count
+        await limitService.incrementReceiptCount(user.id);
+
+        set.status = HTTP_STATUS.CREATED;
+        return {
+          success: true,
+          receipt: {
+            id: receipt.id,
+            ...(receipt.data as Record<string, unknown>),
+            createdAt: receipt.createdAt,
+          },
+        };
+      } catch (error) {
+        set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+        return {
+          success: false,
+          message:
+            error instanceof Error ? error.message : "Failed to save receipt",
+        };
+      }
+    },
+    {
+      body: t.Object({
+        receipt: t.Record(t.String(), t.Any()),
+      }),
+      detail: {
+        tags: ["receipts"],
+        summary: "Save receipt",
+        description: "Save a receipt to the database (counts against limit)",
       },
     }
   );

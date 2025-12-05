@@ -213,8 +213,9 @@ export async function scanReceipt(
   options?: {
     model?: string;
     skipPreprocessing?: boolean;
+    token?: string;
   }
-): Promise<ReceiptScanResponse> {
+): Promise<ReceiptScanResponse & { limitExceeded?: boolean }> {
   try {
     // Convert image URI to base64
     const imageBase64 = await imageUriToBase64(imageUri);
@@ -232,12 +233,20 @@ export async function scanReceipt(
       body.skip_preprocessing = options.skipPreprocessing;
     }
 
+    // Prepare headers
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // Add auth token if provided
+    if (options?.token) {
+      headers.Authorization = `Bearer ${options.token}`;
+    }
+
     // Make API request
     const response = await fetch(`${API_BASE_URL}/receipts/scan-base64`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify(body),
     });
 
@@ -250,11 +259,12 @@ export async function scanReceipt(
         message:
           errorData.message ||
           `HTTP ${response.status}: ${response.statusText}`,
+        limitExceeded: errorData.limitExceeded || false,
       };
     }
 
     const data = await response.json();
-    return data as ReceiptScanResponse;
+    return data as ReceiptScanResponse & { limitExceeded?: boolean };
   } catch (error) {
     return {
       success: false,

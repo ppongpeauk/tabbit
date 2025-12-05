@@ -5,6 +5,7 @@
 
 import { betterAuth, User } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { bearer } from "better-auth/plugins";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/config/env";
 import { resend } from "@/lib/resend";
@@ -13,9 +14,11 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  plugins: [bearer()],
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
+    autoSignIn: true,
     sendVerificationEmail: async ({
       user,
       url,

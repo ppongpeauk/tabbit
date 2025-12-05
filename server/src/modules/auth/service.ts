@@ -4,20 +4,15 @@
  */
 
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { successResponse, errorResponse } from "@/utils/route-helpers";
 import { HTTP_STATUS } from "@/utils/constants";
+import { limitService } from "../limits/service";
 import type { User } from "better-auth";
 
 interface AuthError {
   error?: {
     message?: string;
-  };
-}
-
-interface AuthSuccess {
-  user?: User;
-  session?: {
-    token?: string;
   };
 }
 
@@ -42,7 +37,7 @@ export class AuthService {
         body: {
           email: data.email,
           password: data.password,
-          name: data.name,
+          name: data.name || "",
         },
       });
 
@@ -54,10 +49,44 @@ export class AuthService {
         ).response;
       }
 
-      const session = result as AuthSuccess;
+      const response = result as { user?: User };
+      const user = response.user;
+
+      if (!user) {
+        return errorResponse(
+          "Authentication failed: no user data",
+          HTTP_STATUS.INTERNAL_SERVER_ERROR
+        ).response;
+      }
+
+      // Get the most recent session for this user from the database
+      const session = await prisma.session.findFirst({
+        where: {
+          userId: user.id,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      if (!session) {
+        return errorResponse(
+          "Authentication failed: could not create session token",
+          HTTP_STATUS.INTERNAL_SERVER_ERROR
+        ).response;
+      }
+
+      // Initialize limits for new user
+      try {
+        await limitService.initializeUserLimits(user.id);
+      } catch (error) {
+        console.error("Failed to initialize user limits:", error);
+        // Don't fail signup if limit initialization fails
+      }
+
       return successResponse({
-        user: session.user,
-        token: session.session?.token,
+        user: user,
+        token: session.token,
       });
     } catch (error) {
       return errorResponse(
@@ -92,10 +121,36 @@ export class AuthService {
         ).response;
       }
 
-      const session = result as AuthSuccess;
+      const response = result as { user?: User };
+      const user = response.user;
+
+      if (!user) {
+        return errorResponse(
+          "Authentication failed: no user data",
+          HTTP_STATUS.INTERNAL_SERVER_ERROR
+        ).response;
+      }
+
+      // Get the most recent session for this user from the database
+      const session = await prisma.session.findFirst({
+        where: {
+          userId: user.id,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      if (!session) {
+        return errorResponse(
+          "Authentication failed: could not create session token",
+          HTTP_STATUS.INTERNAL_SERVER_ERROR
+        ).response;
+      }
+
       return successResponse({
-        user: session.user,
-        token: session.session?.token,
+        user: user,
+        token: session.token,
       });
     } catch (error) {
       return errorResponse(
@@ -140,16 +195,25 @@ export class AuthService {
     email: string;
   }): Promise<{ success: boolean; message?: string }> {
     try {
-      const result = await auth.api.forgetPassword({
+      const result = await (
+        auth.api as {
+          requestPasswordReset?: (args: {
+            body: { email: string };
+          }) => Promise<unknown>;
+        }
+      ).requestPasswordReset?.({
         body: {
           email: data.email,
         },
       });
 
-      if (!result || "error" in result) {
+      if (
+        !result ||
+        (typeof result === "object" && result !== null && "error" in result)
+      ) {
         const error = result as AuthError;
         return errorResponse(
-          error.error?.message || "Failed to send password reset email",
+          error?.error?.message || "Failed to send password reset email",
           HTTP_STATUS.BAD_REQUEST
         ).response;
       }

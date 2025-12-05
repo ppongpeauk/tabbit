@@ -3,8 +3,10 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { HeaderButton } from "@react-navigation/elements";
 import { SymbolView } from "expo-symbols";
 import { Colors } from "@/constants/theme";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { ThemedText } from "@/components/themed-text";
+import { useLimits } from "@/hooks/use-limits";
+import { useRevenueCat } from "@/contexts/revenuecat-context";
 
 const HEADER_FONT_FAMILY = "DMSans";
 const HEADER_FONT_FAMILY_BOLD = "DMSans-SemiBold";
@@ -15,21 +17,69 @@ const HEADER_FONT_FAMILY_BOLD = "DMSans-SemiBold";
 function HeaderRight() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { limitStatus, isLoading } = useLimits();
+  const { isPro } = useRevenueCat();
 
   const handleCameraPress = () => {
     router.push("/camera");
   };
 
+  // Don't show limits for Pro users
+  if (isPro) {
+    return (
+      <View style={styles.headerRight}>
+        <HeaderButton onPress={handleCameraPress}>
+          <SymbolView
+            name="camera"
+            tintColor={isDark ? Colors.dark.text : Colors.light.text}
+          />
+        </HeaderButton>
+      </View>
+    );
+  }
+
+  // Show loading state
+  if (isLoading || !limitStatus) {
+    return (
+      <View style={styles.headerRight}>
+        <View style={styles.limitContainer}>
+          <ActivityIndicator
+            size="small"
+            color={isDark ? Colors.dark.text : Colors.light.text}
+          />
+        </View>
+        <HeaderButton onPress={handleCameraPress}>
+          <SymbolView
+            name="camera"
+            tintColor={isDark ? Colors.dark.text : Colors.light.text}
+          />
+        </HeaderButton>
+      </View>
+    );
+  }
+
+  // Show limit status
+  const scansRemaining = limitStatus.monthlyScansRemaining;
+  const receiptsRemaining = limitStatus.totalReceiptsRemaining;
+
   return (
     <View style={styles.headerRight}>
       <View style={styles.limitContainer}>
+        <SymbolView
+          name="doc.text.fill"
+          tintColor={isDark ? Colors.dark.text : Colors.light.text}
+          size={16}
+        />
         <ThemedText
           size="sm"
           weight="bold"
           family="sans"
-          style={styles.limitText}
+          style={[
+            styles.limitText,
+            scansRemaining === 0 && styles.limitTextWarning,
+          ]}
         >
-          - / 10 Left
+          {scansRemaining} / {limitStatus.monthlyScansLimit}
         </ThemedText>
       </View>
       <HeaderButton onPress={handleCameraPress}>
@@ -81,8 +131,11 @@ const styles = StyleSheet.create({
   limitContainer: {
     flexDirection: "row",
     gap: 4,
-  },
-  limitText: {
+    alignItems: "center",
     marginLeft: 10,
+  },
+  limitText: {},
+  limitTextWarning: {
+    opacity: 0.6,
   },
 });

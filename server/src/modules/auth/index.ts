@@ -200,4 +200,24 @@ export const authModule = new Elysia({ prefix: "/auth" })
         description: "Get the current authenticated user session",
       },
     }
+  )
+  .get(
+    "/me",
+    async ({ request, set }) => {
+      const result = await authService.getSession(request.headers);
+      const { result: response, status } = handleServiceResult(
+        result,
+        HTTP_STATUS.OK,
+        HTTP_STATUS.UNAUTHORIZED
+      );
+      set.status = status;
+      return response;
+    },
+    {
+      detail: {
+        tags: ["auth"],
+        summary: "Get current user",
+        description: "Get the current authenticated user (alias for /session)",
+      },
+    }
   );

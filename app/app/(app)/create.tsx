@@ -31,6 +31,13 @@ import {
   type Barcode,
 } from "@/utils/api";
 import { hashImage } from "@/utils/hash";
+import { useLimits } from "@/hooks/use-limits";
+import { useRevenueCat } from "@/contexts/revenuecat-context";
+import { presentPaywall } from "@/utils/paywall";
+import * as SecureStore from "expo-secure-store";
+import { useAuth } from "@/contexts/auth-context";
+
+const TOKEN_STORAGE_KEY = "tabbit.token";
 
 interface ReceiptFormData {
   name: string;
@@ -48,6 +55,9 @@ export default function CreateReceiptScreen() {
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const { checkSaveLimit, refresh: refreshLimits } = useLimits();
+  const { isPro } = useRevenueCat();
+  const { user } = useAuth();
   const isDark = colorScheme === "dark";
   const isSavingRef = useRef(false);
   const barcodePromptShownRef = useRef(false);
@@ -76,6 +86,28 @@ export default function CreateReceiptScreen() {
       if (!receiptData) {
         Alert.alert("Error", "Receipt data is not ready yet");
         return;
+      }
+
+      // Check save limit for free users
+      if (!isPro) {
+        const limitCheck = await checkSaveLimit();
+        if (!limitCheck.allowed) {
+          Alert.alert(
+            "Receipt Storage Limit Reached",
+            limitCheck.reason ||
+              "You've reached your receipt storage limit. Upgrade to Pro for unlimited storage.",
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Upgrade to Pro",
+                onPress: async () => {
+                  await presentPaywall();
+                },
+              },
+            ]
+          );
+          return;
+        }
       }
 
       setSaving(true);
@@ -108,6 +140,10 @@ export default function CreateReceiptScreen() {
           imageUri: params.imageUri,
           imageHash,
         });
+
+        // Refresh limits after saving
+        await refreshLimits();
+
         router.back();
       } catch (error) {
         isSavingRef.current = false;
@@ -117,7 +153,14 @@ export default function CreateReceiptScreen() {
         setSaving(false);
       }
     },
-    [receiptData, touchedFields.name, params.imageUri]
+    [
+      receiptData,
+      touchedFields.name,
+      params.imageUri,
+      isPro,
+      checkSaveLimit,
+      refreshLimits,
+    ]
   );
 
   const handleBackPress = useCallback(() => {
@@ -380,9 +423,34 @@ export default function CreateReceiptScreen() {
         }
 
         // No cached result - scan receipt using API
-        const response = await scanReceipt(params.imageUri);
+        const token = user
+          ? await SecureStore.getItemAsync(TOKEN_STORAGE_KEY)
+          : undefined;
+        const response = await scanReceipt(params.imageUri, { token });
 
         if (!response.success) {
+          // Check if limit was exceeded
+          if (response.limitExceeded) {
+            await refreshLimits();
+            Alert.alert(
+              "Scan Limit Reached",
+              response.message ||
+                "You've reached your monthly scan limit. Upgrade to Pro for unlimited scans.",
+              [
+                { text: "OK", onPress: () => router.back() },
+                {
+                  text: "Upgrade to Pro",
+                  onPress: async () => {
+                    await presentPaywall();
+                    router.back();
+                  },
+                },
+              ]
+            );
+            setLoading(false);
+            return;
+          }
+
           setError(
             response.message ||
               "Failed to scan receipt. Please try again with a clearer image."

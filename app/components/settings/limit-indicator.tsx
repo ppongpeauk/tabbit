@@ -1,9 +1,15 @@
-import { StyleSheet, View } from "react-native";
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Limit indicator component showing free plan limits with real-time data
+ */
+
+import { StyleSheet, View, ActivityIndicator } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { ThemedText } from "../themed-text";
-import { ThemedView } from "../themed-view";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
+import { useLimits } from "@/hooks/use-limits";
+import { useRevenueCat } from "@/contexts/revenuecat-context";
 
 type LimitIndicatorProps = {
   title?: string;
@@ -13,26 +19,23 @@ type LimitIndicatorProps = {
   limit?: number;
 };
 
-export function LimitIndicator({
-  title = "Monthly Limit",
-  subtitle = "You are currently on our free plan.",
-  progress = 65,
+function LimitCircle({
   current,
   limit,
-}: LimitIndicatorProps) {
+  size = 48,
+}: {
+  current: number;
+  limit: number;
+  size?: number;
+}) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme as keyof typeof Colors];
   const isDark = colorScheme === "dark";
-  const size = 48;
   const strokeWidth = 4;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
+  const progress = Math.min((current / limit) * 100, 100);
   const progressOffset = circumference - (progress / 100) * circumference;
-
-  const displayText =
-    current !== undefined && limit !== undefined
-      ? `${current} / ${limit}`
-      : `${progress}%`;
 
   const backgroundStroke = isDark
     ? "rgba(255, 255, 255, 0.2)"
@@ -40,7 +43,103 @@ export function LimitIndicator({
   const progressStroke = colors.tint;
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.progressContainer}>
+      <Svg width={size} height={size} style={styles.svg}>
+        {/* Background circle */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={backgroundStroke}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        {/* Progress circle */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={progressStroke}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={progressOffset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={styles.progressTextContainer}>
+        <ThemedText
+          size="sm"
+          weight="bold"
+          family="sans"
+          style={styles.progressText}
+        >
+          {current} / {limit}
+        </ThemedText>
+      </View>
+    </View>
+  );
+}
+
+export function LimitIndicator({
+  title = "Free Plan Limits",
+  subtitle = "You are currently on our free plan.",
+}: LimitIndicatorProps) {
+  const { limitStatus, isLoading } = useLimits();
+  const { isPro } = useRevenueCat();
+
+  // Don't show limits for Pro users
+  if (isPro) {
+    return null;
+  }
+
+  // Show loading state
+  if (isLoading || !limitStatus) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <ThemedText size="lg" weight="bold" family="sans">
+            {title}
+          </ThemedText>
+          <ThemedText
+            size="sm"
+            weight="normal"
+            family="sans"
+            style={styles.subtitle}
+          >
+            {subtitle}
+          </ThemedText>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" />
+        </View>
+      </View>
+    );
+  }
+
+  // Format reset date
+  const formatResetDate = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffTime = date.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays <= 0) {
+        return "Resets today";
+      } else if (diffDays === 1) {
+        return "Resets tomorrow";
+      } else {
+        return `Resets in ${diffDays} days`;
+      }
+    } catch {
+      return "";
+    }
+  };
+
+  return (
+    <View style={styles.container}>
       <View style={styles.content}>
         <ThemedText size="lg" weight="bold" family="sans">
           {title}
@@ -55,64 +154,85 @@ export function LimitIndicator({
         </ThemedText>
       </View>
 
-      <View style={styles.progressContainer}>
-        <Svg width={size} height={size} style={styles.svg}>
-          {/* Background circle */}
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={backgroundStroke}
-            strokeWidth={strokeWidth}
-            fill="none"
-          />
-          {/* Progress circle */}
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={progressStroke}
-            strokeWidth={strokeWidth}
-            fill="none"
-            strokeDasharray={circumference}
-            strokeDashoffset={progressOffset}
-            strokeLinecap="round"
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          />
-        </Svg>
-        <View style={styles.progressTextContainer}>
+      <View style={styles.limitsRow}>
+        <View style={styles.limitItem}>
           <ThemedText
-            size="sm"
-            weight="bold"
+            size="xs"
+            weight="semibold"
             family="sans"
-            style={styles.progressText}
+            style={styles.limitLabel}
           >
-            {displayText}
+            Monthly Scans
+          </ThemedText>
+          <LimitCircle
+            current={limitStatus.monthlyScansUsed}
+            limit={limitStatus.monthlyScansLimit}
+          />
+          <ThemedText
+            size="xs"
+            weight="normal"
+            family="sans"
+            style={styles.resetText}
+          >
+            {formatResetDate(limitStatus.monthlyScansResetDate)}
+          </ThemedText>
+        </View>
+        <View style={styles.limitItem}>
+          <ThemedText
+            size="xs"
+            weight="semibold"
+            family="sans"
+            style={styles.limitLabel}
+          >
+            Total Receipts
+          </ThemedText>
+          <LimitCircle
+            current={limitStatus.totalReceiptsSaved}
+            limit={limitStatus.totalReceiptsLimit}
+          />
+          <ThemedText
+            size="xs"
+            weight="normal"
+            family="sans"
+            style={styles.resetText}
+          >
+            {formatResetDate(limitStatus.receiptsResetDate)}
           </ThemedText>
         </View>
       </View>
-    </ThemedView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    paddingBottom: 16,
   },
   content: {
-    flex: 1,
+    marginBottom: 16,
   },
   subtitle: {
     opacity: 0.7,
+  },
+  limitsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "flex-start",
+    gap: 24,
+  },
+  limitItem: {
+    alignItems: "center",
+    gap: 8,
+  },
+  limitLabel: {
+    opacity: 0.8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   progressContainer: {
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
-    marginLeft: 16,
   },
   svg: {
     transform: [{ rotate: "0deg" }],
@@ -125,5 +245,14 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 12,
     fontWeight: "bold",
+  },
+  loadingContainer: {
+    paddingVertical: 24,
+    alignItems: "center",
+  },
+  resetText: {
+    opacity: 0.6,
+    marginTop: 4,
+    fontSize: 10,
   },
 });

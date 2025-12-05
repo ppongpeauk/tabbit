@@ -14,6 +14,9 @@ export const env = {
   // Resend
   RESEND_API_KEY: process.env.RESEND_API_KEY || "",
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || "noreply@example.com",
+  // RevenueCat
+  REVENUECAT_SECRET_KEY: process.env.REVENUECAT_SECRET_KEY || "",
+  REVENUECAT_WEBHOOK_SECRET: process.env.REVENUECAT_WEBHOOK_SECRET || "",
 } as const;
 
 export function validateEnv(): void {

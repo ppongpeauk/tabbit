@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { View, StyleSheet, ScrollView, Pressable, Alert } from "react-native";
+import { useState, useEffect } from "react";
+import { View, StyleSheet, Pressable, Alert, ScrollView } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useForm, Controller } from "react-hook-form";
 import { ThemedText } from "@/components/themed-text";
 import { FormTextInput } from "@/components/form-text-input";
@@ -8,7 +9,6 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/contexts/auth-context";
 import { router, useRootNavigationState } from "expo-router";
-import { useEffect } from "react";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 
@@ -68,8 +68,8 @@ export default function SignUpScreen() {
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={[
+    <KeyboardAvoidingView
+      style={[
         styles.container,
         {
           backgroundColor: isDark
@@ -77,219 +77,252 @@ export default function SignUpScreen() {
             : Colors.light.background,
         },
       ]}
-      keyboardShouldPersistTaps="handled"
+      behavior="padding"
     >
-      {/* Form Section */}
-      <View style={styles.formSection}>
-        <Controller
-          control={control}
-          rules={{
-            required: "Name is required",
-            minLength: {
-              value: 1,
-              message: "Name must be at least 1 character",
-            },
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <FormTextInput
-              label="Name"
-              placeholder="Enter your name"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              autoCapitalize="words"
-              autoCorrect={false}
-              editable={!isSubmitting}
-              leftIcon={
-                <SymbolView
-                  name="person.fill"
-                  tintColor={
-                    isDark ? Colors.dark.icon : Colors.light.icon
-                  }
-                />
-              }
-            />
-          )}
-          name="name"
-        />
-        {errors.name && (
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          <View
+            style={[
+              styles.imagePlaceholder,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255, 255, 255, 0.05)"
+                  : "#E5E5E5",
+              },
+            ]}
+          />
           <ThemedText
-            style={[styles.errorText, { color: "#FF3B30" }]}
-            size="sm"
+            family="serif"
+            weight="bold"
+            style={styles.welcomeText}
+            size="2xl"
           >
-            {errors.name.message}
+            Let&apos;s get started
           </ThemedText>
-        )}
+        </View>
 
-        <Controller
-          control={control}
-          rules={{
-            required: "Email is required",
-            pattern: {
-              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-              message: "Invalid email address",
-            },
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <FormTextInput
-              label="Email"
-              placeholder="Enter your email"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!isSubmitting}
-              leftIcon={
-                <SymbolView
-                  name="envelope.fill"
-                  tintColor={
-                    isDark ? Colors.dark.icon : Colors.light.icon
-                  }
-                />
-              }
-            />
-          )}
-          name="email"
-        />
-        {errors.email && (
-          <ThemedText
-            style={[styles.errorText, { color: "#FF3B30" }]}
-            size="sm"
-          >
-            {errors.email.message}
-          </ThemedText>
-        )}
-
-        <Controller
-          control={control}
-          rules={{
-            required: "Password is required",
-            minLength: {
-              value: 8,
-              message: "Password must be at least 8 characters",
-            },
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <FormTextInput
-              label="Password"
-              placeholder="Enter your password"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!isSubmitting}
-              leftIcon={
-                <SymbolView
-                  name="lock.fill"
-                  tintColor={
-                    isDark ? Colors.dark.icon : Colors.light.icon
-                  }
-                />
-              }
-              rightIcon={
-                <Pressable
-                  onPress={() => setShowPassword(!showPassword)}
-                  hitSlop={8}
-                >
+        {/* Form Section */}
+        <View style={styles.formSection}>
+          <Controller
+            control={control}
+            rules={{
+              required: "Name is required",
+              minLength: {
+                value: 1,
+                message: "Name must be at least 1 character",
+              },
+            }}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <FormTextInput
+                label="Name"
+                placeholder="Enter your name"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                autoCapitalize="words"
+                autoCorrect={false}
+                editable={!isSubmitting}
+                leftIcon={
                   <SymbolView
-                    name={showPassword ? "eye.slash.fill" : "eye.fill"}
-                    tintColor={
-                      isDark ? Colors.dark.icon : Colors.light.icon
-                    }
+                    name="person.fill"
+                    tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
                   />
-                </Pressable>
-              }
-            />
+                }
+              />
+            )}
+            name="name"
+          />
+          {errors.name && (
+            <ThemedText
+              style={[styles.errorText, { color: "#FF3B30" }]}
+              size="sm"
+            >
+              {errors.name.message}
+            </ThemedText>
           )}
-          name="password"
-        />
-        {errors.password && (
-          <ThemedText
-            style={[styles.errorText, { color: "#FF3B30" }]}
-            size="sm"
-          >
-            {errors.password.message}
-          </ThemedText>
-        )}
 
-        <Controller
-          control={control}
-          rules={{
-            required: "Please confirm your password",
-            validate: (value) =>
-              value === password || "Passwords do not match",
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <FormTextInput
-              label="Confirm Password"
-              placeholder="Confirm your password"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!isSubmitting}
-              leftIcon={
-                <SymbolView
-                  name="lock.fill"
-                  tintColor={
-                    isDark ? Colors.dark.icon : Colors.light.icon
-                  }
-                />
-              }
-              rightIcon={
-                <Pressable
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  hitSlop={8}
-                >
+          <Controller
+            control={control}
+            rules={{
+              required: "Email is required",
+              pattern: {
+                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                message: "Invalid email address",
+              },
+            }}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <FormTextInput
+                label="Email"
+                placeholder="Enter your email"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isSubmitting}
+                leftIcon={
                   <SymbolView
-                    name={showConfirmPassword ? "eye.slash.fill" : "eye.fill"}
-                    tintColor={
-                      isDark ? Colors.dark.icon : Colors.light.icon
-                    }
+                    name="envelope.fill"
+                    tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
                   />
-                </Pressable>
-              }
-            />
+                }
+              />
+            )}
+            name="email"
+          />
+          {errors.email && (
+            <ThemedText
+              style={[styles.errorText, { color: "#FF3B30" }]}
+              size="sm"
+            >
+              {errors.email.message}
+            </ThemedText>
           )}
-          name="confirmPassword"
-        />
-        {errors.confirmPassword && (
-          <ThemedText
-            style={[styles.errorText, { color: "#FF3B30" }]}
-            size="sm"
+
+          <Controller
+            control={control}
+            rules={{
+              required: "Password is required",
+              minLength: {
+                value: 8,
+                message: "Password must be at least 8 characters",
+              },
+            }}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <FormTextInput
+                label="Password"
+                placeholder="Enter your password"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isSubmitting}
+                leftIcon={
+                  <SymbolView
+                    name="lock.fill"
+                    tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
+                  />
+                }
+                rightIcon={
+                  <Pressable
+                    onPress={() => setShowPassword(!showPassword)}
+                    hitSlop={8}
+                  >
+                    <SymbolView
+                      name={showPassword ? "eye.slash.fill" : "eye.fill"}
+                      tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
+                    />
+                  </Pressable>
+                }
+              />
+            )}
+            name="password"
+          />
+          {errors.password && (
+            <ThemedText
+              style={[styles.errorText, { color: "#FF3B30" }]}
+              size="sm"
+            >
+              {errors.password.message}
+            </ThemedText>
+          )}
+
+          <Controller
+            control={control}
+            rules={{
+              required: "Please confirm your password",
+              validate: (value) =>
+                value === password || "Passwords do not match",
+            }}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <FormTextInput
+                label="Confirm Password"
+                placeholder="Confirm your password"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                secureTextEntry={!showConfirmPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isSubmitting}
+                leftIcon={
+                  <SymbolView
+                    name="lock.fill"
+                    tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
+                  />
+                }
+                rightIcon={
+                  <Pressable
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    hitSlop={8}
+                  >
+                    <SymbolView
+                      name={showConfirmPassword ? "eye.slash.fill" : "eye.fill"}
+                      tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
+                    />
+                  </Pressable>
+                }
+              />
+            )}
+            name="confirmPassword"
+          />
+          {errors.confirmPassword && (
+            <ThemedText
+              style={[styles.errorText, { color: "#FF3B30" }]}
+              size="sm"
+            >
+              {errors.confirmPassword.message}
+            </ThemedText>
+          )}
+
+          <Button
+            variant="primary"
+            onPress={handleSubmit(onSubmit)}
+            disabled={isSubmitting}
+            loading={isSubmitting}
+            fullWidth
           >
-            {errors.confirmPassword.message}
-          </ThemedText>
-        )}
-
-        <Button
-          variant="primary"
-          onPress={handleSubmit(onSubmit)}
-          disabled={isSubmitting}
-          loading={isSubmitting}
-          fullWidth
-        >
-          {isSubmitting ? "Creating Account..." : "Sign Up"}
-        </Button>
-
-      </View>
-    </ScrollView>
+            {isSubmitting ? "Creating Account..." : "Sign Up"}
+          </Button>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  scrollContent: {
     flexGrow: 1,
-    paddingTop: 60,
-    paddingBottom: 40,
     paddingHorizontal: 32,
+    paddingTop: 40,
+    paddingBottom: 40,
     justifyContent: "center",
+  },
+  headerSection: {
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 48,
+  },
+  imagePlaceholder: {
+    width: "50%",
+    minWidth: 100,
+    aspectRatio: 1,
+    borderRadius: 16,
+    marginBottom: 24,
+  },
+  welcomeText: {
+    textAlign: "center",
   },
   formSection: {
     width: "100%",
@@ -300,4 +333,3 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 });
-
