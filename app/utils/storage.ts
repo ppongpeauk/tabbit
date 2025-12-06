@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const RECEIPTS_KEY = "@tabbit:receipts";
 const FRIENDS_KEY = "@tabbit:friends";
+const DEFAULT_SPLIT_MODE_KEY = "@tabbit:default_split_mode";
 
 import type {
   ReceiptItem,
@@ -13,6 +14,7 @@ import type {
   Technical,
 } from "./api";
 import type { SplitData } from "./split";
+import { SplitStrategy } from "./split";
 
 export interface Friend {
   id: string;
@@ -168,4 +170,32 @@ export async function getSplitData(
   const receipts = await getReceipts();
   const receipt = receipts.find((r) => r.id === receiptId);
   return receipt?.splitData || null;
+}
+
+/**
+ * Get the default split mode preference
+ */
+export async function getDefaultSplitMode(): Promise<SplitStrategy> {
+  try {
+    const data = await AsyncStorage.getItem(DEFAULT_SPLIT_MODE_KEY);
+    if (data) {
+      return data as SplitStrategy;
+    }
+    return SplitStrategy.EQUAL; // Default to EQUAL if not set
+  } catch (error) {
+    console.error("Error loading default split mode:", error);
+    return SplitStrategy.EQUAL;
+  }
+}
+
+/**
+ * Set the default split mode preference
+ */
+export async function setDefaultSplitMode(mode: SplitStrategy): Promise<void> {
+  try {
+    await AsyncStorage.setItem(DEFAULT_SPLIT_MODE_KEY, mode);
+  } catch (error) {
+    console.error("Error saving default split mode:", error);
+    throw error;
+  }
 }

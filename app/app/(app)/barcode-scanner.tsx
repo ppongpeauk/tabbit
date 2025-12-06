@@ -6,6 +6,7 @@ import {
   Alert,
   Text,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import { router, useLocalSearchParams } from "expo-router";
@@ -28,6 +29,7 @@ export default function BarcodeScannerScreen() {
   const [flash, setFlash] = useState<"on" | "off">("off");
   const [permission, requestPermission] = useCameraPermissions();
   const [processing, setProcessing] = useState(false);
+  const [frozenFrame, setFrozenFrame] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
   if (!permission) {
@@ -55,7 +57,7 @@ export default function BarcodeScannerScreen() {
         const photo = await cameraRef.current.takePictureAsync();
         console.log("[BarcodeScanner] Photo taken:", photo);
 
-        // Send image to server for barcode detection
+        setFrozenFrame(photo.uri);
         const response = await scanBarcodeImage(photo.uri);
 
         if (
@@ -63,8 +65,8 @@ export default function BarcodeScannerScreen() {
           !response.barcodes ||
           response.barcodes.length === 0
         ) {
-          // No barcode detected - show alert and re-enable button
           setProcessing(false);
+          setFrozenFrame(null);
           Alert.alert(
             "No Barcode Detected",
             response.message ||
@@ -91,10 +93,12 @@ export default function BarcodeScannerScreen() {
         } catch (error) {
           console.error("Failed to store scanned barcode:", error);
           setProcessing(false);
+          setFrozenFrame(null);
           Alert.alert("Error", "Failed to save barcode. Please try again.");
         }
       } catch (error) {
         setProcessing(false);
+        setFrozenFrame(null);
         Alert.alert(
           "Error",
           error instanceof Error
@@ -107,12 +111,16 @@ export default function BarcodeScannerScreen() {
 
   return (
     <View style={styles.container}>
-      <CameraView
-        ref={cameraRef}
-        style={styles.camera}
-        facing={facing}
-        flash={flash}
-      />
+      {frozenFrame ? (
+        <Image source={{ uri: frozenFrame }} style={styles.camera} />
+      ) : (
+        <CameraView
+          ref={cameraRef}
+          style={styles.camera}
+          facing={facing}
+          flash={flash}
+        />
+      )}
       <View style={styles.topControls}>
         <PlatformPressable onPress={() => router.back()}>
           <GlassView style={styles.closeButton}>

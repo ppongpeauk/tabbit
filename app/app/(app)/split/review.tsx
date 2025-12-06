@@ -1,0 +1,270 @@
+import { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
+import { router } from "expo-router";
+import { ThemedText } from "@/components/themed-text";
+import { Button } from "@/components/button";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Colors } from "@/constants/theme";
+import * as Haptics from "expo-haptics";
+import {
+  getReceipts,
+  getFriends,
+  saveSplitData,
+  type StoredReceipt,
+  type Friend,
+} from "@/utils/storage";
+import {
+  fetchContacts,
+  type ContactInfo,
+} from "@/utils/contacts";
+import { SplitStrategy, validateSplit, type SplitData, type ItemAssignment } from "@/utils/split";
+import { SplitSummary } from "@/components/split/split-summary";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
+
+export default function ReviewScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const [receipt, setReceipt] = useState<StoredReceipt | null>(null);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [deviceContacts, setDeviceContacts] = useState<ContactInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [splitData, setSplitData] = useState<{
+    receiptId: string;
+    groupId?: string;
+    strategy: SplitStrategy | string;
+    selectedFriendIds: string[];
+    assignments?: ItemAssignment[];
+    calculatedSplit?: {
+      friendShares: Record<string, number>;
+      taxDistribution: Record<string, number>;
+      tipDistribution?: Record<string, number>;
+      totals: Record<string, number>;
+    };
+  } | null>(null);
+  const [calculatedSplitData, setCalculatedSplitData] = useState<SplitData | null>(null);
+
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const tempDataStr = await AsyncStorage.getItem(SPLIT_DATA_KEY);
+      if (!tempDataStr) {
+        Alert.alert("Error", "Missing split data");
+        router.replace("/split");
+        return;
+      }
+      const tempData = JSON.parse(tempDataStr);
+      setSplitData(tempData);
+
+      const receipts = await getReceipts();
+      const foundReceipt = receipts.find((r) => r.id === tempData.receiptId);
+      if (!foundReceipt) {
+        Alert.alert("Error", "Receipt not found");
+        router.back();
+        return;
+      }
+      setReceipt(foundReceipt);
+
+      const loadedFriends = await getFriends();
+      setFriends(loadedFriends);
+
+      try {
+        const contacts = await fetchContacts();
+        setDeviceContacts(contacts);
+      } catch (error) {
+        console.error("Error loading contacts:", error);
+      }
+
+      if (tempData.calculatedSplit) {
+        const strategy =
+          typeof tempData.strategy === "string"
+            ? (tempData.strategy as SplitStrategy)
+            : tempData.strategy;
+        const completeSplit: SplitData = {
+          strategy,
+          assignments: tempData.assignments || [],
+          friendShares: tempData.calculatedSplit.friendShares,
+          taxDistribution: tempData.calculatedSplit.taxDistribution,
+          tipDistribution: tempData.calculatedSplit.tipDistribution,
+          totals: tempData.calculatedSplit.totals,
+        };
+        setCalculatedSplitData(completeSplit);
+      }
+    } catch (error) {
+      console.error("Error loading data:", error);
+      Alert.alert("Error", "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleSend = useCallback(async () => {
+    if (!receipt || !calculatedSplitData || !splitData) {
+      Alert.alert("Error", "Missing data");
+      return;
+    }
+
+    const strategy =
+      typeof splitData.strategy === "string"
+        ? (splitData.strategy as SplitStrategy)
+        : splitData.strategy;
+    const validation = validateSplit(
+      receipt,
+      strategy,
+      splitData.assignments || [],
+      splitData.selectedFriendIds
+    );
+    if (!validation.valid) {
+      Alert.alert("Validation Error", validation.errors.join("\n"));
+      return;
+    }
+
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      await saveSplitData(receipt.id, calculatedSplitData);
+      await AsyncStorage.removeItem(SPLIT_DATA_KEY);
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.push("/split/sent");
+    } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Error", "Failed to save split");
+    }
+  }, [receipt, calculatedSplitData, splitData]);
+
+  if (loading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          styles.centerContent,
+          {
+            backgroundColor: isDark
+              ? Colors.dark.background
+              : Colors.light.background,
+          },
+        ]}
+      >
+        <ActivityIndicator
+          size="large"
+          color={isDark ? Colors.dark.text : Colors.light.text}
+        />
+      </View>
+    );
+  }
+
+  if (!receipt || !calculatedSplitData) {
+    return (
+      <View
+        style={[
+          styles.container,
+          styles.centerContent,
+          {
+            backgroundColor: isDark
+              ? Colors.dark.background
+              : Colors.light.background,
+          },
+        ]}
+      >
+        <ThemedText>Receipt not found</ThemedText>
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        },
+      ]}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.stepContainer}>
+          <ThemedText size="xl" weight="bold" style={styles.stepTitle}>
+            Review Split Summary
+          </ThemedText>
+          <SplitSummary
+            splitData={calculatedSplitData}
+            friends={friends}
+            deviceContacts={deviceContacts}
+            receiptTotal={receipt.totals.total}
+            currency={receipt.totals.currency}
+          />
+        </View>
+      </ScrollView>
+
+      {/* Send Button */}
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: isDark
+              ? Colors.dark.background
+              : Colors.light.background,
+            borderTopColor: isDark
+              ? "rgba(255, 255, 255, 0.1)"
+              : "rgba(0, 0, 0, 0.1)",
+          },
+        ]}
+      >
+        <Button variant="primary" onPress={handleSend} fullWidth>
+          Send Requests
+        </Button>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 24,
+    paddingBottom: 100,
+  },
+  stepContainer: {
+    gap: 16,
+  },
+  stepTitle: {
+    marginBottom: 8,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 40,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+});
+

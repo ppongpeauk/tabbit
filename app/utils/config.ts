@@ -25,5 +25,15 @@ export const getApiBaseUrl = (): string => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
-
-
+/**
+ * Animation configuration constants
+ * Used for consistent animation timing across UI components
+ */
+export const AnimationConfig = {
+  /** Fast animation duration for quick interactions (e.g., button presses, selections) */
+  fast: 120,
+  /** Standard animation duration for most UI transitions */
+  standard: 200,
+  /** Slow animation duration for complex or attention-grabbing animations */
+  slow: 300,
+} as const;

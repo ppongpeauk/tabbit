@@ -3,11 +3,14 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { HeaderButton } from "@react-navigation/elements";
 import { SymbolView } from "expo-symbols";
 import { Colors } from "@/constants/theme";
-import { View, StyleSheet, ActivityIndicator } from "react-native";
+import { View, StyleSheet, ActivityIndicator, Pressable } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useLimits } from "@/hooks/use-limits";
 import { useRevenueCat } from "@/contexts/revenuecat-context";
 import { Fonts } from "@/constants/theme";
+import { useRef } from "react";
+import { LimitsModal } from "@/components/limits-modal";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
 /**
  * Header right component with limit indicator and camera button
@@ -17,9 +20,14 @@ function HeaderRight() {
   const isDark = colorScheme === "dark";
   const { limitStatus, isLoading } = useLimits();
   const { isPro } = useRevenueCat();
+  const limitsModalRef = useRef<BottomSheetModal>(null);
 
   const handleCameraPress = () => {
     router.push("/camera");
+  };
+
+  const handleLimitPress = () => {
+    limitsModalRef.current?.present();
   };
 
   // Don't show limits for Pro users
@@ -61,32 +69,29 @@ function HeaderRight() {
   const receiptsRemaining = limitStatus.totalReceiptsRemaining;
 
   return (
-    <View style={styles.headerRight}>
-      <View style={styles.limitContainer}>
-        <SymbolView
-          name="doc.text.fill"
-          tintColor={isDark ? Colors.dark.text : Colors.light.text}
-          size={16}
-        />
-        <ThemedText
-          size="sm"
-          weight="bold"
-          family="sans"
-          style={[
-            styles.limitText,
-            scansRemaining === 0 && styles.limitTextWarning,
-          ]}
-        >
-          {scansRemaining} / {limitStatus.monthlyScansLimit}
-        </ThemedText>
+    <>
+      <View style={styles.headerRight}>
+        <Pressable onPress={handleLimitPress} style={styles.limitContainer}>
+          <SymbolView
+            name="doc.text.fill"
+            tintColor={isDark ? Colors.dark.text : Colors.light.text}
+            size={16}
+          />
+          <ThemedText
+            size="sm"
+            weight="bold"
+            family="sans"
+            style={[
+              styles.limitText,
+              scansRemaining === 0 && styles.limitTextWarning,
+            ]}
+          >
+            {scansRemaining} / {limitStatus.monthlyScansLimit}
+          </ThemedText>
+        </Pressable>
       </View>
-      {/* <HeaderButton onPress={handleCameraPress}>
-        <SymbolView
-          name="camera"
-          tintColor={isDark ? Colors.dark.text : Colors.light.text}
-        />
-      </HeaderButton> */}
-    </View>
+      <LimitsModal bottomSheetRef={limitsModalRef} />
+    </>
   );
 }
 

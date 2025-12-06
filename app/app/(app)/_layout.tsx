@@ -95,7 +95,8 @@ export default function AuthenticatedLayout() {
       <Stack.Screen
         name="split"
         options={{
-          title: "Split Receipt",
+          headerShown: false,
+          presentation: "containedModal",
         }}
       />
     </Stack>

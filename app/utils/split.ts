@@ -3,6 +3,7 @@ import type { StoredReceipt } from "./storage";
 export enum SplitStrategy {
   EQUAL = "equal",
   ITEMIZED = "itemized",
+  PERCENTAGE = "percentage",
   CUSTOM = "custom",
 }
 
@@ -33,6 +34,23 @@ export function calculateEqualSplit(
   const result: Record<string, number> = {};
   friendIds.forEach((id) => {
     result[id] = amountPerFriend;
+  });
+  return roundAmounts(result, total);
+}
+
+/**
+ * Calculate percentage-based split among friends
+ */
+export function calculatePercentageSplit(
+  total: number,
+  friendIds: string[],
+  percentages: Record<string, number>
+): Record<string, number> {
+  if (friendIds.length === 0) return {};
+  const result: Record<string, number> = {};
+  friendIds.forEach((id) => {
+    const percentage = percentages[id] || 0;
+    result[id] = (total * percentage) / 100;
   });
   return roundAmounts(result, total);
 }
@@ -215,6 +233,13 @@ export function calculateSplit(
       break;
     case SplitStrategy.ITEMIZED:
       friendShares = calculateItemizedSplit(receipt, assignments);
+      break;
+    case SplitStrategy.PERCENTAGE:
+      // For percentage, friendShares should be calculated from percentages provided in assignments
+      // This will be handled by the UI component
+      friendIds.forEach((id) => {
+        friendShares[id] = 0;
+      });
       break;
     case SplitStrategy.CUSTOM:
       // For custom, friendShares should be provided in assignments or calculated separately

@@ -1,8 +1,3 @@
-/**
- * @author Composer
- * @description Group details screen with icon, name, edit button, and members list
- */
-
 import { useState, useEffect, useCallback, useLayoutEffect } from "react";
 import {
   View,
@@ -12,35 +7,23 @@ import {
   ActivityIndicator,
   Image,
   TouchableOpacity,
-  Alert,
+  Pressable,
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-import { useForm, Controller } from "react-hook-form";
 import {
   useLocalSearchParams,
   router,
   useFocusEffect,
   useNavigation,
 } from "expo-router";
+import { HeaderButton } from "@react-navigation/elements";
 import { ThemedText } from "@/components/themed-text";
-import { FormTextInput } from "@/components/form-text-input";
-import { Button } from "@/components/button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { SymbolView } from "expo-symbols";
-import {
-  getGroup,
-  getPresignedUrl,
-  updateGroup,
-  type Group,
-} from "@/utils/api";
+import { getGroup, getPresignedUrl, type Group } from "@/utils/api";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/contexts/auth-context";
-
-interface EditGroupFormData {
-  name: string;
-  description: string;
-}
 
 export default function GroupDetailsScreen() {
   const { id, title, memberCount } = useLocalSearchParams<{
@@ -56,20 +39,6 @@ export default function GroupDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [iconUrl, setIconUrl] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<EditGroupFormData>({
-    defaultValues: {
-      name: "",
-      description: "",
-    },
-  });
 
   const loadGroup = useCallback(async () => {
     if (!id) return;
@@ -78,10 +47,6 @@ export default function GroupDetailsScreen() {
       const result = await getGroup(id);
       if (result.success && result.group) {
         setGroup(result.group);
-        reset({
-          name: result.group.name,
-          description: result.group.description || "",
-        });
 
         if (result.group.iconKey) {
           try {
@@ -100,7 +65,7 @@ export default function GroupDetailsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [id, reset]);
+  }, [id]);
 
   useEffect(() => {
     loadGroup();
@@ -117,53 +82,10 @@ export default function GroupDetailsScreen() {
     await loadGroup();
   }, [loadGroup]);
 
-  const handleEdit = () => {
+  const handleEdit = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setIsEditing(true);
-  };
-
-  const handleCancelEdit = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (group) {
-      reset({
-        name: group.name,
-        description: group.description || "",
-      });
-    }
-    setIsEditing(false);
-  };
-
-  const onSubmit = async (data: EditGroupFormData) => {
-    if (!group || !id) return;
-
-    try {
-      setIsSubmitting(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-      const result = await updateGroup(id, {
-        name: data.name,
-        description: data.description || undefined,
-      });
-
-      if (!result.success) {
-        throw new Error(result.message || "Failed to update group");
-      }
-
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setIsEditing(false);
-      await loadGroup();
-    } catch (error) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(
-        "Error",
-        error instanceof Error
-          ? error.message
-          : "Failed to update group. Please try again."
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    router.push(`/(app)/(tabs)/(groups)/${id}/edit`);
+  }, [id]);
 
   const handleAddMember = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -192,8 +114,19 @@ export default function GroupDetailsScreen() {
           </ThemedText>
         </View>
       ),
+      headerRight: () => {
+        if (!isAdmin) return null;
+        return (
+          <HeaderButton onPress={handleEdit}>
+            <SymbolView
+              name="gearshape.fill"
+              tintColor={isDark ? Colors.dark.text : Colors.light.text}
+            />
+          </HeaderButton>
+        );
+      },
     });
-  }, [navigation, group, title, memberCount]);
+  }, [navigation, group, title, memberCount, isAdmin, isDark, handleEdit]);
 
   if (loading) {
     return (
@@ -277,129 +210,24 @@ export default function GroupDetailsScreen() {
             )}
           </View>
 
-          {isEditing ? (
-            <View style={styles.editForm}>
-              <Controller
-                control={control}
-                rules={{
-                  required: "Group name is required",
-                  minLength: {
-                    value: 1,
-                    message: "Group name must be at least 1 character",
+          <View style={styles.infoSection}>
+            <ThemedText size="xl" weight="bold" style={styles.groupName}>
+              {group.name}
+            </ThemedText>
+            {group.description && (
+              <ThemedText
+                size="base"
+                style={[
+                  styles.description,
+                  {
+                    color: isDark ? Colors.dark.icon : Colors.light.icon,
                   },
-                  maxLength: {
-                    value: 50,
-                    message: "Group name must be less than 50 characters",
-                  },
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <FormTextInput
-                    label="Group Name"
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    placeholder="Enter group name"
-                    autoFocus
-                    leftIcon={<SymbolView name="person.2.fill" />}
-                  />
-                )}
-                name="name"
-              />
-              {errors.name && (
-                <ThemedText
-                  style={[styles.errorText, { color: "#FF3B30" }]}
-                  size="sm"
-                >
-                  {errors.name.message}
-                </ThemedText>
-              )}
-
-              <Controller
-                control={control}
-                rules={{
-                  maxLength: {
-                    value: 200,
-                    message: "Description must be less than 200 characters",
-                  },
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <FormTextInput
-                    label="Description"
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    placeholder="Enter description (optional)"
-                    multiline
-                    numberOfLines={3}
-                    leftIcon={<SymbolView name="text.alignleft" />}
-                  />
-                )}
-                name="description"
-              />
-              {errors.description && (
-                <ThemedText
-                  style={[styles.errorText, { color: "#FF3B30" }]}
-                  size="sm"
-                >
-                  {errors.description.message}
-                </ThemedText>
-              )}
-
-              <View style={styles.editActions}>
-                <Button
-                  variant="outline"
-                  onPress={handleCancelEdit}
-                  disabled={isSubmitting}
-                  style={styles.editButton}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  onPress={handleSubmit(onSubmit)}
-                  loading={isSubmitting}
-                  disabled={isSubmitting}
-                  style={styles.editButton}
-                >
-                  Save
-                </Button>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.infoSection}>
-              <View style={styles.nameRow}>
-                <ThemedText size="xl" weight="bold" style={styles.groupName}>
-                  {group.name}
-                </ThemedText>
-                {isAdmin && (
-                  <TouchableOpacity
-                    onPress={handleEdit}
-                    style={styles.editButton}
-                    activeOpacity={0.7}
-                  >
-                    <SymbolView
-                      name="pencil"
-                      tintColor={isDark ? Colors.dark.text : Colors.light.text}
-                      size={20}
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
-              {group.description && (
-                <ThemedText
-                  size="base"
-                  style={[
-                    styles.description,
-                    {
-                      color: isDark ? Colors.dark.icon : Colors.light.icon,
-                    },
-                  ]}
-                >
-                  {group.description}
-                </ThemedText>
-              )}
-            </View>
-          )}
+                ]}
+              >
+                {group.description}
+              </ThemedText>
+            )}
+          </View>
         </View>
 
         {/* Members Section */}
@@ -433,8 +261,19 @@ export default function GroupDetailsScreen() {
           </View>
 
           {group.members && group.members.length > 0 ? (
-            <View style={styles.membersList}>
-              {group.members.map((member) => {
+            <View
+              style={[
+                styles.membersContainer,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.05)"
+                    : "rgba(255, 255, 255, 1)",
+                  borderWidth: isDark ? 0 : 1,
+                  borderColor: isDark ? "transparent" : "rgba(0, 0, 0, 0.1)",
+                },
+              ]}
+            >
+              {group.members.map((member, index) => {
                 const isCreator = member.userId === group.creatorId;
                 const displayName =
                   member.user.name ||
@@ -447,59 +286,76 @@ export default function GroupDetailsScreen() {
                   .toUpperCase()
                   .slice(0, 2);
 
+                const separatorColor = isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.1)";
+                const pressedBg = isDark
+                  ? "rgba(255, 255, 255, 0.08)"
+                  : "rgba(0, 0, 0, 0.03)";
+
                 return (
-                  <View
-                    key={member.id}
-                    style={[
-                      styles.memberItem,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(255, 255, 255, 0.05)"
-                          : "rgba(0, 0, 0, 0.02)",
-                      },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.memberAvatar,
+                  <View key={member.id}>
+                    {index > 0 && (
+                      <View
+                        style={[
+                          styles.memberSeparator,
+                          { backgroundColor: separatorColor },
+                        ]}
+                      />
+                    )}
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.memberItem,
                         {
-                          backgroundColor: isDark
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "rgba(0, 0, 0, 0.05)",
+                          backgroundColor: pressed ? pressedBg : "transparent",
                         },
                       ]}
                     >
-                      <ThemedText size="base" weight="semibold">
-                        {initials}
-                      </ThemedText>
-                    </View>
-                    <View style={styles.memberInfo}>
-                      <View style={styles.memberNameRow}>
-                        <ThemedText style={styles.memberName} weight="semibold">
-                          {displayName}
-                        </ThemedText>
-                        {isCreator && (
-                          <SymbolView
-                            name="crown.fill"
-                            tintColor="#FFD700"
-                            size={16}
-                          />
-                        )}
-                      </View>
-                      <ThemedText
+                      <View
                         style={[
-                          styles.memberRole,
+                          styles.memberAvatar,
                           {
-                            color: isDark
-                              ? Colors.dark.icon
-                              : Colors.light.icon,
+                            backgroundColor: isDark
+                              ? "rgba(255, 255, 255, 0.1)"
+                              : "rgba(0, 0, 0, 0.05)",
                           },
                         ]}
-                        size="sm"
                       >
-                        {member.role === "admin" ? "Admin" : "Member"}
-                      </ThemedText>
-                    </View>
+                        <ThemedText size="base" weight="semibold">
+                          {initials}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.memberInfo}>
+                        <View style={styles.memberNameRow}>
+                          <ThemedText
+                            style={styles.memberName}
+                            weight="semibold"
+                          >
+                            {displayName}
+                          </ThemedText>
+                          {isCreator && (
+                            <SymbolView
+                              name="crown.fill"
+                              tintColor="#FFD700"
+                              size={16}
+                            />
+                          )}
+                        </View>
+                        <ThemedText
+                          style={[
+                            styles.memberRole,
+                            {
+                              color: isDark
+                                ? Colors.dark.icon
+                                : Colors.light.icon,
+                            },
+                          ]}
+                          size="sm"
+                        >
+                          {member.role === "admin" ? "Admin" : "Member"}
+                        </ThemedText>
+                      </View>
+                    </Pressable>
                   </View>
                 );
               })}
@@ -556,30 +412,14 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
   },
-  nameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 8,
-  },
   groupName: {
     textAlign: "center",
+    marginBottom: 8,
   },
   description: {
     textAlign: "center",
     opacity: 0.7,
     marginTop: 4,
-  },
-  editForm: {
-    width: "100%",
-  },
-  editActions: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
-  },
-  editButton: {
-    flex: 1,
   },
   section: {
     marginBottom: 32,
@@ -588,7 +428,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 8,
   },
   sectionTitle: {
     flex: 1,
@@ -596,15 +436,20 @@ const styles = StyleSheet.create({
   addButton: {
     padding: 4,
   },
-  membersList: {
-    gap: 12,
+  membersContainer: {
+    borderRadius: 12,
+    overflow: "hidden",
   },
   memberItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     gap: 12,
+  },
+  memberSeparator: {
+    height: 1,
+    marginHorizontal: 16,
   },
   memberAvatar: {
     width: 48,

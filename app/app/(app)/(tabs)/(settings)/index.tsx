@@ -184,7 +184,7 @@ export default function SettingsScreen() {
 
   const handleGeneralPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert("General", "General settings coming soon");
+    router.push("./general");
   };
 
   const handleAppPermissionsPress = () => {

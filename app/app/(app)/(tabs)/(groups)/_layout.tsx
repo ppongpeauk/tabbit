@@ -131,6 +131,13 @@ export default function GroupsLayout() {
           headerBackButtonDisplayMode: "minimal",
         }}
       />
+      <Stack.Screen
+        name="[id]/edit"
+        options={{
+          title: "Edit Group",
+          presentation: "formSheet",
+        }}
+      />
     </Stack>
   );
 }

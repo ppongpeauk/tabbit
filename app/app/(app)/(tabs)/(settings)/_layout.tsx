@@ -38,6 +38,12 @@ export default function SettingsLayout() {
           title: "App Permissions",
         }}
       />
+      <Stack.Screen
+        name="general"
+        options={{
+          title: "General",
+        }}
+      />
     </Stack>
   );
 }

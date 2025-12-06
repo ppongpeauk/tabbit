@@ -84,28 +84,6 @@ export default function SignUpScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header Section */}
-        <View style={styles.headerSection}>
-          <View
-            style={[
-              styles.imagePlaceholder,
-              {
-                backgroundColor: isDark
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : "#E5E5E5",
-              },
-            ]}
-          />
-          <ThemedText
-            family="serif"
-            weight="bold"
-            style={styles.welcomeText}
-            size="2xl"
-          >
-            Let&apos;s get started
-          </ThemedText>
-        </View>
-
         {/* Form Section */}
         <View style={styles.formSection}>
           <Controller

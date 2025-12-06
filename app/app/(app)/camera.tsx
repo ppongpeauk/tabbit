@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { View, StyleSheet, Platform, Alert, Text } from "react-native";
+import { View, StyleSheet, Platform, Alert, Text, Image } from "react-native";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
@@ -30,6 +30,7 @@ export default function CameraScreen() {
   const [flash, setFlash] = useState<"on" | "off">("off");
   const [permission, requestPermission] = useCameraPermissions();
   const [processing, setProcessing] = useState(false);
+  const [frozenFrame, setFrozenFrame] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
   const { checkScanLimit, refresh: refreshLimits } = useLimits();
   const { isPro } = useRevenueCat();
@@ -57,7 +58,10 @@ export default function CameraScreen() {
       try {
         setProcessing(true);
 
-        // Check scan limit for free users
+        const photo = await cameraRef.current.takePictureAsync();
+        const imageUri = photo.uri;
+        setFrozenFrame(imageUri);
+
         if (!isPro) {
           const limitCheck = await checkScanLimit();
           if (!limitCheck.allowed) {
@@ -80,12 +84,9 @@ export default function CameraScreen() {
           }
         }
 
-        const photo = await cameraRef.current.takePictureAsync();
-        console.log("Photo taken:", photo);
-
         // Hash the image and check for duplicates
         try {
-          const imageHash = await hashImage(photo.uri);
+          const imageHash = await hashImage(imageUri);
           const existingReceipt = await findReceiptByImageHash(imageHash);
 
           if (existingReceipt) {
@@ -104,8 +105,8 @@ export default function CameraScreen() {
                   onPress: async () => {
                     setProcessing(true);
                     // Continue with scanning
-                    const response = await scanReceipt(photo.uri);
-                    await handleScanResponse(response, photo.uri);
+                    const response = await scanReceipt(imageUri);
+                    await handleScanResponse(response, imageUri);
                   },
                 },
               ]
@@ -123,7 +124,7 @@ export default function CameraScreen() {
           : undefined;
 
         // Scan the receipt immediately
-        const response = await scanReceipt(photo.uri, {
+        const response = await scanReceipt(imageUri, {
           token: token ?? undefined,
         });
 
@@ -153,9 +154,10 @@ export default function CameraScreen() {
           await refreshLimits();
         }
 
-        await handleScanResponse(response, photo.uri);
+        await handleScanResponse(response, imageUri);
       } catch (error) {
         setProcessing(false);
+        setFrozenFrame(null);
         Alert.alert(
           "Error",
           error instanceof Error
@@ -170,9 +172,10 @@ export default function CameraScreen() {
     response: Awaited<ReturnType<typeof scanReceipt>>,
     imageUri: string
   ) => {
-    if (!response.success || !response.receipt) {
-      setProcessing(false);
+    setProcessing(false);
+    setFrozenFrame(null);
 
+    if (!response.success || !response.receipt) {
       if (response.message?.toLowerCase().includes("authentication")) {
         Alert.alert(
           "Authentication Error",
@@ -343,12 +346,16 @@ export default function CameraScreen() {
 
   return (
     <View style={styles.container}>
-      <CameraView
-        ref={cameraRef}
-        style={styles.camera}
-        facing={facing}
-        flash={flash}
-      />
+      {frozenFrame ? (
+        <Image source={{ uri: frozenFrame }} style={styles.camera} />
+      ) : (
+        <CameraView
+          ref={cameraRef}
+          style={styles.camera}
+          facing={facing}
+          flash={flash}
+        />
+      )}
       <View style={styles.topControls}>
         <PlatformPressable onPress={() => router.back()}>
           <GlassView style={styles.closeButton}>
