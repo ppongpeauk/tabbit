@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build --turbo",
-    "start": "next start",
+    "start": "next start -p 8081",
     "lint": "eslint"
   },
   "dependencies": {
