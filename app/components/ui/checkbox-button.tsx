@@ -24,6 +24,7 @@ export interface CheckboxButtonProps {
   imageUri?: string;
   isSelected: boolean;
   onPress: () => void;
+  noBorder?: boolean; // If true, removes border and makes full width
 }
 
 export function CheckboxButton({
@@ -33,6 +34,7 @@ export function CheckboxButton({
   imageUri,
   isSelected,
   onPress,
+  noBorder = false,
 }: CheckboxButtonProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -95,11 +97,17 @@ export function CheckboxButton({
   });
 
   return (
-    <Animated.View style={[styles.container, borderAnimatedStyle]}>
+    <Animated.View
+      style={[
+        styles.container,
+        noBorder ? styles.containerNoBorder : borderAnimatedStyle,
+      ]}
+    >
       <Pressable
         onPress={onPress}
         style={({ pressed }) => [
           styles.pressableContent,
+          noBorder && styles.pressableContentFullWidth,
           {
             backgroundColor: pressed
               ? isDark
@@ -192,6 +200,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "transparent",
   },
+  containerNoBorder: {
+    borderRadius: 0,
+    borderWidth: 0,
+  },
   pressableContent: {
     flexDirection: "row",
     alignItems: "center",
@@ -199,6 +211,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     gap: 12,
+  },
+  pressableContentFullWidth: {
+    paddingHorizontal: 20,
   },
   avatar: {
     width: 40,

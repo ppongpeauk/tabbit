@@ -93,3 +93,49 @@ export async function importContactsAsFriends(
   // will be handled by the friends screen component
   return contacts;
 }
+
+/**
+ * Get recent contacts (fake data for now)
+ */
+export async function getRecentContacts(): Promise<ContactInfo[]> {
+  // TODO: Connect to actual recent contacts data
+  return [
+    {
+      name: "John Doe",
+      phoneNumber: "+1234567890",
+      email: "john.doe@example.com",
+    },
+    {
+      name: "Jane Smith",
+      phoneNumber: "+1987654321",
+      email: "jane.smith@example.com",
+    },
+    {
+      name: "Bob Johnson",
+      phoneNumber: "+1555555555",
+    },
+  ];
+}
+
+/**
+ * Get friends list (fake data for now)
+ */
+export async function getFriendsList(): Promise<ContactInfo[]> {
+  // TODO: Connect to actual friends data
+  return [
+    {
+      name: "Alice Williams",
+      phoneNumber: "+1111111111",
+      email: "alice@example.com",
+    },
+    {
+      name: "Charlie Brown",
+      phoneNumber: "+1222222222",
+      email: "charlie@example.com",
+    },
+    {
+      name: "Diana Prince",
+      phoneNumber: "+1333333333",
+    },
+  ];
+}
