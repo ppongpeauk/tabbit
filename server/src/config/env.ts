@@ -11,6 +11,19 @@ export const env = {
   DISABLE_IMAGE_CACHE: process.env.DISABLE_IMAGE_CACHE === "true",
   // Better Auth
   BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET || "",
+  BETTER_AUTH_BASE_URL:
+    process.env.BETTER_AUTH_BASE_URL || "http://localhost:3000",
+  // OAuth - Google
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || "",
+  GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI || "",
+  // OAuth - Apple
+  APPLE_CLIENT_ID: process.env.APPLE_CLIENT_ID || "",
+  APPLE_CLIENT_SECRET: process.env.APPLE_CLIENT_SECRET || "",
+  APPLE_REDIRECT_URI: process.env.APPLE_REDIRECT_URI || "",
+  APPLE_TEAM_ID: process.env.APPLE_TEAM_ID || "",
+  APPLE_KEY_ID: process.env.APPLE_KEY_ID || "",
+  APPLE_PRIVATE_KEY: process.env.APPLE_PRIVATE_KEY || "",
   // Resend
   RESEND_API_KEY: process.env.RESEND_API_KEY || "",
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || "noreply@example.com",

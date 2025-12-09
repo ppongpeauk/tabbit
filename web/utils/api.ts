@@ -3,8 +3,9 @@
  * @description API utility functions for making requests to the backend
  */
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://tabbit.ppkl.dev";
+import { authClient } from "./auth";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export interface ScanReceiptResponse {
   // Define based on your API response structure
@@ -12,26 +13,51 @@ export interface ScanReceiptResponse {
 }
 
 /**
+ * Get auth token from Better Auth session
+ */
+async function getAuthToken(): Promise<string | null> {
+  try {
+    const session = await authClient.getSession();
+    return session?.data?.session?.token || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Make an authenticated API request
+ */
+async function authenticatedFetch(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const token = await getAuthToken();
+  const headers = new Headers(options.headers);
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+    credentials: "include", // Include cookies for Better Auth
+  });
+}
+
+/**
  * Scans a receipt by uploading an image file
  * @param imageFile - The image file to scan
- * @param token - Authentication token to be sent as Bearer token
  * @returns Promise with the scanned receipt data
  */
 export async function scanReceipt(
-  imageFile: File,
-  token?: string
+  imageFile: File
 ): Promise<ScanReceiptResponse> {
   const formData = new FormData();
   formData.append("image", imageFile);
 
-  const headers: HeadersInit = {};
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${API_BASE_URL}/receipts/scan`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/receipts/scan`, {
     method: "POST",
-    headers,
     body: formData,
   });
 

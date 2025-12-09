@@ -1,4 +1,9 @@
-import { View, StyleSheet, ActivityIndicator } from "react-native";
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Welcome/start screen with social authentication options
+ */
+
+import { View, StyleSheet, ActivityIndicator, Image } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/button";
 import { Colors } from "@/constants/theme";
@@ -7,11 +12,13 @@ import { useAuth } from "@/contexts/auth-context";
 import { router, useRootNavigationState, Redirect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useEffect } from "react";
+import GoogleIcon from "@/assets/images/brand/google.png";
+import AppleIcon from "@/assets/images/brand/apple.png";
 
 export default function WelcomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, signInWithGoogle, signInWithApple } = useAuth();
   const navigationState = useRootNavigationState();
 
   // Redirect authenticated users to the app
@@ -47,14 +54,34 @@ export default function WelcomeScreen() {
     return <Redirect href="/(app)/(tabs)/(receipts)" />;
   }
 
-  const handleGetStarted = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push("/sign-up");
+  // const handleGetStarted = () => {
+  //   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  //   router.push("/sign-up");
+  // };
+
+  // const handleSignIn = () => {
+  //   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  //   router.push("/sign-in");
+  // };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await signInWithGoogle();
+    } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      console.error("Google sign in error:", error);
+    }
   };
 
-  const handleSignIn = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/sign-in");
+  const handleAppleSignIn = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await signInWithApple();
+    } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      console.error("Apple sign in error:", error);
+    }
   };
 
   return (
@@ -101,7 +128,8 @@ export default function WelcomeScreen() {
 
       {/* Action Buttons */}
       <View style={styles.actionsSection}>
-        <Button
+        {/* Old buttons - commented out */}
+        {/* <Button
           variant="primary"
           size="base"
           onPress={handleGetStarted}
@@ -112,6 +140,39 @@ export default function WelcomeScreen() {
 
         <Button variant="outline" size="base" onPress={handleSignIn} fullWidth>
           Sign In
+        </Button> */}
+
+        {/* Social Sign In Buttons */}
+        <Button
+          variant="primary"
+          size="base"
+          onPress={handleGoogleSignIn}
+          fullWidth
+          leftIcon={
+            <Image
+              source={GoogleIcon}
+              style={styles.brandIcon}
+              resizeMode="contain"
+            />
+          }
+        >
+          Continue with Google
+        </Button>
+
+        <Button
+          variant="primary"
+          size="base"
+          onPress={handleAppleSignIn}
+          fullWidth
+          leftIcon={
+            <Image
+              source={AppleIcon}
+              style={[styles.brandIcon, !isDark && styles.appleIconLight]}
+              resizeMode="contain"
+            />
+          }
+        >
+          Continue with Apple
         </Button>
 
         <ThemedText
@@ -159,11 +220,18 @@ const styles = StyleSheet.create({
     maxWidth: 320,
   },
   actionsSection: {
-    gap: 16,
+    gap: 12,
     width: "100%",
   },
   termsText: {
     textAlign: "center",
     paddingHorizontal: 16,
+  },
+  brandIcon: {
+    width: 20,
+    height: 20,
+  },
+  appleIconLight: {
+    tintColor: "#FFFFFF", // Invert to white in light mode (black button background)
   },
 });

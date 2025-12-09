@@ -20,11 +20,11 @@ type LimitIndicatorProps = {
 };
 
 function LimitCircle({
-  current,
+  remaining,
   limit,
-  size = 48,
+  size = 64,
 }: {
-  current: number;
+  remaining: number;
   limit: number;
   size?: number;
 }) {
@@ -34,7 +34,8 @@ function LimitCircle({
   const strokeWidth = 4;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = Math.min((current / limit) * 100, 100);
+  // Progress based on remaining: full when remaining = limit, empty when remaining = 0
+  const progress = Math.min((remaining / limit) * 100, 100);
   const progressOffset = circumference - (progress / 100) * circumference;
 
   const backgroundStroke = isDark
@@ -75,7 +76,7 @@ function LimitCircle({
           family="sans"
           style={styles.progressText}
         >
-          {current} / {limit}
+          {remaining} / {limit}
         </ThemedText>
       </View>
     </View>
@@ -165,7 +166,7 @@ export function LimitIndicator({
             Monthly Scans
           </ThemedText>
           <LimitCircle
-            current={limitStatus.monthlyScansUsed}
+            remaining={limitStatus.monthlyScansRemaining}
             limit={limitStatus.monthlyScansLimit}
           />
           <ThemedText
@@ -187,7 +188,7 @@ export function LimitIndicator({
             Total Receipts
           </ThemedText>
           <LimitCircle
-            current={limitStatus.totalReceiptsSaved}
+            remaining={limitStatus.totalReceiptsRemaining}
             limit={limitStatus.totalReceiptsLimit}
           />
           <ThemedText

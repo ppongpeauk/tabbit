@@ -100,7 +100,10 @@ export default function ReceiptDetailScreen() {
 
   const handleEdit = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(`/${id}/edit`);
+    router.push({
+      pathname: "/(app)/receipt/[id]/edit",
+      params: { id },
+    });
   }, [id]);
 
   const handleShare = useCallback(() => {

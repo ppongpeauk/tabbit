@@ -15,6 +15,8 @@ import { env } from "../config/env";
 /**
  * Initialize S3 client with Railway Buckets configuration
  */
+const BUCKET_NAME = env.AWS_S3_BUCKET_NAME;
+
 const s3Client = new S3Client({
   endpoint: env.AWS_ENDPOINT_URL || undefined,
   region: env.AWS_DEFAULT_REGION,
@@ -22,10 +24,8 @@ const s3Client = new S3Client({
     accessKeyId: env.AWS_ACCESS_KEY_ID,
     secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
   },
-  forcePathStyle: false, // Railway uses virtual-hosted-style URLs
+  forcePathStyle: !!env.AWS_ENDPOINT_URL,
 });
-
-const BUCKET_NAME = env.AWS_S3_BUCKET_NAME;
 
 /**
  * Generate a presigned URL for reading an object
@@ -60,14 +60,13 @@ export async function getPresignedUrl(
 export async function getPresignedPostUrl(
   key: string,
   contentType: string,
-  maxSize: number = 5_000_000, // 5MB default
+  maxSize: number = 5_000_000,
   expiresIn: number = 3600
 ): Promise<{ url: string; fields: Record<string, string> }> {
   if (!BUCKET_NAME) {
     throw new Error("AWS_S3_BUCKET_NAME is not configured");
   }
 
-  // Extract the base content type (e.g., "image" from "image/jpeg")
   const baseContentType = contentType.split("/")[0];
 
   const { url, fields } = await createPresignedPost(s3Client, {
@@ -78,7 +77,7 @@ export async function getPresignedPostUrl(
       { bucket: BUCKET_NAME },
       ["eq", "$key", key],
       ["starts-with", "$Content-Type", `${baseContentType}/`],
-      ["content-length-range", 1_000, maxSize], // Min 1KB, max as specified
+      ["content-length-range", 1_000, maxSize],
     ],
   });
 

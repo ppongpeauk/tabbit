@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback, useLayoutEffect } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+} from "react";
 import {
   View,
   StyleSheet,
@@ -99,38 +105,6 @@ export default function EditGroupScreen() {
     loadGroup();
   }, [loadGroup]);
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerLeft: () => (
-        <HeaderButton onPress={() => router.back()}>
-          <SymbolView
-            name="xmark"
-            tintColor={isDark ? Colors.dark.text : Colors.light.text}
-          />
-        </HeaderButton>
-      ),
-      headerRight: () => (
-        <HeaderButton onPress={handleSubmit(onSubmit)} disabled={isSubmitting}>
-          {isSubmitting ? (
-            <ActivityIndicator
-              size="small"
-              color={isDark ? Colors.dark.text : Colors.light.text}
-            />
-          ) : (
-            <ThemedText
-              size="base"
-              style={{
-                color: isDark ? Colors.dark.tint : Colors.light.tint,
-              }}
-            >
-              Save
-            </ThemedText>
-          )}
-        </HeaderButton>
-      ),
-    });
-  }, [navigation, isDark, isSubmitting, handleSubmit]);
-
   const pickImage = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -150,73 +124,127 @@ export default function EditGroupScreen() {
     setSelectedImage(null);
   };
 
-  const onSubmit = async (data: EditGroupFormData) => {
-    if (!group || !id) return;
+  const onSubmit = useCallback(
+    async (data: EditGroupFormData) => {
+      if (!group || !id) return;
 
-    try {
-      setIsSubmitting(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      try {
+        setIsSubmitting(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      const result = await updateGroup(id, {
-        name: data.name,
-        description: data.description || undefined,
-      });
+        const result = await updateGroup(id, {
+          name: data.name,
+          description: data.description || undefined,
+        });
 
-      if (!result.success) {
-        throw new Error(result.message || "Failed to update group");
-      }
+        if (!result.success) {
+          throw new Error(result.message || "Failed to update group");
+        }
 
-      const currentIconUrl = iconUrl;
-      const hasNewImage = selectedImage && selectedImage !== currentIconUrl;
-      const removedImage = !selectedImage && currentIconUrl;
+        const currentIconUrl = iconUrl;
+        const hasNewImage = selectedImage && selectedImage !== currentIconUrl;
+        const removedImage = !selectedImage && currentIconUrl;
 
-      if (hasNewImage) {
-        try {
+        if (hasNewImage) {
+          // Get file extension from URI
           const extension =
             selectedImage.split(".").pop()?.toLowerCase() || "jpg";
           const contentType = `image/${
             extension === "jpg" ? "jpeg" : extension
           }`;
 
+          // Get presigned upload URL
           const uploadUrlResult = await getGroupIconUploadUrl(id, extension);
           if (
-            uploadUrlResult.success &&
-            uploadUrlResult.uploadUrl &&
-            uploadUrlResult.fields &&
-            uploadUrlResult.key
+            !uploadUrlResult.success ||
+            !uploadUrlResult.uploadUrl ||
+            !uploadUrlResult.fields ||
+            !uploadUrlResult.key
           ) {
-            const uploadResult = await uploadImageToPresignedUrl(
-              uploadUrlResult.uploadUrl,
-              uploadUrlResult.fields,
-              selectedImage,
-              contentType
+            throw new Error(
+              uploadUrlResult.message || "Failed to get upload URL"
             );
-
-            if (uploadResult.success) {
-              await confirmGroupIconUpload(id, uploadUrlResult.key);
-            }
           }
-        } catch (iconError) {
-          console.error("Icon upload failed:", iconError);
-        }
-      } else if (removedImage) {
-        // TODO: Implement icon removal API if available
-      }
 
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.back();
-    } catch (error) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(
-        "Error",
-        error instanceof Error
-          ? error.message
-          : "Failed to update group. Please try again."
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+          // Upload image to S3
+          const uploadResult = await uploadImageToPresignedUrl(
+            uploadUrlResult.uploadUrl,
+            uploadUrlResult.fields,
+            selectedImage,
+            contentType
+          );
+
+          if (!uploadResult.success) {
+            throw new Error(uploadResult.message || "Failed to upload image");
+          }
+
+          // Confirm upload and update group
+          const confirmResult = await confirmGroupIconUpload(
+            id,
+            uploadUrlResult.key
+          );
+
+          if (!confirmResult.success) {
+            throw new Error(
+              confirmResult.message || "Failed to confirm icon upload"
+            );
+          }
+        } else if (removedImage) {
+          // TODO: Implement icon removal API if available
+        }
+
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.back();
+      } catch (error) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          "Error",
+          error instanceof Error
+            ? error.message
+            : "Failed to update group. Please try again."
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [group, id, iconUrl, selectedImage]
+  );
+
+  const handleSavePress = useMemo(() => {
+    return handleSubmit(onSubmit);
+  }, [handleSubmit, onSubmit]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <HeaderButton onPress={() => router.back()}>
+          <SymbolView
+            name="xmark"
+            tintColor={isDark ? Colors.dark.text : Colors.light.text}
+          />
+        </HeaderButton>
+      ),
+      headerRight: () => (
+        <HeaderButton onPress={handleSavePress} disabled={isSubmitting}>
+          {isSubmitting ? (
+            <ActivityIndicator
+              size="small"
+              color={isDark ? Colors.dark.text : Colors.light.text}
+            />
+          ) : (
+            <ThemedText
+              size="base"
+              style={{
+                color: isDark ? Colors.dark.tint : Colors.light.tint,
+              }}
+            >
+              Save
+            </ThemedText>
+          )}
+        </HeaderButton>
+      ),
+    });
+  }, [navigation, isDark, isSubmitting, handleSavePress]);
 
   const handleDelete = useCallback(async () => {
     if (!group || !id) return;
@@ -462,12 +490,12 @@ export default function EditGroupScreen() {
             variant="outline"
             onPress={handleDelete}
             disabled={isDeleting || isSubmitting}
-            style={[
+            style={StyleSheet.flatten([
               styles.deleteButton,
               {
                 borderColor: "#FF3B30",
               },
-            ]}
+            ])}
           >
             {isDeleting ? (
               <ActivityIndicator size="small" color="#FF3B30" />

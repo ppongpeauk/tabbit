@@ -741,28 +741,37 @@ export async function uploadImageToPresignedUrl(
   contentType: string
 ): Promise<{ success: boolean; message?: string }> {
   try {
-    // Read file as blob
-    const response = await fetch(fileUri);
-    const blob = await response.blob();
-
-    // Create FormData
     const formData = new FormData();
+
+    // Append all presigned POST fields first
     Object.entries(fields).forEach(([key, value]) => {
       formData.append(key, value);
     });
-    formData.append("Content-Type", contentType);
-    formData.append("file", blob as unknown as Blob);
 
-    // Upload to S3
+    // Content-Type must be a field (not just on the file) for S3 presigned POST policy
+    if (!fields["Content-Type"]) {
+      formData.append("Content-Type", contentType);
+    }
+
+    const filename = fileUri.split("/").pop() || "image.jpg";
+    formData.append("file", {
+      uri: fileUri,
+      type: contentType,
+      name: filename,
+    } as unknown as Blob);
+
     const uploadResponse = await fetch(uploadUrl, {
       method: "POST",
       body: formData,
     });
 
     if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text().catch(() => "");
       return {
         success: false,
-        message: `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`,
+        message: `Upload failed: ${uploadResponse.status} ${
+          uploadResponse.statusText
+        }${errorText ? ` - ${errorText}` : ""}`,
       };
     }
 

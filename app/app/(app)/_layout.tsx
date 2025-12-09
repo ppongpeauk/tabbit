@@ -81,7 +81,7 @@ export default function AuthenticatedLayout() {
         }}
       />
       <Stack.Screen
-        name="[id]/index"
+        name="receipt/[id]/index"
         options={{
           title: "Receipt Details",
           headerBackButtonDisplayMode: "minimal",
@@ -90,6 +90,12 @@ export default function AuthenticatedLayout() {
           headerStyle: {
             backgroundColor: "transparent",
           },
+        }}
+      />
+      <Stack.Screen
+        name="receipt/[id]/edit"
+        options={{
+          title: "Edit Receipt",
         }}
       />
       <Stack.Screen

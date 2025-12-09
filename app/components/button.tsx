@@ -33,7 +33,7 @@ export interface ButtonProps extends Omit<PressableProps, "style"> {
   /** Icon to display on the right side */
   rightIcon?: ReactNode;
   /** Custom style for the button container */
-  style?: ViewStyle;
+  style?: ViewStyle | ViewStyle[];
   /** Whether button should take full width */
   fullWidth?: boolean;
 }

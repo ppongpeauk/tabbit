@@ -165,7 +165,7 @@ export default function ReceiptsScreen() {
     const isToday = section.title === "Today";
 
     const handlePress = () => {
-      router.push(`/${item.id}`);
+      router.push(`/(app)/receipt/${item.id}`);
     };
 
     return (

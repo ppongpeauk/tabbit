@@ -58,10 +58,10 @@ export function TotalsCard({ receipt }: TotalsCardProps) {
           },
         ]}
       >
-        <ThemedText size="base" weight="bold">
+        <ThemedText size="xl" weight="bold">
           Total
         </ThemedText>
-        <ThemedText size="base" weight="bold">
+        <ThemedText size="xl" weight="bold">
           {formatCurrency(receipt.totals.total, receipt.totals.currency)}
         </ThemedText>
       </View>

@@ -245,10 +245,14 @@ export const groupModule = new Elysia({ prefix: "/groups" })
         const extension = body.extension || "jpg";
         const key = generateGroupIconKey(id, extension);
 
+        // Map extension to correct MIME type
+        const contentType =
+          extension === "jpg" ? "image/jpeg" : `image/${extension}`;
+
         // Generate presigned POST URL
         const { url, fields } = await getPresignedPostUrl(
           key,
-          `image/${extension}`,
+          contentType,
           5_000_000 // 5MB max
         );
 

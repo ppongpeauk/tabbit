@@ -3,6 +3,7 @@
  * For development, defaults to localhost:3000
  * Can be overridden with EXPO_PUBLIC_API_URL environment variable
  */
+const DEFAULT_LOCAL_PORT = 3001;
 export const getApiBaseUrl = (): string => {
   // Check for environment variable first
   if (process.env.EXPO_PUBLIC_API_URL) {
@@ -14,13 +15,13 @@ export const getApiBaseUrl = (): string => {
   // On Android emulator, use 10.0.2.2
   // On physical device, use your computer's local IP
   if (process.env.EXPO_OS === "ios") {
-    return "http://localhost:3000";
+    return `http://localhost:${DEFAULT_LOCAL_PORT}`;
   } else if (process.env.EXPO_OS === "android") {
-    return "http://10.0.2.2:3000";
+    return `http://10.0.2.2:${DEFAULT_LOCAL_PORT}`;
   }
 
   // Fallback to localhost
-  return "http://localhost:3000";
+  return `http://localhost:${DEFAULT_LOCAL_PORT}`;
 };
 
 export const API_BASE_URL = getApiBaseUrl();

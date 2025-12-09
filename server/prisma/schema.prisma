@@ -33,6 +33,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   verifications Verification[]
+  authCodes     AuthCode[]
   receipts      Receipt[]
   groupMembers  GroupMember[]
   createdGroups Group[]        @relation("GroupCreator")
@@ -87,6 +88,19 @@ model Verification {
   userId String?
 
   @@index([identifier, value])
+}
+
+model AuthCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  userId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([code])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Receipt {

@@ -16,6 +16,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { RevenueCatProvider } from "@/contexts/revenuecat-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { PostHogProvider } from "posthog-react-native";
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -129,15 +130,24 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
-        <KeyboardProvider>
-          <AuthProvider>
-            <RevenueCatProvider>
-              <RootLayoutNav />
-            </RevenueCatProvider>
-          </AuthProvider>
-        </KeyboardProvider>
-      </BottomSheetModalProvider>
+      <PostHogProvider
+        apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY}
+        options={{
+          host: "https://us.i.posthog.com",
+          enableSessionReplay: true,
+        }}
+        autocapture
+      >
+        <BottomSheetModalProvider>
+          <KeyboardProvider>
+            <AuthProvider>
+              <RevenueCatProvider>
+                <RootLayoutNav />
+              </RevenueCatProvider>
+            </AuthProvider>
+          </KeyboardProvider>
+        </BottomSheetModalProvider>
+      </PostHogProvider>
     </GestureHandlerRootView>
   );
 }

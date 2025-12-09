@@ -32,6 +32,8 @@ interface AuthContextType {
     password: string,
     name: string
   ) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   clearAuthState: () => Promise<void>;
 }
@@ -239,6 +241,133 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      // Get the OAuth URL from the server
+      // Use our custom mobile callback endpoint
+      const deepLinkCallback = "tabbit://auth/callback";
+      const mobileCallbackURL = `${API_BASE_URL}/auth/google/mobile-callback?callbackURL=${encodeURIComponent(
+        deepLinkCallback
+      )}`;
+
+      const response = await fetch(
+        `${API_BASE_URL}/auth/google/authorize?callbackURL=${encodeURIComponent(
+          mobileCallbackURL
+        )}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to get Google authorization URL");
+      }
+
+      const data = await response.json();
+      const authUrl = data.url;
+
+      if (!authUrl) {
+        throw new Error("No authorization URL received");
+      }
+
+      // Open the OAuth URL in browser
+      const { openBrowserAsync } = await import("expo-web-browser");
+      const result = await openBrowserAsync(authUrl, {
+        showInRecents: true,
+      });
+
+      if (result.type === "dismiss") {
+        // User cancelled
+        return;
+      }
+
+      // The flow:
+      // 1. User completes OAuth in browser
+      // 2. Google redirects to server callback
+      // 3. Server processes OAuth and redirects to mobileCallbackURL
+      // 4. mobileCallbackURL generates code and redirects to deep link: tabbit://auth/callback?code=xxx
+      // 5. App intercepts deep link and exchanges code for token
+      //
+      // For now, we'll wait for the deep link to be handled
+      // The deep link handler should call the token exchange endpoint
+    } catch (error) {
+      console.error("Error signing in with Google:", error);
+      throw error;
+    }
+  };
+
+  const signInWithApple = async () => {
+    try {
+      const AppleAuthentication = await import("expo-apple-authentication");
+      const { AppleAuthenticationCredential } = AppleAuthentication;
+
+      // Check if Apple Authentication is available
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      if (!isAvailable) {
+        throw new Error("Apple Authentication is not available on this device");
+      }
+
+      // Request Apple ID credential
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      // Send credential to server
+      const response = await fetch(`${API_BASE_URL}/auth/apple/callback`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          identityToken: credential.identityToken,
+          authorizationCode: credential.authorizationCode,
+          user: credential.user,
+          email: credential.email,
+          fullName: credential.fullName
+            ? {
+                givenName: credential.fullName.givenName,
+                familyName: credential.fullName.familyName,
+              }
+            : null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success || !data.user) {
+        throw new Error(data.message || "Apple sign in failed");
+      }
+
+      // Extract token from response
+      const token = data.token;
+      if (!token) {
+        throw new Error("No token received from server");
+      }
+
+      const userData: User = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name || credential.fullName?.givenName || "",
+      };
+
+      // Store user data in AsyncStorage (non-sensitive)
+      await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userData));
+      // Store token securely
+      await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, token);
+
+      setUser(userData);
+    } catch (error) {
+      console.error("Error signing in with Apple:", error);
+      throw error;
+    }
+  };
+
   const clearAuthState = async () => {
     try {
       await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
@@ -256,6 +385,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         signInWithEmail,
         signUpWithEmail,
+        signInWithGoogle,
+        signInWithApple,
         signOut,
         clearAuthState,
       }}

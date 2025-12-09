@@ -13,7 +13,6 @@ export default function ScanPage() {
   const form = useForm({
     defaultValues: {
       image: null as File | null,
-      token: "",
     },
     onSubmit: async ({ value }) => {
       if (!value.image) {
@@ -26,7 +25,7 @@ export default function ScanPage() {
       setReceipt(null);
 
       try {
-        const result = await scanReceipt(value.image, value.token || undefined);
+        const result = await scanReceipt(value.image);
         setReceipt(result);
       } catch (err) {
         if (err instanceof Error) {
@@ -104,29 +103,6 @@ export default function ScanPage() {
                     {field.state.meta.errors[0]}
                   </p>
                 )}
-              </div>
-            )}
-          </form.Field>
-
-          <form.Field name="token">
-            {(field) => (
-              <div className="space-y-2">
-                <label
-                  htmlFor="token"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Authentication Token
-                </label>
-                <input
-                  id="token"
-                  type="text"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="Enter Bearer token"
-                  required
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  disabled={isSubmitting}
-                />
               </div>
             )}
           </form.Field>

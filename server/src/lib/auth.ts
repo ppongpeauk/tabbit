@@ -67,7 +67,29 @@ export const auth = betterAuth({
       });
     },
   },
+  socialProviders: {
+    google: {
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      // Better Auth constructs callback URL as: {baseURL}/api/auth/callback/google
+      // For web: Google redirects to server, server processes and redirects to web callbackURL
+      // For mobile: Google redirects to server, mobile app handles via deep link or token exchange
+      redirectURI:
+        env.GOOGLE_REDIRECT_URI ||
+        `${env.BETTER_AUTH_BASE_URL}/api/auth/callback/google`,
+    },
+    apple: {
+      clientId: env.APPLE_CLIENT_ID,
+      clientSecret: env.APPLE_CLIENT_SECRET,
+      redirectURI: env.APPLE_REDIRECT_URI,
+      teamId: env.APPLE_TEAM_ID,
+      keyId: env.APPLE_KEY_ID,
+      privateKey: env.APPLE_PRIVATE_KEY,
+    },
+  },
   secret: env.BETTER_AUTH_SECRET,
+  baseURL: env.BETTER_AUTH_BASE_URL,
+  basePath: "/api/auth",
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days in seconds
     updateAge: 60 * 60 * 24, // 1 day in seconds

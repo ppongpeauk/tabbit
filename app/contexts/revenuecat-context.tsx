@@ -74,7 +74,9 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
-      await Purchases.configure({ apiKey: "test_cwIWvGSTYoCBlzCCELUsOOWsPEr" });
+      await Purchases.configure({
+        apiKey: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY || "",
+      });
       if (user?.id) {
         await identifyUser(user.id);
       }

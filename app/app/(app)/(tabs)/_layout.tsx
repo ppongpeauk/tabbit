@@ -11,10 +11,10 @@ export default function TabsLayout() {
         <Label>Home</Label>
         <Icon sf="house.fill" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="(groups)">
+      {/* <NativeTabs.Trigger name="(groups)">
         <Label>Groups</Label>
         <Icon sf="person.2.fill" />
-      </NativeTabs.Trigger>
+      </NativeTabs.Trigger> */}
       <NativeTabs.Trigger name="(settings)">
         <Label>Settings</Label>
         <Icon sf="gearshape.fill" />

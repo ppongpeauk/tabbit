@@ -81,13 +81,20 @@ const app = new Elysia()
   .use(
     cors({
       origin: [
-        "http://localhost:3000",
-        "http://localhost:8081",
-        /^https?:\/\/.*\.railway\.app$/,
+        "http://localhost:3000", // Web app
+        "http://localhost:8081", // Web app alternative port
+        "http://localhost:3001", // Server itself
+        /^https?:\/\/.*\.railway\.app$/, // Production deployments
       ],
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      credentials: true,
-      allowedHeaders: ["Content-Type", "Authorization"],
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+      credentials: true, // Required for Better Auth cookies
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "Cookie",
+        "Set-Cookie",
+        "X-Requested-With",
+      ],
     })
   )
   .use(logger)
