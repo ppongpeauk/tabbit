@@ -120,6 +120,7 @@ export interface ReceiptScanResponse {
     prompt_tokens: number;
     total_tokens: number;
   };
+  authError?: boolean;
 }
 
 /**
@@ -215,7 +216,9 @@ export async function scanReceipt(
     skipPreprocessing?: boolean;
     token?: string;
   }
-): Promise<ReceiptScanResponse & { limitExceeded?: boolean }> {
+): Promise<
+  ReceiptScanResponse & { limitExceeded?: boolean; authError?: boolean }
+> {
   try {
     // Convert image URI to base64
     const imageBase64 = await imageUriToBase64(imageUri);
@@ -254,17 +257,26 @@ export async function scanReceipt(
       const errorData = await response.json().catch(() => ({
         message: `HTTP ${response.status}: ${response.statusText}`,
       }));
+
+      const isAuthError =
+        response.status === 401 ||
+        errorData.message?.toLowerCase().includes("session expired");
+
       return {
         success: false,
         message:
           errorData.message ||
           `HTTP ${response.status}: ${response.statusText}`,
         limitExceeded: errorData.limitExceeded || false,
+        authError: isAuthError,
       };
     }
 
     const data = await response.json();
-    return data as ReceiptScanResponse & { limitExceeded?: boolean };
+    return data as ReceiptScanResponse & {
+      limitExceeded?: boolean;
+      authError?: boolean;
+    };
   } catch (error) {
     return {
       success: false,

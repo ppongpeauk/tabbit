@@ -11,7 +11,11 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
 import { CheckboxButton } from "@/components/ui/checkbox-button";
 import type { ContactInfo } from "@/utils/contacts";
-import { getRecentContacts, getFriendsList, fetchContacts } from "@/utils/contacts";
+import {
+  getRecentContacts,
+  getFriendsList,
+  fetchContacts,
+} from "@/utils/contacts";
 import { getFriends, type Friend } from "@/utils/storage";
 
 export interface PersonItem {
@@ -39,7 +43,9 @@ function getContactId(
   if ("id" in contact && type === "friend") {
     return `friend:${contact.id}`;
   }
-  return `${type}:${contact.name}:${contact.phoneNumber || contact.email || ""}`;
+  return `${type}:${contact.name}:${
+    contact.phoneNumber || contact.email || ""
+  }`;
 }
 
 // Normalize contact/friend to PersonItem
@@ -62,7 +68,11 @@ function normalizeToPersonItem(
 // Check if two PersonItems represent the same person
 function isSamePerson(item1: PersonItem, item2: PersonItem): boolean {
   // Check by phone number first
-  if (item1.phoneNumber && item2.phoneNumber && item1.phoneNumber === item2.phoneNumber) {
+  if (
+    item1.phoneNumber &&
+    item2.phoneNumber &&
+    item1.phoneNumber === item2.phoneNumber
+  ) {
     return true;
   }
   // Check by email
@@ -121,9 +131,15 @@ export function AddPeopleSelector({
           getFriends(),
         ]);
 
-        const recentPersons = recents.map((item) => normalizeToPersonItem(item, "recent"));
-        const friendPersons = friends.map((item) => normalizeToPersonItem(item, "friend"));
-        const contactPersons = contacts.map((item) => normalizeToPersonItem(item, "contact"));
+        const recentPersons = recents.map((item) =>
+          normalizeToPersonItem(item, "recent")
+        );
+        const friendPersons = friends.map((item) =>
+          normalizeToPersonItem(item, "friend")
+        );
+        const contactPersons = contacts.map((item) =>
+          normalizeToPersonItem(item, "contact")
+        );
         const storedFriendPersons = storedFriends.map((item) =>
           normalizeToPersonItem(item, "friend")
         );
@@ -221,21 +237,25 @@ export function AddPeopleSelector({
     }
 
     const query = searchQuery.toLowerCase();
-    return sections.map((section) => ({
-      ...section,
-      data: section.data.filter(
-        (item) =>
-          item.name.toLowerCase().includes(query) ||
-          item.phoneNumber?.toLowerCase().includes(query) ||
-          item.email?.toLowerCase().includes(query)
-      ),
-    })).filter((section) => section.data.length > 0);
+    return sections
+      .map((section) => ({
+        ...section,
+        data: section.data.filter(
+          (item) =>
+            item.name.toLowerCase().includes(query) ||
+            item.phoneNumber?.toLowerCase().includes(query) ||
+            item.email?.toLowerCase().includes(query)
+        ),
+      }))
+      .filter((section) => section.data.length > 0);
   }, [sections, searchQuery]);
 
   const renderItem = useCallback(
     ({ item }: { item: PersonItem }) => {
       if (!control) {
-        console.warn("AddPeopleSelector: control is required. Wrap in FormProvider or pass control prop.");
+        console.warn(
+          "AddPeopleSelector: control is required. Wrap in FormProvider or pass control prop."
+        );
         return null;
       }
 
@@ -352,11 +372,8 @@ export function AddPeopleSelector({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    gap: 12,
   },
-  searchContainer: {
-    marginBottom: 8,
-  },
+  searchContainer: {},
   searchInput: {
     borderRadius: 8,
     paddingVertical: 10,
@@ -366,11 +383,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   listContent: {
-    paddingBottom: 16,
+    paddingTop: 16,
+    paddingBottom: 120,
   },
   sectionHeader: {
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+    paddingHorizontal: 0,
   },
   sectionHeaderText: {
     textTransform: "uppercase",
@@ -379,5 +396,8 @@ const styles = StyleSheet.create({
   },
   rowContainer: {
     width: "100%",
+    borderRadius: 12,
+    overflow: "hidden",
+    marginVertical: 4,
   },
 });

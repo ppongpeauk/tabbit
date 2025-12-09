@@ -57,7 +57,7 @@ export default function CreateReceiptScreen() {
   const [saving, setSaving] = useState(false);
   const { checkSaveLimit, refresh: refreshLimits } = useLimits();
   const { isPro } = useRevenueCat();
-  const { user } = useAuth();
+  const { user, clearAuthState } = useAuth();
   const isDark = colorScheme === "dark";
   const isSavingRef = useRef(false);
   const barcodePromptShownRef = useRef(false);
@@ -451,10 +451,10 @@ export default function CreateReceiptScreen() {
             return;
           }
 
-          // Check if it's an authentication error
-          if (response.message?.toLowerCase().includes("authentication")) {
+          if (response.authError) {
+            await clearAuthState();
             Alert.alert(
-              "Authentication Error",
+              "Session Expired",
               "Your session has expired. Please sign in again.",
               [{ text: "OK", onPress: () => router.push("/sign-in") }]
             );
@@ -507,7 +507,7 @@ export default function CreateReceiptScreen() {
     };
 
     loadReceiptData();
-  }, [params.imageUri, params.barcodes]);
+  }, [params.imageUri, params.barcodes, user, clearAuthState, refreshLimits]);
 
   return (
     <View style={{ flex: 1 }}>

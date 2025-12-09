@@ -19,11 +19,14 @@ import {
   type StoredReceipt,
   type Friend,
 } from "@/utils/storage";
+import { fetchContacts, type ContactInfo } from "@/utils/contacts";
 import {
-  fetchContacts,
-  type ContactInfo,
-} from "@/utils/contacts";
-import { SplitStrategy, validateSplit, type SplitData, type ItemAssignment } from "@/utils/split";
+  SplitStrategy,
+  validateSplit,
+  calculateSplit,
+  type SplitData,
+  type ItemAssignment,
+} from "@/utils/split";
 import { SplitSummary } from "@/components/split/split-summary";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -50,7 +53,8 @@ export default function ReviewScreen() {
       totals: Record<string, number>;
     };
   } | null>(null);
-  const [calculatedSplitData, setCalculatedSplitData] = useState<SplitData | null>(null);
+  const [calculatedSplitData, setCalculatedSplitData] =
+    useState<SplitData | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -84,11 +88,12 @@ export default function ReviewScreen() {
         console.error("Error loading contacts:", error);
       }
 
+      const strategy =
+        typeof tempData.strategy === "string"
+          ? (tempData.strategy as SplitStrategy)
+          : tempData.strategy;
+
       if (tempData.calculatedSplit) {
-        const strategy =
-          typeof tempData.strategy === "string"
-            ? (tempData.strategy as SplitStrategy)
-            : tempData.strategy;
         const completeSplit: SplitData = {
           strategy,
           assignments: tempData.assignments || [],
@@ -98,6 +103,35 @@ export default function ReviewScreen() {
           totals: tempData.calculatedSplit.totals,
         };
         setCalculatedSplitData(completeSplit);
+      } else if (
+        foundReceipt &&
+        tempData.selectedFriendIds &&
+        tempData.selectedFriendIds.length > 0
+      ) {
+        // Calculate split automatically for EQUAL strategy if not already calculated
+        if (strategy === SplitStrategy.EQUAL) {
+          const calculatedSplit = calculateSplit(
+            foundReceipt,
+            strategy,
+            tempData.assignments || [],
+            tempData.selectedFriendIds
+          );
+          setCalculatedSplitData(calculatedSplit);
+
+          // Save the calculated split back to AsyncStorage for consistency
+          await AsyncStorage.setItem(
+            SPLIT_DATA_KEY,
+            JSON.stringify({
+              ...tempData,
+              calculatedSplit: {
+                friendShares: calculatedSplit.friendShares,
+                taxDistribution: calculatedSplit.taxDistribution,
+                tipDistribution: calculatedSplit.tipDistribution,
+                totals: calculatedSplit.totals,
+              },
+            })
+          );
+        }
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -167,7 +201,7 @@ export default function ReviewScreen() {
     );
   }
 
-  if (!receipt || !calculatedSplitData) {
+  if (!receipt) {
     return (
       <View
         style={[
@@ -181,6 +215,24 @@ export default function ReviewScreen() {
         ]}
       >
         <ThemedText>Receipt not found</ThemedText>
+      </View>
+    );
+  }
+
+  if (!calculatedSplitData) {
+    return (
+      <View
+        style={[
+          styles.container,
+          styles.centerContent,
+          {
+            backgroundColor: isDark
+              ? Colors.dark.background
+              : Colors.light.background,
+          },
+        ]}
+      >
+        <ThemedText>Unable to calculate split</ThemedText>
       </View>
     );
   }
@@ -267,4 +319,3 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
 });
-

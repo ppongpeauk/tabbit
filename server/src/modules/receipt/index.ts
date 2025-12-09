@@ -115,10 +115,14 @@ async function processImage<T extends { status?: number }>(
 
 export const receiptModule = new Elysia({ prefix: "/receipts" })
   .derive(async ({ request }) => {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-    return { user: session?.user || null };
+    try {
+      const session = await auth.api.getSession({
+        headers: request.headers,
+      });
+      return { user: session?.user || null };
+    } catch {
+      return { user: null };
+    }
   })
   .post(
     "/scan",
@@ -130,7 +134,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
         set.status = HTTP_STATUS.UNAUTHORIZED;
         return {
           success: false,
-          message: "Authentication required",
+          message: "Session expired. Please sign in again.",
         };
       }
 
@@ -184,7 +188,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
         set.status = HTTP_STATUS.UNAUTHORIZED;
         return {
           success: false,
-          message: "Authentication required",
+          message: "Session expired. Please sign in again.",
         };
       }
 
@@ -281,7 +285,10 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     async ({ body, set, user }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return { success: false, message: "Unauthorized" };
+        return {
+          success: false,
+          message: "Session expired. Please sign in again.",
+        };
       }
 
       // Check receipt save limit

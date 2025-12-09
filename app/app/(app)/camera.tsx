@@ -34,7 +34,7 @@ export default function CameraScreen() {
   const cameraRef = useRef<CameraView>(null);
   const { checkScanLimit, refresh: refreshLimits } = useLimits();
   const { isPro } = useRevenueCat();
-  const { user } = useAuth();
+  const { user, clearAuthState } = useAuth();
 
   if (!permission) {
     return <View />;
@@ -176,9 +176,10 @@ export default function CameraScreen() {
     setFrozenFrame(null);
 
     if (!response.success || !response.receipt) {
-      if (response.message?.toLowerCase().includes("authentication")) {
+      if (response.authError) {
+        await clearAuthState();
         Alert.alert(
-          "Authentication Error",
+          "Session Expired",
           "Your session has expired. Please sign in again.",
           [{ text: "OK", onPress: () => router.push("/sign-in") }]
         );

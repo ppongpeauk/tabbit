@@ -1,10 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { useState, useEffect, useCallback, useLayoutEffect } from "react";
+import { View, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { useForm, FormProvider } from "react-hook-form";
 import { ThemedText } from "@/components/themed-text";
@@ -16,6 +11,7 @@ import { SplitStrategy } from "@/utils/split";
 import { AddPeopleSelector } from "@/components/add-people-selector";
 import { EmptyState } from "@/components/empty-state";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
 
@@ -24,6 +20,7 @@ interface AddPeopleFormData {
 }
 
 export default function AddPeopleScreen() {
+  const navigation = useNavigation();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -43,6 +40,12 @@ export default function AddPeopleScreen() {
 
   const { watch, setValue } = methods;
   const selectedFriendIds = watch("selectedFriendIds");
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShadowVisible: false,
+    });
+  }, [navigation]);
 
   const loadData = useCallback(async () => {
     try {
@@ -93,11 +96,20 @@ export default function AddPeopleScreen() {
       })
     );
 
-    if (splitData.strategy === SplitStrategy.CUSTOM || splitData.strategy === "custom") {
+    if (
+      splitData.strategy === SplitStrategy.CUSTOM ||
+      splitData.strategy === "custom"
+    ) {
       router.push("/split/custom-inputs");
-    } else if (splitData.strategy === SplitStrategy.PERCENTAGE || splitData.strategy === "percentage") {
+    } else if (
+      splitData.strategy === SplitStrategy.PERCENTAGE ||
+      splitData.strategy === "percentage"
+    ) {
       router.push("/split/custom-inputs");
-    } else if (splitData.strategy === SplitStrategy.ITEMIZED || splitData.strategy === "itemized") {
+    } else if (
+      splitData.strategy === SplitStrategy.ITEMIZED ||
+      splitData.strategy === "itemized"
+    ) {
       router.push("/split/itemized-assign");
     } else {
       router.push("/split/review");
@@ -148,9 +160,6 @@ export default function AddPeopleScreen() {
           <>
             <View style={styles.content}>
               <View style={styles.stepContainer}>
-                <ThemedText size="xl" weight="bold" style={styles.stepTitle}>
-                  Add People
-                </ThemedText>
                 <AddPeopleSelector
                   name="selectedFriendIds"
                   searchQuery={searchQuery}
@@ -200,15 +209,15 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingBottom: 0,
   },
   stepContainer: {
     flex: 1,
     gap: 16,
+    paddingHorizontal: 20,
   },
   stepTitle: {
-    marginBottom: 8,
+    marginBottom: 4,
   },
   footer: {
     position: "absolute",
@@ -221,4 +230,3 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
 });
-

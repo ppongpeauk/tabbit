@@ -33,6 +33,7 @@ interface AuthContextType {
     name: string
   ) => Promise<void>;
   signOut: () => Promise<void>;
+  clearAuthState: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -238,6 +239,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const clearAuthState = async () => {
+    try {
+      await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+      await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
+      setUser(null);
+    } catch (error) {
+      console.error("Error clearing auth state:", error);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -246,6 +257,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithEmail,
         signUpWithEmail,
         signOut,
+        clearAuthState,
       }}
     >
       {children}
