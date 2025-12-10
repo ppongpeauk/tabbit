@@ -148,7 +148,7 @@ export default function SettingsScreen() {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowDeleteModal(false);
-      router.replace("/sign-in");
+      // Auth state cleared, root layout will handle navigation to (auth) stack
     } catch (error) {
       console.error("Error deleting account:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -173,9 +173,7 @@ export default function SettingsScreen() {
         onPress: async () => {
           try {
             await signOut();
-            // Clear navigation stack and navigate to root
-            router.dismissAll();
-            router.replace("/");
+            // Navigation will be handled by (app)/_layout.tsx useEffect when user becomes null
           } catch (error) {
             console.error("Error signing out:", error);
           }
@@ -576,7 +574,8 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingTop: 20,
+    paddingBottom: 100,
   },
   sectionWrapper: {
     marginBottom: 4,

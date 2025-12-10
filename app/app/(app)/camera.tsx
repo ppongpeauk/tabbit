@@ -181,7 +181,7 @@ export default function CameraScreen() {
         Alert.alert(
           "Session Expired",
           "Your session has expired. Please sign in again.",
-          [{ text: "OK", onPress: () => router.push("/sign-in") }]
+          [{ text: "OK" }]
         );
         return;
       }

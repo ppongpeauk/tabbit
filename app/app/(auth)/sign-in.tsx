@@ -1,10 +1,5 @@
-/**
- * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Forgot password screen with email input for password reset
- */
-
 import { useState } from "react";
-import { View, StyleSheet, Alert, ScrollView } from "react-native";
+import { View, StyleSheet, Pressable, Alert, ScrollView } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useForm, Controller } from "react-hook-form";
 import { ThemedText } from "@/components/themed-text";
@@ -12,65 +7,44 @@ import { FormTextInput } from "@/components/form-text-input";
 import { Button } from "@/components/button";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { router } from "expo-router";
+import { useAuth } from "@/contexts/auth-context";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
-import { API_BASE_URL } from "@/utils/config";
 
-interface ForgotPasswordFormData {
+interface SignInFormData {
   email: string;
+  password: string;
 }
 
-export default function ForgotPasswordScreen() {
+export default function SignInScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { signInWithEmail } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<ForgotPasswordFormData>({
+  } = useForm<SignInFormData>({
     defaultValues: {
       email: "",
+      password: "",
     },
   });
 
-  const onSubmit = async (data: ForgotPasswordFormData) => {
+  const onSubmit = async (data: SignInFormData) => {
     try {
       setIsSubmitting(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-      const response = await fetch(`${API_BASE_URL}/auth/forget-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: data.email }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to send reset email");
-      }
-
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        "Reset Link Sent",
-        "If an account exists with this email, you'll receive a password reset link shortly.",
-        [
-          {
-            text: "OK",
-            onPress: () => router.back(),
-          },
-        ]
-      );
+      await signInWithEmail(data.email, data.password);
+      // Navigation handled by root layout based on auth state
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Failed to send reset email"
+        "Sign In Failed",
+        error instanceof Error ? error.message : "Invalid email or password"
       );
     } finally {
       setIsSubmitting(false);
@@ -92,42 +66,8 @@ export default function ForgotPasswordScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header Section */}
-        <View style={styles.headerSection}>
-          <View
-            style={[
-              styles.imagePlaceholder,
-              {
-                backgroundColor: isDark
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : "#E5E5E5",
-              },
-            ]}
-          />
-          <ThemedText
-            family="serif"
-            weight="bold"
-            style={styles.title}
-            size="2xl"
-          >
-            Reset Password
-          </ThemedText>
-          <ThemedText
-            style={[
-              styles.subtitle,
-              {
-                color: isDark
-                  ? Colors.dark.text + "CC"
-                  : Colors.light.text + "CC",
-              },
-            ]}
-            size="base"
-          >
-            Enter your email and we&apos;ll send you a reset link
-          </ThemedText>
-        </View>
-
         {/* Form Section */}
         <View style={styles.formSection}>
           <Controller
@@ -169,25 +109,60 @@ export default function ForgotPasswordScreen() {
             </ThemedText>
           )}
 
+          <Controller
+            control={control}
+            rules={{
+              required: "Password is required",
+            }}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <FormTextInput
+                label="Password"
+                placeholder="Enter your password"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isSubmitting}
+                leftIcon={
+                  <SymbolView
+                    name="lock.fill"
+                    tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
+                  />
+                }
+                rightIcon={
+                  <Pressable
+                    onPress={() => setShowPassword(!showPassword)}
+                    hitSlop={8}
+                  >
+                    <SymbolView
+                      name={showPassword ? "eye.slash.fill" : "eye.fill"}
+                      tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
+                    />
+                  </Pressable>
+                }
+              />
+            )}
+            name="password"
+          />
+          {errors.password && (
+            <ThemedText
+              style={[styles.errorText, { color: "#FF3B30" }]}
+              size="sm"
+            >
+              {errors.password.message}
+            </ThemedText>
+          )}
+
           <Button
             variant="primary"
             onPress={handleSubmit(onSubmit)}
             disabled={isSubmitting}
             loading={isSubmitting}
             fullWidth
-            style={styles.submitButton}
           >
-            {isSubmitting ? "Sending..." : "Send Reset Link"}
-          </Button>
-
-          <Button
-            variant="ghost"
-            onPress={() => router.back()}
-            disabled={isSubmitting}
-            fullWidth
-            style={styles.backButton}
-          >
-            Back to Sign In
+            {isSubmitting ? "Signing In..." : "Sign In"}
           </Button>
         </View>
       </ScrollView>
@@ -202,7 +177,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 32,
-    paddingTop: 20,
+    paddingTop: 40,
     paddingBottom: 40,
     justifyContent: "center",
   },
@@ -218,14 +193,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 24,
   },
-  title: {
+  welcomeText: {
     textAlign: "center",
-    marginBottom: 8,
-  },
-  subtitle: {
-    textAlign: "center",
-    lineHeight: 24,
-    paddingHorizontal: 16,
   },
   formSection: {
     width: "100%",
@@ -234,11 +203,5 @@ const styles = StyleSheet.create({
     marginTop: -12,
     marginBottom: 16,
     marginLeft: 4,
-  },
-  submitButton: {
-    marginTop: 8,
-  },
-  backButton: {
-    marginTop: 8,
   },
 });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { View, StyleSheet, Pressable, Alert, ScrollView } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useForm, Controller } from "react-hook-form";
@@ -8,7 +8,6 @@ import { Button } from "@/components/button";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/contexts/auth-context";
-import { router, useRootNavigationState } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 
@@ -22,8 +21,7 @@ interface SignUpFormData {
 export default function SignUpScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { user, signUpWithEmail } = useAuth();
-  const navigationState = useRootNavigationState();
+  const { signUpWithEmail } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -44,18 +42,12 @@ export default function SignUpScreen() {
 
   const password = watch("password");
 
-  useEffect(() => {
-    if (user && navigationState?.key) {
-      router.replace("/(app)/(tabs)/(receipts)");
-    }
-  }, [user, navigationState]);
-
   const onSubmit = async (data: SignUpFormData) => {
     try {
       setIsSubmitting(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await signUpWithEmail(data.email, data.password, data.name);
-      router.replace("/(app)/(tabs)/(receipts)");
+      // Navigation handled by root layout based on auth state
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(

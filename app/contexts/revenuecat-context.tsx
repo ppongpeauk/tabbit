@@ -61,9 +61,13 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
     if (user?.id) {
       identifyUser(user.id);
     } else {
-      // Only log out if we have customer info (user was logged in)
-      // If customerInfo is null, user is already anonymous
-      if (customerInfo) {
+      // Only log out if we have customer info and the user is not anonymous
+      // Check if originalAppUserId exists and is not an anonymous ID
+      if (
+        customerInfo &&
+        customerInfo.originalAppUserId &&
+        !customerInfo.originalAppUserId.startsWith("$RCAnonymousID:")
+      ) {
         Purchases.logOut().catch((err) => {
           // Ignore error if user is already anonymous
           const errorMessage = err instanceof Error ? err.message : String(err);

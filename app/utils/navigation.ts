@@ -1,6 +1,6 @@
 /**
- * @author Composer
- * @description Navigation utilities for shared header styling and screen options
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Navigation utilities for shared header styling, screen options, and route helpers
  */
 
 import { StackNavigationOptions } from "@react-navigation/stack";
@@ -39,3 +39,41 @@ export function getHeaderScreenOptions(
 
   return baseOptions;
 }
+
+/**
+ * Route paths for authenticated routes
+ */
+export const AppRoutes = {
+  receipts: "/(app)/(tabs)/(receipts)",
+  groups: "/(app)/(tabs)/(groups)",
+  settings: "/(app)/(tabs)/(settings)",
+  camera: "/(app)/camera",
+  create: "/(app)/create",
+  createManual: "/(app)/create-manual",
+  barcodeScanner: "/(app)/barcode-scanner",
+  receiptDetail: (id: string) => `/(app)/receipt/${id}`,
+  receiptEdit: (id: string) => `/(app)/receipt/${id}/edit`,
+  split: "/(app)/split",
+  splitAddPeople: "/(app)/split/add-people",
+  splitCustomInputs: "/(app)/split/custom-inputs",
+  splitItemizedAssign: "/(app)/split/itemized-assign",
+  splitReview: "/(app)/split/review",
+  splitSent: "/(app)/split/sent",
+  groupDetail: (id: string) => `/(app)/(tabs)/(groups)/${id}`,
+  groupEdit: (id: string) => `/(app)/(tabs)/(groups)/${id}/edit`,
+  groupDetails: (id: string) => `/(app)/(tabs)/(groups)/${id}/details`,
+  groupCreate: "/(app)/(tabs)/(groups)/create",
+  groupJoin: "/(app)/(tabs)/(groups)/join",
+  settingsAbout: "/(app)/(tabs)/(settings)/about",
+  settingsGeneral: "/(app)/(tabs)/(settings)/general",
+  settingsPermissions: "/(app)/(tabs)/(settings)/permissions",
+} as const;
+
+/**
+ * Route paths for unauthenticated routes
+ */
+export const AuthRoutes = {
+  index: "/(auth)",
+  signIn: "/(auth)/sign-in",
+  signUp: "/(auth)/sign-up",
+} as const;

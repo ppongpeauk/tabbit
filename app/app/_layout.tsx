@@ -1,3 +1,8 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Root layout with authenticated/unauthenticated stacks
+ */
+
 import { useEffect } from "react";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
@@ -9,9 +14,8 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Stack } from "expo-router";
-import { AuthProvider } from "@/contexts/auth-context";
-import { Colors } from "@/constants/theme";
+import { Stack, useRouter, useSegments } from "expo-router";
+import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { RevenueCatProvider } from "@/contexts/revenuecat-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -23,7 +27,26 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    const inAuthGroup = segments[0] === "(auth)";
+    const inAppGroup = segments[0] === "(app)";
+
+    if (user && !inAppGroup) {
+      // User is signed in but not in app group, redirect to app
+      router.replace("/(app)/(tabs)/(receipts)");
+    } else if (!user && !inAuthGroup) {
+      // User is not signed in but not in auth group, redirect to auth
+      router.replace("/(auth)");
+    }
+  }, [user, isLoading, segments, router]);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -35,60 +58,15 @@ function RootLayoutNav() {
         <Stack.Screen
           name="index"
           options={{
-            headerTitle: "Start",
             headerShown: false,
             gestureEnabled: false,
           }}
         />
         <Stack.Screen
-          name="sign-in"
+          name="(auth)"
           options={{
-            headerShown: true,
-            title: "Sign In",
-            presentation: "card",
-            headerTintColor: isDark ? Colors.dark.text : Colors.light.text,
-            headerTitleStyle: {
-              color: isDark ? Colors.dark.text : Colors.light.text,
-            },
-            headerStyle: {
-              backgroundColor: isDark
-                ? Colors.dark.background
-                : Colors.light.background,
-            },
-          }}
-        />
-        <Stack.Screen
-          name="sign-up"
-          options={{
-            headerShown: true,
-            title: "Sign Up",
-            presentation: "card",
-            headerTintColor: isDark ? Colors.dark.text : Colors.light.text,
-            headerTitleStyle: {
-              color: isDark ? Colors.dark.text : Colors.light.text,
-            },
-            headerStyle: {
-              backgroundColor: isDark
-                ? Colors.dark.background
-                : Colors.light.background,
-            },
-          }}
-        />
-        <Stack.Screen
-          name="forgot-password"
-          options={{
-            headerShown: true,
-            title: "Reset Password",
-            presentation: "modal",
-            headerTintColor: isDark ? Colors.dark.text : Colors.light.text,
-            headerTitleStyle: {
-              color: isDark ? Colors.dark.text : Colors.light.text,
-            },
-            headerStyle: {
-              backgroundColor: isDark
-                ? Colors.dark.background
-                : Colors.light.background,
-            },
+            headerShown: false,
+            gestureEnabled: false,
           }}
         />
         <Stack.Screen

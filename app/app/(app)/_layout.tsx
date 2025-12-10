@@ -1,47 +1,14 @@
-import { useEffect } from "react";
-import { Stack, useRouter, usePathname } from "expo-router";
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Authenticated routes layout
+ */
+
+import { Stack } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Colors } from "@/constants/theme";
-import { useAuth } from "@/contexts/auth-context";
-import { View, ActivityIndicator } from "react-native";
 import { getHeaderScreenOptions } from "@/utils/navigation";
 
 export default function AuthenticatedLayout() {
   const colorScheme = useColorScheme();
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
-
-  useEffect(() => {
-    if (!isLoading && !user && pathname?.startsWith("/(app)")) {
-      router.replace("/");
-    }
-  }, [isLoading, user, pathname, router]);
-
-  if (isLoading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor:
-            colorScheme === "dark"
-              ? Colors.dark.background
-              : Colors.light.background,
-        }}
-      >
-        <ActivityIndicator
-          size="large"
-          color={colorScheme === "dark" ? Colors.dark.tint : Colors.light.tint}
-        />
-      </View>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
 
   return (
     <Stack screenOptions={getHeaderScreenOptions(colorScheme)}>

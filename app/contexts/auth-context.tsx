@@ -20,11 +20,13 @@ import {
 } from "@react-native-google-signin/google-signin";
 import { API_BASE_URL } from "@/utils/config";
 
-// Complete the auth session to close the browser
-// WebBrowser.maybeCompleteAuthSession();
-
 const AUTH_STORAGE_KEY = "tabbit.auth";
 const TOKEN_STORAGE_KEY = "tabbit.token";
+
+const GOOGLE_IOS_CLIENT_ID =
+  "1007672962218-o67io1st4gnevkinaqo4cdeo38ergoh4.apps.googleusercontent.com";
+const GOOGLE_WEB_CLIENT_ID =
+  "1007672962218-fv05df92ij6i74bahnfg3gkmgril1ol1.apps.googleusercontent.com";
 
 export interface User {
   id: string;
@@ -49,15 +51,38 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const handleGoogleError = (error: unknown): never => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === statusCodes.SIGN_IN_CANCELLED
+  ) {
+    throw new Error("Sign in was cancelled");
+  }
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === statusCodes.IN_PROGRESS
+  ) {
+    throw new Error("Sign in is already in progress");
+  }
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE
+  ) {
+    throw new Error("Google Play Services not available");
+  }
+  throw error;
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  /**
-   * Verifies the token with the backend
-   * @param token - The authentication token to verify
-   * @returns true if token is valid, false if invalid, true on network errors (to preserve state)
-   */
   const verifyToken = useCallback(async (token: string): Promise<boolean> => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -68,47 +93,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       });
 
-      // Token is definitively invalid
       if (response.status === 401 || response.status === 403) {
         return false;
       }
 
-      // Verify response format
       if (response.ok) {
         const data = await response.json();
         return data.success === true && !!data.user;
       }
 
-      // For other HTTP errors, assume token might still be valid (server issue)
       return true;
     } catch (error) {
-      // Network errors shouldn't clear auth state - token will be verified on next API call
-      console.warn(
-        "Token verification network error (keeping auth state):",
-        error
-      );
+      console.warn("Token verification network error:", error);
       return true;
     }
   }, []);
 
-  /**
-   * Clears all authentication data from storage
-   */
   const clearAuthStorage = useCallback(async (): Promise<void> => {
     await AsyncStorage.removeItem(AUTH_STORAGE_KEY).catch(() => {});
     await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY).catch(() => {});
     setUser(null);
   }, []);
 
-  /**
-   * Loads authentication state from storage and verifies token
-   */
   const loadAuthState = useCallback(async (): Promise<void> => {
     try {
       const stored = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
       let token = await SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
 
-      // Migrate from AsyncStorage to SecureStore if needed
       if (!token) {
         const oldToken = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
         if (oldToken) {
@@ -119,11 +130,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (stored && token) {
-        // Set user immediately from stored data for faster UI
         const userData = JSON.parse(stored);
         setUser(userData);
 
-        // Verify token is still valid
         const isValid = await verifyToken(token);
         if (!isValid) {
           await clearAuthStorage();
@@ -131,39 +140,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Error loading auth state:", error);
-      // Clear potentially corrupted data
       await clearAuthStorage();
     } finally {
       setIsLoading(false);
     }
   }, [verifyToken, clearAuthStorage]);
 
-  // Configure Google Sign-In
   useEffect(() => {
-    const configureGoogleSignIn = async () => {
-      try {
-        GoogleSignin.configure({
-          iosClientId:
-            "1007672962218-o67io1st4gnevkinaqo4cdeo38ergoh4.apps.googleusercontent.com",
-          webClientId:
-            "1007672962218-fv05df92ij6i74bahnfg3gkmgril1ol1.apps.googleusercontent.com",
-          offlineAccess: true, // Request offline access
-        });
-      } catch (error) {
-        console.error("Failed to configure Google Sign-In:", error);
-      }
-    };
-
-    configureGoogleSignIn();
+    GoogleSignin.configure({
+      iosClientId: GOOGLE_IOS_CLIENT_ID,
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      offlineAccess: true,
+    });
   }, []);
 
   useEffect(() => {
     loadAuthState();
   }, [loadAuthState]);
 
-  /**
-   * Stores authentication data after successful login
-   */
   const storeAuthData = useCallback(
     async (token: string, userData: User): Promise<void> => {
       await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userData));
@@ -173,55 +167,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  /**
-   * Handles authentication response and stores data
-   */
-  const handleAuthResponse = async (
-    response: Response,
-    errorMessage: string
-  ): Promise<{ token: string; user: User }> => {
-    const data = await response.json();
+  const handleAuthResponse = useCallback(
+    async (
+      response: Response,
+      errorMessage: string
+    ): Promise<{ token: string; user: User }> => {
+      const data = await response.json();
 
-    if (!response.ok || !data.success || !data.user) {
-      throw new Error(data.message || errorMessage);
-    }
+      if (!response.ok || !data.success || !data.user) {
+        throw new Error(data.message || errorMessage);
+      }
 
-    const token = data.token;
-    if (!token) {
-      throw new Error("No token received from server");
-    }
+      const token = data.token;
+      if (!token) {
+        throw new Error("No token received from server");
+      }
 
-    const userData: User = {
-      id: data.user.id,
-      email: data.user.email,
-      name: data.user.name || "",
-    };
+      const userData: User = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name || "",
+      };
 
-    return { token, user: userData };
-  };
+      return { token, user: userData };
+    },
+    []
+  );
 
   const signInWithEmail = async (
     email: string,
     password: string
   ): Promise<void> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
 
-      const { token, user } = await handleAuthResponse(
-        response,
-        "Sign in failed"
-      );
-      await storeAuthData(token, user);
-    } catch (error) {
-      console.error("Error signing in:", error);
-      throw error;
-    }
+    const { token, user } = await handleAuthResponse(
+      response,
+      "Sign in failed"
+    );
+    await storeAuthData(token, user);
   };
 
   const signUpWithEmail = async (
@@ -229,50 +218,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     name: string
   ): Promise<void> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password, name }),
-      });
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password, name }),
+    });
 
-      const { token, user: baseUser } = await handleAuthResponse(
-        response,
-        "Sign up failed"
-      );
+    const { token, user: baseUser } = await handleAuthResponse(
+      response,
+      "Sign up failed"
+    );
 
-      // Use provided name if user name is not available
-      const userData: User = {
-        ...baseUser,
-        name: baseUser.name || name,
-      };
+    const userData: User = {
+      ...baseUser,
+      name: baseUser.name || name,
+    };
 
-      await storeAuthData(token, userData);
-    } catch (error) {
-      console.error("Error signing up:", error);
-      throw error;
-    }
+    await storeAuthData(token, userData);
   };
 
   const signOut = async (): Promise<void> => {
-    try {
-      await clearAuthStorage();
-    } catch (error) {
-      console.error("Error signing out:", error);
-      throw error;
-    }
+    await clearAuthStorage();
   };
 
   const signInWithGoogle = async (): Promise<void> => {
     try {
-      // Check if Google Play Services are available (Android only)
       await GoogleSignin.hasPlayServices({
         showPlayServicesUpdateDialog: true,
       });
 
-      // Sign in with Google - this opens native Google Sign-In UI
       const userInfo = await GoogleSignin.signIn();
 
       if (!userInfo.data || !userInfo.data.user) {
@@ -285,11 +261,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Missing required user information from Google");
       }
 
-      // Get access token - for native sign-in, we can get tokens using getTokens()
       const tokens = await GoogleSignin.getTokens();
       const accessToken = tokens.accessToken || idToken || "";
 
-      // Send user info and tokens to backend to create/update user and get session token
       const backendResponse = await fetch(
         `${API_BASE_URL}/auth/google/callback`,
         {
@@ -320,42 +294,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await storeAuthData(token, userData);
     } catch (error: unknown) {
-      if (
-        error &&
-        typeof error === "object" &&
-        "code" in error &&
-        error.code === statusCodes.SIGN_IN_CANCELLED
-      ) {
-        throw new Error("Sign in was cancelled");
-      } else if (
-        error &&
-        typeof error === "object" &&
-        "code" in error &&
-        error.code === statusCodes.IN_PROGRESS
-      ) {
-        throw new Error("Sign in is already in progress");
-      } else if (
-        error &&
-        typeof error === "object" &&
-        "code" in error &&
-        error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE
-      ) {
-        throw new Error("Google Play Services not available");
-      }
       console.error("Error signing in with Google:", error);
-      throw error;
+      handleGoogleError(error);
     }
   };
 
   const signInWithApple = async (): Promise<void> => {
     try {
-      // Check if Apple Authentication is available
       const isAvailable = await AppleAuthentication.isAvailableAsync();
       if (!isAvailable) {
         throw new Error("Apple Authentication is not available on this device");
       }
 
-      // Request Apple ID credential
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
@@ -363,7 +313,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ],
       });
 
-      // Send credential to server
       const response = await fetch(`${API_BASE_URL}/auth/apple/callback`, {
         method: "POST",
         headers: {
@@ -401,11 +350,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const clearAuthState = async (): Promise<void> => {
-    try {
-      await clearAuthStorage();
-    } catch (error) {
-      console.error("Error clearing auth state:", error);
-    }
+    await clearAuthStorage();
   };
 
   return (

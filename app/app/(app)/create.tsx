@@ -460,7 +460,7 @@ export default function CreateReceiptScreen() {
             Alert.alert(
               "Session Expired",
               "Your session has expired. Please sign in again.",
-              [{ text: "OK", onPress: () => router.push("/sign-in") }]
+              [{ text: "OK" }]
             );
             setLoading(false);
             return;
