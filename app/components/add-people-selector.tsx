@@ -16,7 +16,8 @@ import {
   getFriendsList,
   fetchContacts,
 } from "@/utils/contacts";
-import { getFriends, type Friend } from "@/utils/storage";
+import { useFriends } from "@/hooks/use-friends";
+import type { Friend } from "@/utils/storage";
 
 export interface PersonItem {
   id: string;
@@ -121,14 +122,15 @@ export function AddPeopleSelector({
   const [loading, setLoading] = useState(true);
 
   // Load all data
+  const { data: storedFriends = [] } = useFriends();
+
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [recents, friends, contacts, storedFriends] = await Promise.all([
+        const [recents, friends, contacts] = await Promise.all([
           getRecentContacts(),
           getFriendsList(),
           fetchContacts().catch(() => [] as ContactInfo[]),
-          getFriends(),
         ]);
 
         const recentPersons = recents.map((item) =>
@@ -158,7 +160,7 @@ export function AddPeopleSelector({
     };
 
     loadData();
-  }, []);
+  }, [storedFriends]);
 
   // Create unified items with shared IDs across sections
   const unifiedItemsMap = useMemo(() => {

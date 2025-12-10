@@ -1,50 +1,53 @@
-import { useState, useEffect, useLayoutEffect, useCallback } from "react";
+import { useLayoutEffect, useCallback } from "react";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
-import { View, StyleSheet, Alert } from "react-native";
+import { View, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { ThemedView } from "@/components/themed-view";
 import { ReceiptEditForm } from "@/components/receipt-edit-form";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import {
-  getReceipts,
-  updateReceipt,
-  type StoredReceipt,
-} from "@/utils/storage";
+import { useReceipt, useUpdateReceipt } from "@/hooks/use-receipts";
 import * as Haptics from "expo-haptics";
 
 export default function EditReceiptScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [receipt, setReceipt] = useState<StoredReceipt | null>(null);
   const colorScheme = useColorScheme();
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const loadReceipt = async () => {
-      const receipts = await getReceipts();
-      const found = receipts.find((r) => r.id === id);
-      setReceipt(found || null);
-    };
-    loadReceipt();
-  }, [id]);
+  // Use React Query hooks
+  const { data: receipt, isLoading } = useReceipt(id);
+  const updateReceiptMutation = useUpdateReceipt();
 
   const handleSave = useCallback(
-    async (updatedReceipt: Partial<StoredReceipt>) => {
-      try {
-        await updateReceipt(id, updatedReceipt);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.back();
-      } catch (error) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert(
-          "Error",
-          error instanceof Error
-            ? error.message
-            : "Failed to save changes. Please try again."
-        );
-        throw error;
-      }
+    (
+      updatedReceipt: Parameters<
+        typeof updateReceiptMutation.mutate
+      >[0]["updates"]
+    ) => {
+      if (!id) return;
+
+      updateReceiptMutation.mutate(
+        {
+          id,
+          updates: updatedReceipt,
+        },
+        {
+          onSuccess: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            router.back();
+          },
+          onError: (error) => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            Alert.alert(
+              "Error",
+              error instanceof Error
+                ? error.message
+                : "Failed to save changes. Please try again."
+            );
+          },
+        }
+      );
     },
-    [id]
+    [id, updateReceiptMutation]
   );
 
   const handleCancel = useCallback(() => {
@@ -58,13 +61,28 @@ export default function EditReceiptScreen() {
     });
   }, [navigation, colorScheme, handleCancel]);
 
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <ThemedView style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" />
+            <ThemedText style={styles.loadingText}>
+              Loading receipt...
+            </ThemedText>
+          </View>
+        </ThemedView>
+      </View>
+    );
+  }
+
   if (!receipt) {
     return (
       <View style={styles.container}>
         <ThemedView style={styles.container}>
           <View style={styles.loadingContainer}>
             <ThemedText style={styles.loadingText}>
-              Loading receipt...
+              Receipt not found
             </ThemedText>
           </View>
         </ThemedView>
@@ -100,6 +118,3 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 });
-
-
-

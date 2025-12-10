@@ -10,6 +10,7 @@ import {
   useEffect,
   type ReactNode,
   useCallback,
+  useRef,
 } from "react";
 import Purchases, {
   type CustomerInfo,
@@ -51,6 +52,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
     useState<PurchasesOffering | null>(null);
   const [isPro, setIsPro] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const lastLoggedInUserId = useRef<string | null>(null);
 
   useEffect(() => {
     initializeRevenueCat();
@@ -59,7 +61,10 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user?.id) {
-      identifyUser(user.id);
+      // Only call identifyUser if the user ID has changed
+      if (lastLoggedInUserId.current !== user.id) {
+        identifyUser(user.id);
+      }
     } else {
       // Only log out if we have customer info and the user is not anonymous
       // Check if originalAppUserId exists and is not an anonymous ID
@@ -81,6 +86,7 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
           }
         });
       }
+      lastLoggedInUserId.current = null;
       setCustomerInfo(null);
       setCurrentOffering(null);
       setIsPro(false);
@@ -94,7 +100,17 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
       await Purchases.configure({
         apiKey: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY || "",
       });
-      if (user?.id) {
+      // Get current customer info to check if user is already logged in
+      try {
+        const currentInfo = await Purchases.getCustomerInfo();
+        if (currentInfo.originalAppUserId) {
+          lastLoggedInUserId.current = currentInfo.originalAppUserId;
+        }
+      } catch {
+        // Ignore errors when getting customer info during initialization
+      }
+      // Only identify user if they're not already logged in
+      if (user?.id && lastLoggedInUserId.current !== user.id) {
         await identifyUser(user.id);
       }
       await refreshCustomerInfo();
@@ -107,7 +123,12 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
 
   const identifyUser = async (userId: string) => {
     try {
+      // Check if user is already logged in with this ID
+      if (lastLoggedInUserId.current === userId) {
+        return;
+      }
       await Purchases.logIn(userId);
+      lastLoggedInUserId.current = userId;
     } catch (err) {
       console.error("Error identifying RevenueCat user:", err);
     }
@@ -138,6 +159,11 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
         Purchases.getCustomerInfo(),
         Purchases.getOfferings(),
       ]);
+
+      // Update the last logged in user ID if we have customer info
+      if (info.originalAppUserId) {
+        lastLoggedInUserId.current = info.originalAppUserId;
+      }
 
       setCustomerInfo(info);
       setCurrentOffering(offering.current);

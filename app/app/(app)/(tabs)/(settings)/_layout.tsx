@@ -44,6 +44,12 @@ export default function SettingsLayout() {
           title: "General",
         }}
       />
+      <Stack.Screen
+        name="sync"
+        options={{
+          title: "Sync",
+        }}
+      />
     </Stack>
   );
 }

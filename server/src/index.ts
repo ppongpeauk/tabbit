@@ -13,6 +13,7 @@ import { receiptModule } from "./modules/receipt";
 import { limitModule } from "./modules/limits";
 import { subscriptionModule } from "./modules/subscription";
 import { groupModule } from "./modules/group";
+import { syncModule } from "./modules/sync";
 import { cacheService } from "./utils/cache";
 import { env } from "./config/env";
 import { betterAuth, authModule } from "./modules/auth";
@@ -73,6 +74,10 @@ const app = new Elysia()
             name: "groups",
             description: "Group management endpoints",
           },
+          {
+            name: "sync",
+            description: "Receipt sync endpoints (Pro feature)",
+          },
         ],
       },
     })
@@ -105,6 +110,7 @@ const app = new Elysia()
   .use(limitModule)
   .use(subscriptionModule)
   .use(groupModule)
+  .use(syncModule)
   .get("/user", ({ user }) => user, {
     auth: true,
   })

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { ThemedText } from "@/components/themed-text";
 import {
   SectionList,
@@ -9,10 +9,11 @@ import {
   Platform,
   type SectionListRenderItemInfo,
 } from "react-native";
-import { useFocusEffect, router } from "expo-router";
+import { router } from "expo-router";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { getReceipts, type StoredReceipt } from "@/utils/storage";
+import { useReceipts } from "@/hooks/use-receipts";
+import type { StoredReceipt } from "@/utils/storage";
 import { formatCurrency, formatReceiptDateTime } from "@/utils/format";
 import { GlassView } from "expo-glass-effect";
 import { SymbolView } from "expo-symbols";
@@ -69,11 +70,12 @@ function getSectionTitle(timestamp: string): string {
  * ReceiptsScreen component - displays receipts grouped by date sections
  */
 export default function ReceiptsScreen() {
-  const [receipts, setReceipts] = useState<StoredReceipt[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+
+  // Use React Query hook
+  const { data: receipts = [], refetch, isRefetching } = useReceipts();
 
   // Calculate bottom tab bar height
   const bottomTabBarHeight = useMemo(() => {
@@ -81,26 +83,11 @@ export default function ReceiptsScreen() {
     return tabBarBaseHeight + insets.bottom;
   }, [insets.bottom]);
 
-  const loadReceipts = useCallback(async () => {
-    const data = await getReceipts();
-    setReceipts(data);
-  }, []);
+  const onRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
-  useEffect(() => {
-    loadReceipts();
-  }, [loadReceipts]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadReceipts();
-    }, [loadReceipts])
-  );
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadReceipts();
-    setRefreshing(false);
-  }, [loadReceipts]);
+  const refreshing = isRefetching;
 
   const handleScanReceipt = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -361,7 +348,7 @@ export default function ReceiptsScreen() {
               ]}
             >
               <SymbolView
-                name="pencil"
+                name="pencil.and.list.clipboard"
                 tintColor={isDark ? Colors.dark.text : Colors.light.text}
                 size={24}
               />

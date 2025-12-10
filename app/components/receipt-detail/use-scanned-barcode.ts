@@ -2,12 +2,13 @@ import { useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
-import { updateReceipt, type StoredReceipt } from "@/utils/storage";
+import { useUpdateReceipt } from "@/hooks/use-receipts";
+import type { StoredReceipt } from "@/utils/storage";
 
 interface UseScannedBarcodeProps {
   receipt: StoredReceipt | null;
   receiptId: string;
-  onReceiptUpdate: (updatedReceipt: StoredReceipt) => void;
+  onReceiptUpdate: () => void;
 }
 
 export function useScannedBarcode({
@@ -15,6 +16,8 @@ export function useScannedBarcode({
   receiptId,
   onReceiptUpdate,
 }: UseScannedBarcodeProps) {
+  const updateReceiptMutation = useUpdateReceipt();
+
   useFocusEffect(
     useCallback(() => {
       const checkForScannedBarcode = async () => {
@@ -25,22 +28,35 @@ export function useScannedBarcode({
           const scannedBarcodeFormat = await AsyncStorage.getItem(formatKey);
 
           if (scannedBarcodeValue && receipt) {
-            const updatedReceipt = {
-              ...receipt,
-              returnInfo: {
-                ...receipt.returnInfo,
-                returnBarcode: scannedBarcodeValue,
-                returnBarcodeFormat: scannedBarcodeFormat || undefined,
-                hasReturnBarcode: true,
+            updateReceiptMutation.mutate(
+              {
+                id: receiptId,
+                updates: {
+                  returnInfo: {
+                    ...receipt.returnInfo,
+                    returnBarcode: scannedBarcodeValue,
+                    returnBarcodeFormat: scannedBarcodeFormat || undefined,
+                    hasReturnBarcode: true,
+                  },
+                },
               },
-            };
-            await updateReceipt(receiptId, {
-              returnInfo: updatedReceipt.returnInfo,
-            });
-            onReceiptUpdate(updatedReceipt);
-            await AsyncStorage.removeItem(storageKey);
-            await AsyncStorage.removeItem(formatKey);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              {
+                onSuccess: () => {
+                  onReceiptUpdate();
+                  AsyncStorage.removeItem(storageKey);
+                  AsyncStorage.removeItem(formatKey);
+                  Haptics.notificationAsync(
+                    Haptics.NotificationFeedbackType.Success
+                  );
+                },
+                onError: (error) => {
+                  console.error(
+                    "Failed to update receipt with barcode:",
+                    error
+                  );
+                },
+              }
+            );
           }
         } catch (error) {
           console.error("Failed to read scanned barcode:", error);
@@ -48,6 +64,6 @@ export function useScannedBarcode({
       };
 
       checkForScannedBarcode();
-    }, [receipt, receiptId, onReceiptUpdate])
+    }, [receipt, receiptId, onReceiptUpdate, updateReceiptMutation])
   );
 }

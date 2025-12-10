@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   Alert,
   Modal,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -16,19 +17,17 @@ import { Colors, Fonts } from "@/constants/theme";
 import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
 import {
-  getFriends,
-  saveFriend,
-  deleteFriend,
-  updateFriend,
-  type Friend,
-} from "@/utils/storage";
+  useFriends,
+  useCreateFriend,
+  useUpdateFriend,
+  useDeleteFriend,
+} from "@/hooks/use-friends";
+import type { Friend } from "@/utils/storage";
 import { FormTextInput } from "@/components/form-text-input";
 
 export default function FriendsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingFriend, setEditingFriend] = useState<Friend | null>(null);
@@ -36,21 +35,11 @@ export default function FriendsScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
 
-  const loadFriends = useCallback(async () => {
-    try {
-      const loadedFriends = await getFriends();
-      setFriends(loadedFriends);
-    } catch (error) {
-      console.error("Error loading friends:", error);
-      Alert.alert("Error", "Failed to load friends");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadFriends();
-  }, [loadFriends]);
+  // Use React Query hooks
+  const { data: friends = [], isLoading: loading } = useFriends();
+  const createFriendMutation = useCreateFriend();
+  const updateFriendMutation = useUpdateFriend();
+  const deleteFriendMutation = useDeleteFriend();
 
   const handleAddFriend = useCallback(() => {
     setName("");
@@ -68,7 +57,7 @@ export default function FriendsScreen() {
   }, []);
 
   const handleDeleteFriend = useCallback(
-    async (friend: Friend) => {
+    (friend: Friend) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       Alert.alert(
         "Delete Friend",
@@ -81,62 +70,84 @@ export default function FriendsScreen() {
           {
             text: "Delete",
             style: "destructive",
-            onPress: async () => {
-              try {
-                await deleteFriend(friend.id);
-                Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Success
-                );
-                await loadFriends();
-              } catch (error) {
-                Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Error
-                );
-                Alert.alert("Error", "Failed to delete friend");
-              }
+            onPress: () => {
+              deleteFriendMutation.mutate(friend.id, {
+                onSuccess: () => {
+                  Haptics.notificationAsync(
+                    Haptics.NotificationFeedbackType.Success
+                  );
+                },
+                onError: () => {
+                  Haptics.notificationAsync(
+                    Haptics.NotificationFeedbackType.Error
+                  );
+                  Alert.alert("Error", "Failed to delete friend");
+                },
+              });
             },
           },
         ]
       );
     },
-    [loadFriends]
+    [deleteFriendMutation]
   );
 
-  const handleSaveFriend = useCallback(async () => {
+  const handleSaveFriend = useCallback(() => {
     if (!name.trim()) {
       Alert.alert("Error", "Name is required");
       return;
     }
 
-    try {
-      if (editingFriend) {
-        await updateFriend(editingFriend.id, {
-          name: name.trim(),
-          phoneNumber: phoneNumber.trim() || undefined,
-          email: email.trim() || undefined,
-        });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setShowEditModal(false);
-        setEditingFriend(null);
-      } else {
-        await saveFriend({
-          name: name.trim(),
-          phoneNumber: phoneNumber.trim() || undefined,
-          email: email.trim() || undefined,
-        });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setShowAddModal(false);
-      }
-      setName("");
-      setPhoneNumber("");
-      setEmail("");
-      await loadFriends();
-    } catch (error) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Error", "Failed to save friend");
-    }
-  }, [name, phoneNumber, email, editingFriend, loadFriends]);
+    const friendData = {
+      name: name.trim(),
+      phoneNumber: phoneNumber.trim() || undefined,
+      email: email.trim() || undefined,
+    };
 
+    if (editingFriend) {
+      updateFriendMutation.mutate(
+        {
+          id: editingFriend.id,
+          updates: friendData,
+        },
+        {
+          onSuccess: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setShowEditModal(false);
+            setEditingFriend(null);
+            setName("");
+            setPhoneNumber("");
+            setEmail("");
+          },
+          onError: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            Alert.alert("Error", "Failed to save friend");
+          },
+        }
+      );
+    } else {
+      createFriendMutation.mutate(friendData, {
+        onSuccess: () => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          setShowAddModal(false);
+          setName("");
+          setPhoneNumber("");
+          setEmail("");
+        },
+        onError: () => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          Alert.alert("Error", "Failed to save friend");
+        },
+      });
+    }
+  }, [
+    name,
+    phoneNumber,
+    email,
+    editingFriend,
+    createFriendMutation,
+    updateFriendMutation,
+  ]);
 
   const renderFriendItem = useCallback(
     ({ item }: { item: Friend }) => (
@@ -294,6 +305,7 @@ export default function FriendsScreen() {
       <View
         style={[
           styles.container,
+          styles.centerContent,
           {
             backgroundColor: isDark
               ? Colors.dark.background
@@ -301,7 +313,7 @@ export default function FriendsScreen() {
           },
         ]}
       >
-        <ThemedText>Loading...</ThemedText>
+        <ActivityIndicator size="large" />
       </View>
     );
   }
@@ -334,7 +346,8 @@ export default function FriendsScreen() {
             No friends yet
           </ThemedText>
           <ThemedText size="sm" style={{ opacity: 0.5, marginTop: 8 }}>
-            Add friends manually. Device contacts are available when splitting receipts.
+            Add friends manually. Device contacts are available when splitting
+            receipts.
           </ThemedText>
         </View>
       ) : (
@@ -391,6 +404,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
+  },
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContainer: {
     flex: 1,

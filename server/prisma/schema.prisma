@@ -104,16 +104,19 @@ model AuthCode {
 }
 
 model Receipt {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  data      Json     @db.JsonB
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  data      Json      @db.JsonB
+  imageKey  String? // S3 key for the receipt image
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  syncedAt  DateTime? // When the receipt was last synced from client
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, createdAt])
+  @@index([userId, syncedAt])
 }
 
 model Group {

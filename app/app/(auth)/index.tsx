@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    gap: 4,
   },
   heroIcon: {
     marginBottom: 8,

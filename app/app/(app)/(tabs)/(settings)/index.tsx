@@ -197,6 +197,11 @@ export default function SettingsScreen() {
     Alert.alert("App Integrations", "App integrations settings coming soon");
   };
 
+  const handleSyncPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push("./sync");
+  };
+
   const sections: Section[] = [
     {
       title: "Settings",
@@ -217,6 +222,12 @@ export default function SettingsScreen() {
           id: "integrations",
           label: "App Integrations",
           onPress: handleAppIntegrationsPress,
+          showChevron: true,
+        },
+        {
+          id: "sync",
+          label: "Sync",
+          onPress: handleSyncPress,
           showChevron: true,
         },
       ],

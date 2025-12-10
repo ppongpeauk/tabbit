@@ -17,7 +17,7 @@ import type React from "react";
 import { Button } from "./button";
 
 interface LimitsModalProps {
-  bottomSheetRef: React.RefObject<BottomSheetModal>;
+  bottomSheetRef: React.RefObject<BottomSheetModal | null>;
 }
 
 export function LimitsModal({ bottomSheetRef }: LimitsModalProps) {

@@ -1,4 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  getSyncReceipts,
+  saveSyncReceipt,
+  updateSyncReceipt as updateSyncReceiptDb,
+  deleteSyncReceipt,
+  isSyncEnabled,
+  type SyncReceipt,
+} from "@/lib/sync-db";
 
 const RECEIPTS_KEY = "@tabbit:receipts";
 const FRIENDS_KEY = "@tabbit:friends";
@@ -46,42 +54,93 @@ export type { ReceiptItem } from "./api";
 export async function saveReceipt(
   receipt: Omit<StoredReceipt, "id" | "createdAt">
 ): Promise<StoredReceipt> {
-  const receipts = await getReceipts();
-  const newReceipt: StoredReceipt = {
-    ...receipt,
-    id: Date.now().toString(),
-    createdAt: new Date().toISOString(),
-  };
-  receipts.unshift(newReceipt);
-  await AsyncStorage.setItem(RECEIPTS_KEY, JSON.stringify(receipts));
-  return newReceipt;
+  const syncEnabled = await isSyncEnabled();
+
+  if (syncEnabled) {
+    // Use sync database
+    const newReceipt = await saveSyncReceipt({
+      ...receipt,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      syncStatus: "pending",
+    });
+    return newReceipt as StoredReceipt;
+  } else {
+    // Use regular AsyncStorage
+    const receipts = await getReceipts();
+    const newReceipt: StoredReceipt = {
+      ...receipt,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+    };
+    receipts.unshift(newReceipt);
+    await AsyncStorage.setItem(RECEIPTS_KEY, JSON.stringify(receipts));
+    return newReceipt;
+  }
 }
 
 export async function getReceipts(): Promise<StoredReceipt[]> {
-  try {
-    const data = await AsyncStorage.getItem(RECEIPTS_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch (error) {
-    console.error("Error loading receipts:", error);
-    return [];
+  const syncEnabled = await isSyncEnabled();
+
+  if (syncEnabled) {
+    // Use sync database
+    const syncReceipts = await getSyncReceipts();
+    // Convert SyncReceipt to StoredReceipt (remove sync-specific fields)
+    return syncReceipts.map((r) => {
+      const { syncStatus, syncError, lastSyncedAt, serverId, ...receipt } = r;
+      return receipt as StoredReceipt;
+    });
+  } else {
+    // Use regular AsyncStorage
+    try {
+      const data = await AsyncStorage.getItem(RECEIPTS_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error("Error loading receipts:", error);
+      return [];
+    }
   }
 }
 
 export async function deleteReceipt(id: string): Promise<void> {
-  const receipts = await getReceipts();
-  const filtered = receipts.filter((r) => r.id !== id);
-  await AsyncStorage.setItem(RECEIPTS_KEY, JSON.stringify(filtered));
+  const syncEnabled = await isSyncEnabled();
+
+  if (syncEnabled) {
+    // Use sync database
+    await deleteSyncReceipt(id);
+  } else {
+    // Use regular AsyncStorage
+    const receipts = await getReceipts();
+    const filtered = receipts.filter((r) => r.id !== id);
+    await AsyncStorage.setItem(RECEIPTS_KEY, JSON.stringify(filtered));
+  }
 }
 
 export async function updateReceipt(
   id: string,
   updates: Partial<StoredReceipt>
 ): Promise<void> {
-  const receipts = await getReceipts();
-  const index = receipts.findIndex((r) => r.id === id);
-  if (index !== -1) {
-    receipts[index] = { ...receipts[index], ...updates };
-    await AsyncStorage.setItem(RECEIPTS_KEY, JSON.stringify(receipts));
+  const syncEnabled = await isSyncEnabled();
+
+  if (syncEnabled) {
+    // Use sync database - mark as pending if synced before
+    const syncReceipts = await getSyncReceipts();
+    const existing = syncReceipts.find((r) => r.id === id);
+    if (existing) {
+      await updateSyncReceiptDb(id, {
+        ...updates,
+        syncStatus:
+          existing.syncStatus === "synced" ? "pending" : existing.syncStatus,
+      });
+    }
+  } else {
+    // Use regular AsyncStorage
+    const receipts = await getReceipts();
+    const index = receipts.findIndex((r) => r.id === id);
+    if (index !== -1) {
+      receipts[index] = { ...receipts[index], ...updates };
+      await AsyncStorage.setItem(RECEIPTS_KEY, JSON.stringify(receipts));
+    }
   }
 }
 

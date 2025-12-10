@@ -23,7 +23,7 @@ import { Colors } from "@/constants/theme";
 import { SymbolView } from "expo-symbols";
 import { HeaderButton } from "@react-navigation/elements";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { saveReceipt } from "@/utils/storage";
+import { useCreateReceipt } from "@/hooks/use-receipts";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   scanReceipt,
@@ -54,13 +54,13 @@ export default function CreateReceiptScreen() {
   const [loading, setLoading] = useState(true);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const { checkSaveLimit, refresh: refreshLimits } = useLimits();
   const { isPro } = useRevenueCat();
   const { user, clearAuthState } = useAuth();
   const isDark = colorScheme === "dark";
   const isSavingRef = useRef(false);
   const barcodePromptShownRef = useRef(false);
+  const createReceiptMutation = useCreateReceipt();
 
   const {
     control,
@@ -110,25 +110,23 @@ export default function CreateReceiptScreen() {
         }
       }
 
-      setSaving(true);
       isSavingRef.current = true;
-      try {
-        const receiptName =
-          formData.name ||
-          (!touchedFields.name ? receiptData.merchant.name : "");
+      const receiptName =
+        formData.name || (!touchedFields.name ? receiptData.merchant.name : "");
 
-        // Hash the image if imageUri is provided
-        let imageHash: string | undefined;
-        if (params.imageUri) {
-          try {
-            imageHash = await hashImage(params.imageUri);
-          } catch (error) {
-            console.warn("Failed to hash image:", error);
-            // Continue saving without hash if hashing fails
-          }
+      // Hash the image if imageUri is provided
+      let imageHash: string | undefined;
+      if (params.imageUri) {
+        try {
+          imageHash = await hashImage(params.imageUri);
+        } catch (error) {
+          console.warn("Failed to hash image:", error);
+          // Continue saving without hash if hashing fails
         }
+      }
 
-        await saveReceipt({
+      createReceiptMutation.mutate(
+        {
           name: receiptName || receiptData.merchant.name,
           merchant: receiptData.merchant,
           transaction: receiptData.transaction,
@@ -139,19 +137,20 @@ export default function CreateReceiptScreen() {
           technical: receiptData.technical,
           imageUri: params.imageUri,
           imageHash,
-        });
-
-        // Refresh limits after saving
-        await refreshLimits();
-
-        router.back();
-      } catch (error) {
-        isSavingRef.current = false;
-        Alert.alert("Error", "Failed to save receipt");
-        console.error("Error saving receipt:", error);
-      } finally {
-        setSaving(false);
-      }
+        },
+        {
+          onSuccess: async () => {
+            // Refresh limits after saving
+            await refreshLimits();
+            router.back();
+          },
+          onError: (error) => {
+            isSavingRef.current = false;
+            Alert.alert("Error", "Failed to save receipt");
+            console.error("Error saving receipt:", error);
+          },
+        }
+      );
     },
     [
       receiptData,
@@ -182,9 +181,9 @@ export default function CreateReceiptScreen() {
       headerRight: () => (
         <HeaderButton
           onPress={handleSubmit(handleSave)}
-          disabled={saving || !receiptData}
+          disabled={createReceiptMutation.isPending || !receiptData}
         >
-          {saving ? (
+          {createReceiptMutation.isPending ? (
             <ActivityIndicator
               size="small"
               color={
@@ -204,7 +203,7 @@ export default function CreateReceiptScreen() {
     });
   }, [
     navigation,
-    saving,
+    createReceiptMutation.isPending,
     receiptData,
     colorScheme,
     handleSave,
@@ -430,7 +429,9 @@ export default function CreateReceiptScreen() {
         const token = user
           ? await SecureStore.getItemAsync(TOKEN_STORAGE_KEY)
           : undefined;
-        const response = await scanReceipt(params.imageUri, { token });
+        const response = await scanReceipt(params.imageUri, {
+          token: token ?? undefined,
+        });
 
         if (!response.success) {
           // Check if limit was exceeded

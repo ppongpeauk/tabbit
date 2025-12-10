@@ -13,12 +13,9 @@ import { RadioButton } from "@/components/ui/radio-button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
-import {
-  getReceipts,
-  getSplitData,
-  getDefaultSplitMode,
-  type StoredReceipt,
-} from "@/utils/storage";
+import { useReceipt } from "@/hooks/use-receipts";
+import { getSplitData, getDefaultSplitMode } from "@/utils/storage";
+import type { StoredReceipt } from "@/utils/storage";
 import { SplitStrategy } from "@/utils/split";
 import { formatCurrency } from "@/utils/format";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -34,10 +31,12 @@ export default function ChooseSplitModeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const [receipt, setReceipt] = useState<StoredReceipt | null>(null);
-  const [loading, setLoading] = useState(true);
   const [selectedStrategy, setSelectedStrategy] =
     useState<SplitStrategy | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Use React Query hook
+  const { data: receipt, isLoading: isLoadingReceipt } = useReceipt(receiptId);
 
   const loadData = useCallback(async () => {
     try {
@@ -48,17 +47,6 @@ export default function ChooseSplitModeScreen() {
         router.back();
         return;
       }
-
-      const receipts = await getReceipts();
-      const foundReceipt = receipts.find((r) => r.id === receiptId);
-
-      if (!foundReceipt) {
-        Alert.alert("Error", "Receipt not found");
-        router.back();
-        return;
-      }
-
-      setReceipt(foundReceipt);
 
       const existingSplitData = await getSplitData(receiptId);
       if (existingSplitData) {
@@ -77,8 +65,17 @@ export default function ChooseSplitModeScreen() {
   }, [receiptId]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (receiptId) {
+      loadData();
+    }
+  }, [receiptId, loadData]);
+
+  useEffect(() => {
+    if (receiptId && receipt === null && !isLoadingReceipt) {
+      Alert.alert("Error", "Receipt not found");
+      router.back();
+    }
+  }, [receiptId, receipt, isLoadingReceipt]);
 
   const handleStrategySelect = useCallback((strategy: SplitStrategy) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -149,7 +146,7 @@ export default function ChooseSplitModeScreen() {
     [receipt]
   );
 
-  if (loading) {
+  if (loading || isLoadingReceipt || !receipt) {
     return (
       <View
         style={[

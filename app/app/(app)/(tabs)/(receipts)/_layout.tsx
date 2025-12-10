@@ -11,6 +11,40 @@ import { Fonts } from "@/constants/theme";
 import { useRef } from "react";
 import { LimitsModal } from "@/components/limits-modal";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { useSync } from "@/hooks/use-sync";
+
+/**
+ * Header left component with sync status indicator
+ */
+function HeaderLeft() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const { status, enabled } = useSync();
+
+  if (!enabled || !status.isSyncing) {
+    return null;
+  }
+
+  return (
+    <View style={styles.headerLeft}>
+      <ActivityIndicator
+        size="small"
+        color={isDark ? Colors.dark.tint : Colors.light.tint}
+      />
+      <ThemedText
+        size="sm"
+        style={[
+          styles.syncText,
+          {
+            color: isDark ? Colors.dark.tint : Colors.light.tint,
+          },
+        ]}
+      >
+        Syncing...
+      </ThemedText>
+    </View>
+  );
+}
 
 /**
  * Header right component with limit indicator and camera button
@@ -117,6 +151,9 @@ function HeaderRight() {
  * ReceiptsLayout component - configures the receipts stack navigation
  */
 export default function ReceiptsLayout() {
+  const { status, enabled } = useSync();
+  const shouldShowSyncIndicator = enabled && status.isSyncing;
+
   return (
     <Stack>
       <Stack.Screen
@@ -136,6 +173,9 @@ export default function ReceiptsLayout() {
           headerLargeTitleStyle: {
             fontFamily: Fonts.sansBold,
           },
+          headerLeft: shouldShowSyncIndicator
+            ? () => <HeaderLeft />
+            : undefined,
           headerRight: () => <HeaderRight />,
         }}
       />
@@ -144,6 +184,16 @@ export default function ReceiptsLayout() {
 }
 
 const styles = StyleSheet.create({
+  headerLeft: {
+    flexDirection: "row",
+    gap: 6,
+    alignItems: "center",
+    marginLeft: 16,
+  },
+  syncText: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+  },
   headerRight: {
     flexDirection: "row",
     gap: 10,

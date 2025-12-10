@@ -42,7 +42,7 @@ export default function CreateManualReceiptScreen() {
   const { checkSaveLimit, refresh: refreshLimits } = useLimits();
   const { isPro } = useRevenueCat();
   const isSavingRef = useRef(false);
-  const formDataRef = useRef<ManualReceiptFormData | null>(null);
+  const isCancellingRef = useRef(false);
 
   const handleSave = useCallback(
     async (formData: ManualReceiptFormData) => {
@@ -117,22 +117,20 @@ export default function CreateManualReceiptScreen() {
             text: "Discard",
             style: "destructive",
             onPress: () => {
+              isCancellingRef.current = true;
               router.back();
             },
           },
         ]
       );
     } else {
+      isCancellingRef.current = true;
       router.back();
     }
   }, [hasFormData]);
 
   const handleFormDataChange = useCallback((hasData: boolean) => {
-    // Track if form has data for dirty checking
     setHasFormData(hasData);
-    if (!hasData) {
-      formDataRef.current = null;
-    }
   }, []);
 
   useLayoutEffect(() => {
@@ -161,6 +159,11 @@ export default function CreateManualReceiptScreen() {
           return;
         }
 
+        if (isCancellingRef.current) {
+          isCancellingRef.current = false;
+          return;
+        }
+
         // If there's no form data, allow the navigation
         if (!hasFormData) {
           return;
@@ -183,9 +186,7 @@ export default function CreateManualReceiptScreen() {
               text: "Discard",
               style: "destructive",
               onPress: () => {
-                // Remove the listener to allow navigation
                 navigation.removeListener("beforeRemove", onBeforeRemove);
-                // Dispatch the action to proceed with navigation
                 router.back();
               },
             },
@@ -236,4 +237,3 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 });
-

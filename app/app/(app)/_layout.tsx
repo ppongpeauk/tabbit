@@ -50,6 +50,7 @@ export default function AuthenticatedLayout() {
         name="create-manual"
         options={{
           title: "Manual Entry",
+          presentation: "containedModal",
         }}
       />
       <Stack.Screen

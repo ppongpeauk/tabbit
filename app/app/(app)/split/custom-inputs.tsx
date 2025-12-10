@@ -13,12 +13,9 @@ import { Button } from "@/components/button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
-import {
-  getReceipts,
-  getFriends,
-  type StoredReceipt,
-  type Friend,
-} from "@/utils/storage";
+import { useReceipt } from "@/hooks/use-receipts";
+import { useFriends } from "@/hooks/use-friends";
+import type { StoredReceipt, Friend } from "@/utils/storage";
 import { fetchContacts, type ContactInfo } from "@/utils/contacts";
 import { formatCurrency } from "@/utils/format";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -30,8 +27,6 @@ export default function CustomInputsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const [receipt, setReceipt] = useState<StoredReceipt | null>(null);
-  const [friends, setFriends] = useState<Friend[]>([]);
   const [deviceContacts, setDeviceContacts] = useState<ContactInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
@@ -44,6 +39,11 @@ export default function CustomInputsScreen() {
     strategy: string;
     selectedFriendIds: string[];
   } | null>(null);
+  const [receiptId, setReceiptId] = useState<string | undefined>(undefined);
+
+  // Use React Query hooks
+  const { data: receipt, isLoading: isLoadingReceipt } = useReceipt(receiptId);
+  const { data: friends = [], isLoading: isLoadingFriends } = useFriends();
 
   const loadData = useCallback(async () => {
     try {
@@ -58,18 +58,7 @@ export default function CustomInputsScreen() {
       const tempData = JSON.parse(tempDataStr);
       setSplitData(tempData);
       setSelectedFriendIds(tempData.selectedFriendIds || []);
-
-      const receipts = await getReceipts();
-      const foundReceipt = receipts.find((r) => r.id === tempData.receiptId);
-      if (!foundReceipt) {
-        Alert.alert("Error", "Receipt not found");
-        router.back();
-        return;
-      }
-      setReceipt(foundReceipt);
-
-      const loadedFriends = await getFriends();
-      setFriends(loadedFriends);
+      setReceiptId(tempData.receiptId);
 
       try {
         const contacts = await fetchContacts();
@@ -95,6 +84,15 @@ export default function CustomInputsScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (receiptId && receipt === null && !isLoadingReceipt) {
+      Alert.alert("Error", "Receipt not found");
+      router.back();
+    }
+  }, [receiptId, receipt, isLoadingReceipt]);
+
+  const isLoading = loading || isLoadingReceipt || isLoadingFriends;
 
   const getPersonName = (friendId: string): string => {
     const friend = friends.find((f) => f.id === friendId);

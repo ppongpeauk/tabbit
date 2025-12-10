@@ -21,6 +21,7 @@ import { RevenueCatProvider } from "@/contexts/revenuecat-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { PostHogProvider } from "posthog-react-native";
+import { ReactQueryProvider } from "@/lib/react-query";
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -116,15 +117,17 @@ export default function RootLayout() {
         }}
         autocapture
       >
-        <BottomSheetModalProvider>
-          <KeyboardProvider>
-            <AuthProvider>
-              <RevenueCatProvider>
-                <RootLayoutNav />
-              </RevenueCatProvider>
-            </AuthProvider>
-          </KeyboardProvider>
-        </BottomSheetModalProvider>
+        <ReactQueryProvider>
+          <BottomSheetModalProvider>
+            <KeyboardProvider>
+              <AuthProvider>
+                <RevenueCatProvider>
+                  <RootLayoutNav />
+                </RevenueCatProvider>
+              </AuthProvider>
+            </KeyboardProvider>
+          </BottomSheetModalProvider>
+        </ReactQueryProvider>
       </PostHogProvider>
     </GestureHandlerRootView>
   );

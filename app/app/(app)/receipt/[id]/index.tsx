@@ -1,22 +1,17 @@
-import {
-  useState,
-  useEffect,
-  useLayoutEffect,
-  useCallback,
-  useRef,
-} from "react";
+import { useState, useLayoutEffect, useCallback, useRef } from "react";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
-import { ScrollView, StyleSheet, View, Alert } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import {
-  getReceipts,
-  getFriends,
-  deleteReceipt,
-  type StoredReceipt,
-  type Friend,
-} from "@/utils/storage";
+import { useReceipt, useDeleteReceipt } from "@/hooks/use-receipts";
+import { useFriends } from "@/hooks/use-friends";
 import * as Haptics from "expo-haptics";
 import {
   MerchantInfoCard,
@@ -38,34 +33,33 @@ export default function ReceiptDetailScreen() {
     id: string;
     scannedBarcode?: string;
   }>();
-  const [receipt, setReceipt] = useState<StoredReceipt | null>(null);
-  const [friends, setFriends] = useState<Friend[]>([]);
   const [showRawReturnText, setShowRawReturnText] = useState(false);
   const colorScheme = useColorScheme();
   const navigation = useNavigation();
   const headerHeight = useHeaderHeight();
   const barcodeModalRef = useRef<BottomSheetModal>(null);
-  useEffect(() => {
-    const loadData = async () => {
-      const [receipts, loadedFriends] = await Promise.all([
-        getReceipts(),
-        getFriends(),
-      ]);
-      const found = receipts.find((r) => r.id === id);
-      setReceipt(found || null);
-      setFriends(loadedFriends);
-    };
-    loadData();
-  }, [id]);
+
+  // Use React Query hooks
+  const {
+    data: receipt,
+    isLoading: isLoadingReceipt,
+    refetch: refetchReceipt,
+  } = useReceipt(id);
+  const { data: friends = [], isLoading: isLoadingFriends } = useFriends();
+  const deleteReceiptMutation = useDeleteReceipt();
+
+  const isLoading = isLoadingReceipt || isLoadingFriends;
 
   // Handle scanned barcode from barcode scanner
   useScannedBarcode({
-    receipt,
+    receipt: receipt || null,
     receiptId: id,
-    onReceiptUpdate: setReceipt,
+    onReceiptUpdate: () => {
+      refetchReceipt();
+    },
   });
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       "Delete Receipt",
@@ -78,26 +72,30 @@ export default function ReceiptDetailScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteReceipt(id);
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success
-              );
-              router.back();
-            } catch {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert(
-                "Error",
-                "Failed to delete receipt. Please try again."
-              );
-            }
+          onPress: () => {
+            deleteReceiptMutation.mutate(id, {
+              onSuccess: () => {
+                Haptics.notificationAsync(
+                  Haptics.NotificationFeedbackType.Success
+                );
+                router.back();
+              },
+              onError: () => {
+                Haptics.notificationAsync(
+                  Haptics.NotificationFeedbackType.Error
+                );
+                Alert.alert(
+                  "Error",
+                  "Failed to delete receipt. Please try again."
+                );
+              },
+            });
           },
         },
       ],
       { cancelable: true }
     );
-  }, [id]);
+  }, [id, deleteReceiptMutation]);
 
   const handleScanBarcode = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -136,7 +134,7 @@ export default function ReceiptDetailScreen() {
   useLayoutEffect(() => {
     navigation.setOptions(
       ReceiptHeader({
-        receipt,
+        receipt: receipt || null,
         colorScheme: colorScheme || "light",
         onEdit: handleEdit,
         onShare: handleShare,
@@ -163,9 +161,17 @@ export default function ReceiptDetailScreen() {
     setShowRawReturnText((prev) => !prev);
   }, []);
 
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   if (!receipt) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, styles.centerContent]}>
         <ThemedText>Receipt not found</ThemedText>
       </View>
     );
@@ -209,6 +215,10 @@ export default function ReceiptDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
   },
   scrollView: {
     flex: 1,
