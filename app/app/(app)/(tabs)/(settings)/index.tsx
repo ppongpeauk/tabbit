@@ -173,7 +173,9 @@ export default function SettingsScreen() {
         onPress: async () => {
           try {
             await signOut();
-            router.replace("/sign-in");
+            // Clear navigation stack and navigate to root
+            router.dismissAll();
+            router.replace("/");
           } catch (error) {
             console.error("Error signing out:", error);
           }

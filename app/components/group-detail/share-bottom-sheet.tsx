@@ -11,7 +11,10 @@ import {
   BottomSheetView,
   type BottomSheetBackdropProps,
 } from "@gorhom/bottom-sheet";
-import QRCode from "react-native-qrcode-svg";
+import {
+  BarcodeCreatorView,
+  BarcodeFormat,
+} from "react-native-barcode-creator";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
@@ -115,11 +118,12 @@ export function ShareBottomSheet({
               },
             ]}
           >
-            <QRCode
+            <BarcodeCreatorView
               value={group.code}
-              size={200}
-              color={"black"}
-              backgroundColor={"white"}
+              format={BarcodeFormat.QR}
+              background="white"
+              foregroundColor="black"
+              style={styles.qrCode}
             />
           </View>
           <ThemedText
@@ -208,6 +212,12 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 24,
     marginBottom: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  qrCode: {
+    width: 200,
+    height: 200,
   },
   qrLabel: {
     opacity: 0.7,

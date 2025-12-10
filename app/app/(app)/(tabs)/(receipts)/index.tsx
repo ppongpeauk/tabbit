@@ -109,7 +109,7 @@ export default function ReceiptsScreen() {
 
   const handleManualEntry = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    console.log("[ReceiptsScreen] Manual entry selected");
+    router.push("/create-manual");
   }, []);
 
   const sections = useMemo<ReceiptSection[]>(() => {

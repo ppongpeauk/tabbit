@@ -74,6 +74,10 @@ async function checkRevenueCatSubscription(userId: string): Promise<boolean> {
 
 export class SubscriptionService {
   async isProUser(userId: string): Promise<boolean> {
+    if (env.DISABLE_LIMITS) {
+      return true;
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {

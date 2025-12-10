@@ -211,18 +211,15 @@ export default function CameraScreen() {
     }
 
     // Receipt detected - navigate to create screen
-    router.back();
-    setTimeout(() => {
-      router.push({
-        pathname: "/create",
-        params: {
-          imageUri,
-          barcodes: response.barcodes
-            ? JSON.stringify(response.barcodes)
-            : undefined,
-        },
-      });
-    }, 100);
+    router.push({
+      pathname: "/create",
+      params: {
+        imageUri,
+        barcodes: response.barcodes
+          ? JSON.stringify(response.barcodes)
+          : undefined,
+      },
+    });
   };
 
   const pickImage = async () => {

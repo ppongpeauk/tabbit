@@ -35,7 +35,7 @@ export function ReturnInfoCard({
     : {};
 
   return (
-    <CardWrapper {...wrapperProps}>
+    <CardWrapper {...wrapperProps} style={[styles.card, getCardStyle(isDark)]}>
       <View style={styles.returnInfoHeader}>
         <ThemedText size="xl" weight="bold" style={{ marginBottom: 4 }}>
           Return Information
@@ -83,7 +83,10 @@ export function ReturnInfoCard({
           <ThemedText size={15} style={{ opacity: 0.7, marginBottom: 8 }}>
             Return Code
           </ThemedText>
-          <BarcodeDisplay value={receipt.returnInfo.returnBarcode} />
+          <BarcodeDisplay
+            value={receipt.returnInfo.returnBarcode}
+            format={receipt.returnInfo.returnBarcodeFormat}
+          />
         </View>
       )}
     </CardWrapper>

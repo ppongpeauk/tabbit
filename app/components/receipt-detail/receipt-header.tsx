@@ -14,6 +14,7 @@ interface ReceiptHeaderProps {
   onShare: () => void;
   onSplit: () => void;
   onScanBarcode: () => void;
+  onShowBarcode?: () => void;
   onDelete: () => void;
 }
 
@@ -24,8 +25,13 @@ export function ReceiptHeader({
   onShare,
   onSplit,
   onScanBarcode,
+  onShowBarcode,
   onDelete,
 }: ReceiptHeaderProps) {
+  const hasReturnBarcode = Boolean(
+    receipt?.returnInfo?.returnBarcode &&
+      receipt.returnInfo.returnBarcode.trim().length > 0
+  );
   return {
     title: receipt?.name || receipt?.merchant.name || "Receipt Details",
     headerTitle: () => (
@@ -58,9 +64,15 @@ export function ReceiptHeader({
             <Button systemImage="person.2" onPress={onSplit}>
               Split
             </Button>
-            <Button systemImage="qrcode.viewfinder" onPress={onScanBarcode}>
-              Scan Return Barcode
-            </Button>
+            {hasReturnBarcode && onShowBarcode ? (
+              <Button systemImage="qrcode" onPress={onShowBarcode}>
+                Show Return Barcode
+              </Button>
+            ) : (
+              <Button systemImage="qrcode.viewfinder" onPress={onScanBarcode}>
+                Scan Return Barcode
+              </Button>
+            )}
             <Button systemImage="trash" onPress={onDelete} role="destructive">
               Delete Receipt
             </Button>

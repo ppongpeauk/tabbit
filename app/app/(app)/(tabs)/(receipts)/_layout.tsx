@@ -67,6 +67,24 @@ function HeaderRight() {
   // Show limit status
   const scansRemaining = limitStatus.monthlyScansRemaining;
   const receiptsRemaining = limitStatus.totalReceiptsRemaining;
+  const limitsDisabled = limitStatus.limitsDisabled;
+
+  // If limits are disabled, don't show the limit indicator
+  if (limitsDisabled) {
+    return (
+      <>
+        <View style={styles.headerRight}>
+          <HeaderButton onPress={handleCameraPress}>
+            <SymbolView
+              name="camera"
+              tintColor={isDark ? Colors.dark.text : Colors.light.text}
+            />
+          </HeaderButton>
+        </View>
+        <LimitsModal bottomSheetRef={limitsModalRef} />
+      </>
+    );
+  }
 
   return (
     <>

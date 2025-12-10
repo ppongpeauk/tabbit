@@ -65,6 +65,7 @@ export interface ReturnInfo {
   returnByDate?: string;
   exchangeByDate?: string;
   returnBarcode?: string;
+  returnBarcodeFormat?: string;
   hasReturnBarcode?: boolean;
 }
 

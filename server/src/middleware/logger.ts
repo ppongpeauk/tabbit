@@ -1,6 +1,6 @@
 /**
  * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Request logging middleware - logs all HTTP requests
+ * @description Request logging middleware - logs all HTTP requests with verbose output
  */
 
 import { Elysia } from "elysia";
@@ -55,6 +55,27 @@ export const logger = new Elysia()
     const start = Date.now();
     return { startTime: start };
   })
+  .onBeforeHandle(({ request }) => {
+    const method = request.method;
+    const url = new URL(request.url);
+    const ip = getClientIP(request);
+    const timestamp = new Date().toISOString();
+
+    console.log(
+      `\x1b[36m[${timestamp}] → ${method} ${url.pathname}${
+        url.search ? `?${url.search.substring(1)}` : ""
+      }\x1b[0m [${ip}]`
+    );
+
+    // Log headers in development
+    if (process.env.NODE_ENV === "development") {
+      const headers: Record<string, string> = {};
+      request.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+      console.log(`  Headers:`, JSON.stringify(headers, null, 2));
+    }
+  })
   .onAfterHandle(({ request, response, startTime }) => {
     const method = request.method;
     const url = new URL(request.url);
@@ -67,6 +88,21 @@ export const logger = new Elysia()
     console.log(
       formatLogMessage(method, url.pathname, status, duration, query, ip)
     );
+
+    // Log response details in development
+    if (
+      process.env.NODE_ENV === "development" &&
+      response instanceof Response
+    ) {
+      const responseHeaders: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
+      console.log(
+        `  Response Headers:`,
+        JSON.stringify(responseHeaders, null, 2)
+      );
+    }
   })
   .onError(({ request, error, startTime }) => {
     const method = request.method;
@@ -78,12 +114,21 @@ export const logger = new Elysia()
         ? String(error.message)
         : "Unknown error";
     const ip = getClientIP(request);
+    const timestamp = new Date().toISOString();
 
     console.error(
-      `[${new Date().toISOString()}] ${method} ${url.pathname}${
+      `\x1b[31m[${timestamp}] ✗ ${method} ${url.pathname}${
         query ? `?${query}` : ""
-      } \x1b[31mERROR\x1b[0m: ${errorMessage} ${duration}ms${
+      } ERROR\x1b[0m: ${errorMessage} ${duration}ms${
         ip && ip !== "unknown" ? ` [${ip}]` : ""
       }`
     );
+
+    // Log full error in development
+    if (process.env.NODE_ENV === "development") {
+      console.error("  Error details:", error);
+      if (error && typeof error === "object" && "stack" in error) {
+        console.error("  Stack:", error.stack);
+      }
+    }
   });

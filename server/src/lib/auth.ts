@@ -68,16 +68,15 @@ export const auth = betterAuth({
     },
   },
   socialProviders: {
-    google: {
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-      // Better Auth constructs callback URL as: {baseURL}/api/auth/callback/google
-      // For web: Google redirects to server, server processes and redirects to web callbackURL
-      // For mobile: Google redirects to server, mobile app handles via deep link or token exchange
-      redirectURI:
-        env.GOOGLE_REDIRECT_URI ||
-        `${env.BETTER_AUTH_BASE_URL}/api/auth/callback/google`,
-    },
+    // Google OAuth is handled by our custom /auth/google/callback endpoint
+    // Disabled here to prevent Better Auth from intercepting our custom OAuth flow
+    // google: {
+    //   clientId: env.GOOGLE_CLIENT_ID,
+    //   clientSecret: env.GOOGLE_CLIENT_SECRET,
+    //   redirectURI:
+    //     env.GOOGLE_REDIRECT_URI ||
+    //     `${env.BETTER_AUTH_BASE_URL}/api/auth/callback/google`,
+    // },
     apple: {
       clientId: env.APPLE_CLIENT_ID,
       clientSecret: env.APPLE_CLIENT_SECRET,

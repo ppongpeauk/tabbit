@@ -20,7 +20,9 @@ export function useScannedBarcode({
       const checkForScannedBarcode = async () => {
         try {
           const storageKey = "@tabbit:scanned_barcode:scannedBarcode";
+          const formatKey = "@tabbit:scanned_barcode_format:scannedBarcode";
           const scannedBarcodeValue = await AsyncStorage.getItem(storageKey);
+          const scannedBarcodeFormat = await AsyncStorage.getItem(formatKey);
 
           if (scannedBarcodeValue && receipt) {
             const updatedReceipt = {
@@ -28,6 +30,7 @@ export function useScannedBarcode({
               returnInfo: {
                 ...receipt.returnInfo,
                 returnBarcode: scannedBarcodeValue,
+                returnBarcodeFormat: scannedBarcodeFormat || undefined,
                 hasReturnBarcode: true,
               },
             };
@@ -36,6 +39,7 @@ export function useScannedBarcode({
             });
             onReceiptUpdate(updatedReceipt);
             await AsyncStorage.removeItem(storageKey);
+            await AsyncStorage.removeItem(formatKey);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
         } catch (error) {

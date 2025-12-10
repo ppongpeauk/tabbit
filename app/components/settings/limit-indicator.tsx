@@ -119,6 +119,27 @@ export function LimitIndicator({
     );
   }
 
+  // If limits are disabled on the server, show a message instead
+  if (limitStatus.limitsDisabled) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <ThemedText size="lg" weight="bold" family="sans">
+            {title}
+          </ThemedText>
+          <ThemedText
+            size="sm"
+            weight="normal"
+            family="sans"
+            style={styles.subtitle}
+          >
+            Limits are currently disabled. You have unlimited access.
+          </ThemedText>
+        </View>
+      </View>
+    );
+  }
+
   // Format reset date
   const formatResetDate = (dateString: string): string => {
     try {

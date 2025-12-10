@@ -20,6 +20,7 @@ export interface LimitStatus {
   totalReceiptsLimit: number;
   totalReceiptsRemaining: number;
   receiptsResetDate: string;
+  limitsDisabled: boolean;
 }
 
 export interface LimitCheckResult {
@@ -171,4 +172,3 @@ export function useLimits() {
     checkSaveLimit,
   };
 }
-

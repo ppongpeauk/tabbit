@@ -9,6 +9,7 @@ import {
   Image,
 } from "react-native";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SymbolView } from "expo-symbols";
@@ -50,52 +51,70 @@ export default function BarcodeScannerScreen() {
     setFlash((current) => (current === "off" ? "on" : "off"));
   };
 
+  const processImage = async (imageUri: string) => {
+    try {
+      setProcessing(true);
+      setFrozenFrame(imageUri);
+      const response = await scanBarcodeImage(imageUri);
+
+      if (
+        !response.success ||
+        !response.barcodes ||
+        response.barcodes.length === 0
+      ) {
+        setProcessing(false);
+        setFrozenFrame(null);
+        Alert.alert(
+          "No Barcode Detected",
+          response.message ||
+            "No barcode or QR code was detected in the image. Please try again with a clearer image.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+
+      // Barcode detected - get the first barcode value and format
+      const barcodeData = response.barcodes[0];
+      const barcodeValue = barcodeData.content;
+      const barcodeFormat = barcodeData.type;
+
+      // Store the scanned barcode temporarily in AsyncStorage
+      // The param name is determined by the onScan param passed to this screen
+      const paramName = params.onScan || "scannedBarcode";
+      const storageKey = `@tabbit:scanned_barcode:${paramName}`;
+      const formatKey = `@tabbit:scanned_barcode_format:${paramName}`;
+
+      try {
+        // Store the barcode value and format temporarily
+        await AsyncStorage.setItem(storageKey, barcodeValue);
+        await AsyncStorage.setItem(formatKey, barcodeFormat);
+
+        // Navigate back - the previous screen will read from storage
+        router.back();
+      } catch (error) {
+        console.error("Failed to store scanned barcode:", error);
+        setProcessing(false);
+        setFrozenFrame(null);
+        Alert.alert("Error", "Failed to save barcode. Please try again.");
+      }
+    } catch (error) {
+      setProcessing(false);
+      setFrozenFrame(null);
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "Failed to process image. Please try again."
+      );
+    }
+  };
+
   const takePicture = async () => {
     if (cameraRef.current && !processing) {
       try {
-        setProcessing(true);
         const photo = await cameraRef.current.takePictureAsync();
         console.log("[BarcodeScanner] Photo taken:", photo);
-
-        setFrozenFrame(photo.uri);
-        const response = await scanBarcodeImage(photo.uri);
-
-        if (
-          !response.success ||
-          !response.barcodes ||
-          response.barcodes.length === 0
-        ) {
-          setProcessing(false);
-          setFrozenFrame(null);
-          Alert.alert(
-            "No Barcode Detected",
-            response.message ||
-              "No barcode or QR code was detected in the image. Please try again with a clearer image.",
-            [{ text: "OK" }]
-          );
-          return;
-        }
-
-        // Barcode detected - get the first barcode value
-        const barcodeValue = response.barcodes[0].content;
-
-        // Store the scanned barcode temporarily in AsyncStorage
-        // The param name is determined by the onScan param passed to this screen
-        const paramName = params.onScan || "scannedBarcode";
-        const storageKey = `@tabbit:scanned_barcode:${paramName}`;
-
-        try {
-          // Store the barcode temporarily
-          await AsyncStorage.setItem(storageKey, barcodeValue);
-
-          // Navigate back - the previous screen will read from storage
-          router.back();
-        } catch (error) {
-          console.error("Failed to store scanned barcode:", error);
-          setProcessing(false);
-          setFrozenFrame(null);
-          Alert.alert("Error", "Failed to save barcode. Please try again.");
-        }
+        await processImage(photo.uri);
       } catch (error) {
         setProcessing(false);
         setFrozenFrame(null);
@@ -103,9 +122,22 @@ export default function BarcodeScannerScreen() {
           "Error",
           error instanceof Error
             ? error.message
-            : "Failed to process image. Please try again."
+            : "Failed to capture image. Please try again."
         );
       }
+    }
+  };
+
+  const pickImage = async () => {
+    if (processing) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      await processImage(result.assets[0].uri);
     }
   };
 
@@ -154,7 +186,15 @@ export default function BarcodeScannerScreen() {
           disabled={processing}
         />
 
-        <View style={styles.controlButton} />
+        {__DEV__ ? (
+          <CameraControlButton
+            onPress={pickImage}
+            iconName="photo.fill"
+            disabled={processing}
+          />
+        ) : (
+          <View style={styles.controlButton} />
+        )}
       </View>
     </View>
   );

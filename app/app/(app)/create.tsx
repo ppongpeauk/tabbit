@@ -269,7 +269,9 @@ export default function CreateReceiptScreen() {
       const checkForScannedBarcode = async () => {
         try {
           const storageKey = "@tabbit:scanned_barcode:scannedBarcode";
+          const formatKey = "@tabbit:scanned_barcode_format:scannedBarcode";
           const scannedBarcode = await AsyncStorage.getItem(storageKey);
+          const scannedBarcodeFormat = await AsyncStorage.getItem(formatKey);
 
           if (scannedBarcode && receiptData) {
             // Update receipt with scanned barcode
@@ -278,11 +280,13 @@ export default function CreateReceiptScreen() {
               returnInfo: {
                 ...receiptData.returnInfo,
                 returnBarcode: scannedBarcode,
+                returnBarcodeFormat: scannedBarcodeFormat || undefined,
                 hasReturnBarcode: true,
               },
             });
             // Clear the stored barcode to avoid re-triggering
             await AsyncStorage.removeItem(storageKey);
+            await AsyncStorage.removeItem(formatKey);
           }
         } catch (error) {
           console.error("Failed to read scanned barcode:", error);

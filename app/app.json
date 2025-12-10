@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon-ai.png",
-    "scheme": "app",
+    "scheme": "tabbit",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -64,7 +64,13 @@
       "expo-maps",
       "expo-secure-store",
       "expo-web-browser",
-      "expo-localization"
+      "expo-localization",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.1007672962218-o67io1st4gnevkinaqo4cdeo38ergoh4"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

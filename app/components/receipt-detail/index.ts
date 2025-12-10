@@ -6,6 +6,6 @@ export { ReturnInfoCard } from "./return-info-card";
 export { ReceiptHeader } from "./receipt-header";
 export { SplitSummaryCard } from "./split-summary-card";
 export { useScannedBarcode } from "./use-scanned-barcode";
+export { BarcodeModal } from "./barcode-modal";
 export * from "./utils";
 export * from "./hooks";
-

@@ -1,4 +1,10 @@
-import { useState, useEffect, useLayoutEffect, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useRef,
+} from "react";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { ScrollView, StyleSheet, View, Alert } from "react-native";
 import { ThemedText } from "@/components/themed-text";
@@ -22,8 +28,10 @@ import {
   SplitSummaryCard,
   useScannedBarcode,
   shouldShowReturnInfo,
+  BarcodeModal,
 } from "@/components/receipt-detail";
 import { useHeaderHeight } from "@react-navigation/elements";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
 export default function ReceiptDetailScreen() {
   const { id } = useLocalSearchParams<{
@@ -36,6 +44,7 @@ export default function ReceiptDetailScreen() {
   const colorScheme = useColorScheme();
   const navigation = useNavigation();
   const headerHeight = useHeaderHeight();
+  const barcodeModalRef = useRef<BottomSheetModal>(null);
   useEffect(() => {
     const loadData = async () => {
       const [receipts, loadedFriends] = await Promise.all([
@@ -98,6 +107,11 @@ export default function ReceiptDetailScreen() {
     });
   }, []);
 
+  const handleShowBarcode = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    barcodeModalRef.current?.present();
+  }, []);
+
   const handleEdit = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push({
@@ -128,6 +142,7 @@ export default function ReceiptDetailScreen() {
         onShare: handleShare,
         onSplit: handleSplit,
         onScanBarcode: handleScanBarcode,
+        onShowBarcode: handleShowBarcode,
         onDelete: handleDelete,
       })
     );
@@ -136,6 +151,7 @@ export default function ReceiptDetailScreen() {
     colorScheme,
     handleDelete,
     handleScanBarcode,
+    handleShowBarcode,
     handleEdit,
     handleShare,
     handleSplit,
@@ -179,6 +195,13 @@ export default function ReceiptDetailScreen() {
           )}
         </ScrollView>
       </ThemedView>
+      {receipt.returnInfo?.returnBarcode && (
+        <BarcodeModal
+          bottomSheetRef={barcodeModalRef}
+          barcodeValue={receipt.returnInfo.returnBarcode}
+          barcodeFormat={receipt.returnInfo.returnBarcodeFormat}
+        />
+      )}
     </View>
   );
 }

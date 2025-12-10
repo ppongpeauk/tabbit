@@ -13,28 +13,58 @@ interface BarcodeDisplayProps {
 }
 
 /**
- * Convert format string to BarcodeFormat constant
+ * Convert format string from backend (zxing-wasm normalized format) to BarcodeFormat constant
+ * Backend formats are normalized from zxing-wasm (e.g., "QRCode" -> "QR_CODE")
+ * Maps to react-native-barcode-creator supported formats
  */
 function normalizeFormat(format: string): string {
   const formatMap: Record<string, string> = {
+    // QR Code variants
     QR: BarcodeFormat.QR,
     QR_CODE: BarcodeFormat.QR,
+    MICRO_QR_CODE: BarcodeFormat.QR, // Fallback to QR
+    RMQR_CODE: BarcodeFormat.QR, // Fallback to QR
+
+    // Code 128 variants
     CODE128: BarcodeFormat.CODE128,
     CODE_128: BarcodeFormat.CODE128,
+
+    // EAN variants
     EAN13: BarcodeFormat.EAN13,
     EAN_13: BarcodeFormat.EAN13,
+    EAN_8: BarcodeFormat.EAN13, // Fallback to EAN13 (library doesn't support EAN-8)
+
+    // UPC variants
     UPCA: BarcodeFormat.UPCA,
     UPC_A: BarcodeFormat.UPCA,
+    UPC_E: BarcodeFormat.UPCA, // Fallback to UPC-A
+
+    // PDF417
     PDF417: BarcodeFormat.PDF417,
     PDF_417: BarcodeFormat.PDF417,
+
+    // Aztec
     AZTEC: BarcodeFormat.AZTEC,
+
+    // Unsupported formats - fallback to CODE128
+    DATA_MATRIX: BarcodeFormat.CODE128,
+    CODE_39: BarcodeFormat.CODE128,
+    CODE_93: BarcodeFormat.CODE128,
+    ITF: BarcodeFormat.CODE128,
+    CODABAR: BarcodeFormat.CODE128,
+    DATA_BAR: BarcodeFormat.CODE128,
+    DATA_BAR_EXPANDED: BarcodeFormat.CODE128,
+    DATA_BAR_LIMITED: BarcodeFormat.CODE128,
+    DX_FILM_EDGE: BarcodeFormat.CODE128,
+    MAXI_CODE: BarcodeFormat.CODE128,
   };
 
-  return formatMap[format.toUpperCase()] || format;
+  return formatMap[format.toUpperCase()] || BarcodeFormat.CODE128;
 }
 
 /**
- * Detect barcode format from value
+ * Fallback: Detect barcode format from value when format is not provided by backend
+ * This should rarely be used since the backend determines the format via zxing-wasm
  * Returns format compatible with react-native-barcode-creator BarcodeFormat
  */
 function detectBarcodeFormat(value: string): string {
@@ -69,11 +99,21 @@ function detectBarcodeFormat(value: string): string {
 export function BarcodeDisplay({ value, format }: BarcodeDisplayProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+
+  // Guard clause: don't render if value is empty or invalid
+  if (!value || typeof value !== "string" || value.trim().length === 0) {
+    return null;
+  }
+
+  // Format is determined by backend via zxing-wasm detection
+  // If format is provided, use it; otherwise fallback to detection from value
   const barcodeFormat = format
     ? normalizeFormat(format)
     : detectBarcodeFormat(value);
 
-  const backgroundColor = isDark ? Colors.dark.background : Colors.light.background;
+  const backgroundColor = isDark
+    ? Colors.dark.background
+    : Colors.light.background;
   const foregroundColor = isDark ? Colors.dark.text : Colors.light.text;
 
   // For QR codes, use a larger size
@@ -99,13 +139,11 @@ export function BarcodeDisplay({ value, format }: BarcodeDisplayProps) {
           format={barcodeFormat}
           background={backgroundColor}
           foregroundColor={foregroundColor}
-          style={[
-            styles.barcode,
-            {
-              width: barcodeWidth,
-              height: barcodeHeight,
-            },
-          ]}
+          style={{
+            alignSelf: "center",
+            width: barcodeWidth,
+            height: barcodeHeight,
+          }}
         />
       </View>
       <ThemedText size="xs" style={styles.barcodeText}>
@@ -121,12 +159,12 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   barcodeWrapper: {
-    padding: 12,
     borderRadius: 8,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
+    overflow: "hidden",
   },
   barcode: {
     alignSelf: "center",
@@ -137,4 +175,3 @@ const styles = StyleSheet.create({
     fontFamily: "monospace",
   },
 });
-

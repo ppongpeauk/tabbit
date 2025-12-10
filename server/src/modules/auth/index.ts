@@ -1,10 +1,35 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Authentication module with Google OAuth
+ *
+ * IMPORTANT: Google OAuth Configuration
+ * - Client uses expo-auth-session to handle OAuth flow with PKCE
+ * - Client exchanges authorization code for tokens
+ * - Client sends tokens to /auth/google/callback endpoint
+ * - Server creates/updates user and returns session token
+ * - Redirect URI in Google Cloud Console should be the app's deep link: tabbit://auth/callback
+ */
+
 import { Elysia, t } from "elysia";
 import { authService } from "./service";
 import { handleServiceResult } from "../../utils/route-helpers";
 import { HTTP_STATUS } from "../../utils/constants";
 import { auth } from "../../lib/auth";
-import { prisma } from "../../lib/prisma";
 import { env } from "../../config/env";
+
+interface GoogleUserResponse {
+  id: string;
+  email: string;
+  name?: string;
+}
+
+interface GoogleTokenResponse {
+  access_token: string;
+  id_token?: string;
+  token_type?: string;
+  expires_in?: number;
+  refresh_token?: string;
+}
 
 // Better Auth handler (mounts Better Auth's built-in endpoints)
 export const betterAuth = new Elysia({ name: "better-auth" })
@@ -224,24 +249,13 @@ export const authModule = new Elysia({ prefix: "/auth" })
     }
   )
   .get(
-    "/google/authorize",
-    async ({ query, set }) => {
+    "/google/config",
+    async ({ set }) => {
       try {
-        // Return the Better Auth Google OAuth URL
-        // Mobile apps can redirect to this, then handle the callback
-        const baseURL = env.BETTER_AUTH_BASE_URL || "http://localhost:3001";
-        const callbackURL = query.callbackURL as string | undefined;
-
-        // Construct the OAuth URL with optional callback for mobile
-        let url = `${baseURL}/api/auth/sign-in/social/google`;
-        if (callbackURL) {
-          url += `?callbackURL=${encodeURIComponent(callbackURL)}`;
-        }
-
         set.status = HTTP_STATUS.OK;
         return {
           success: true,
-          url,
+          clientId: env.GOOGLE_CLIENT_ID,
         };
       } catch (error) {
         set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
@@ -250,171 +264,76 @@ export const authModule = new Elysia({ prefix: "/auth" })
           message:
             error instanceof Error
               ? error.message
-              : "Failed to get Google authorization URL",
+              : "Failed to get Google OAuth configuration",
         };
       }
     },
     {
-      query: t.Object({
-        callbackURL: t.Optional(t.String()),
-      }),
       detail: {
         tags: ["auth"],
-        summary: "Get Google OAuth authorization URL",
-        description:
-          "Get the URL to redirect users for Google OAuth (for mobile apps)",
+        summary: "Get Google OAuth configuration",
       },
     }
   )
-  .get(
-    "/google/mobile-callback",
-    async ({ request, query, set }) => {
+  .post(
+    "/google/callback",
+    async ({ body, set }) => {
       try {
-        // This endpoint is called by Better Auth after OAuth completes
-        // It generates a temporary code and redirects to the mobile app deep link
-        const session = await auth.api.getSession({
-          headers: request.headers,
-        });
-
-        if (!session) {
-          set.status = HTTP_STATUS.UNAUTHORIZED;
-          return {
-            success: false,
-            message: "No valid session found",
-          };
-        }
-
-        // Generate a temporary code
-        const code = globalThis.crypto.randomUUID();
-
-        // Store the code in database (expires after 5 minutes via cleanup)
-        await prisma.authCode.create({
-          data: {
-            code,
-            userId: session.user.id,
-          },
-        });
-
-        // Get the callback URL from query (passed from mobile app)
-        const callbackURL =
-          (query.callbackURL as string) || "tabbit://auth/callback";
-
-        // Redirect to deep link with code
-        const redirectURL = `${callbackURL}?code=${code}`;
-        set.redirect = redirectURL;
-        set.status = HTTP_STATUS.FOUND;
-        return;
-      } catch (error) {
-        set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
-        return {
-          success: false,
-          message:
-            error instanceof Error ? error.message : "Mobile callback failed",
+        const { email, name, googleId, accessToken, idToken } = body as {
+          email: string;
+          name: string;
+          googleId: string;
+          accessToken: string;
+          idToken?: string;
         };
-      }
-    },
-    {
-      query: t.Object({
-        callbackURL: t.Optional(t.String()),
-      }),
-      detail: {
-        tags: ["auth"],
-        summary: "Mobile OAuth callback handler",
-        description:
-          "Handles OAuth callback for mobile apps, generates code and redirects to deep link",
-      },
-    }
-  )
-  .get(
-    "/google/token-exchange",
-    async ({ query, set }) => {
-      try {
-        // Mobile app exchanges a temporary code for bearer token
-        // The code is passed in the deep link redirect after OAuth completes
-        const code = query.code as string | undefined;
 
-        if (!code) {
+        // Create/update user and create session
+        const result = await authService.signInWithGoogle({
+          email,
+          name,
+          googleId,
+          accessToken,
+          idToken,
+        });
+
+        if (!result.success || !result.token || !result.user) {
           set.status = HTTP_STATUS.BAD_REQUEST;
           return {
             success: false,
-            message: "Code parameter is required",
+            message: result.message || "Failed to create session",
           };
         }
-
-        // Find the temporary auth code in database
-        const authCode = await prisma.authCode.findUnique({
-          where: { code },
-          include: { user: true },
-        });
-
-        if (!authCode) {
-          set.status = HTTP_STATUS.UNAUTHORIZED;
-          return {
-            success: false,
-            message: "Invalid or expired code",
-          };
-        }
-
-        // Check if code is expired (5 minutes)
-        const now = new Date();
-        const codeAge = now.getTime() - authCode.createdAt.getTime();
-        const fiveMinutes = 5 * 60 * 1000;
-
-        if (codeAge > fiveMinutes) {
-          // Delete expired code
-          await prisma.authCode.delete({ where: { code } });
-          set.status = HTTP_STATUS.UNAUTHORIZED;
-          return {
-            success: false,
-            message: "Code has expired",
-          };
-        }
-
-        // Get the session token for this user
-        const dbSession = await prisma.session.findFirst({
-          where: {
-            userId: authCode.userId,
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-        });
-
-        if (!dbSession) {
-          set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
-          return {
-            success: false,
-            message: "Session token not found",
-          };
-        }
-
-        // Delete the used code (one-time use)
-        await prisma.authCode.delete({ where: { code } });
 
         set.status = HTTP_STATUS.OK;
         return {
           success: true,
-          token: dbSession.token,
-          user: authCode.user,
+          token: result.token,
+          user: result.user,
         };
       } catch (error) {
+        console.error("[Google OAuth] Error:", error);
         set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
         return {
           success: false,
           message:
-            error instanceof Error ? error.message : "Token exchange failed",
+            error instanceof Error ? error.message : "Google sign in failed",
         };
       }
     },
     {
-      query: t.Object({
-        code: t.String(),
+      body: t.Object({
+        email: t.String({ format: "email" }),
+        name: t.String(),
+        googleId: t.String(),
+        accessToken: t.String(),
+        idToken: t.Optional(t.String()),
+        serverAuthCode: t.Optional(t.String()),
       }),
       detail: {
         tags: ["auth"],
-        summary: "Exchange OAuth code for bearer token",
+        summary: "Google OAuth callback",
         description:
-          "After OAuth completes via deep link, exchange the code for a bearer token (for mobile apps)",
+          "Accepts Google OAuth tokens from client, creates/updates user, and returns session token",
       },
     }
   )

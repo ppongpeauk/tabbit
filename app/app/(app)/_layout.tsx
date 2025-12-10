@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Stack, router, useRootNavigationState, Redirect } from "expo-router";
+import { Stack, useRouter, usePathname } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
@@ -9,15 +9,14 @@ import { getHeaderScreenOptions } from "@/utils/navigation";
 export default function AuthenticatedLayout() {
   const colorScheme = useColorScheme();
   const { user, isLoading } = useAuth();
-  const navigationState = useRootNavigationState();
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!isLoading && navigationState?.key) {
-      if (!user) {
-        router.replace("/sign-in");
-      }
+    if (!isLoading && !user && pathname?.startsWith("/(app)")) {
+      router.replace("/");
     }
-  }, [user, isLoading, navigationState]);
+  }, [isLoading, user, pathname, router]);
 
   if (isLoading) {
     return (
@@ -41,7 +40,7 @@ export default function AuthenticatedLayout() {
   }
 
   if (!user) {
-    return <Redirect href="/sign-in" />;
+    return null;
   }
 
   return (
@@ -78,6 +77,12 @@ export default function AuthenticatedLayout() {
         options={{
           title: "New Receipt",
           gestureEnabled: false,
+        }}
+      />
+      <Stack.Screen
+        name="create-manual"
+        options={{
+          title: "Manual Entry",
         }}
       />
       <Stack.Screen

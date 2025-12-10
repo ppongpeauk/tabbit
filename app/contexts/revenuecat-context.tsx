@@ -61,19 +61,32 @@ export function RevenueCatProvider({ children }: { children: ReactNode }) {
     if (user?.id) {
       identifyUser(user.id);
     } else {
-      Purchases.logOut().catch((err) => {
-        console.error("Error logging out RevenueCat:", err);
-      });
+      // Only log out if we have customer info (user was logged in)
+      // If customerInfo is null, user is already anonymous
+      if (customerInfo) {
+        Purchases.logOut().catch((err) => {
+          // Ignore error if user is already anonymous
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          if (
+            !errorMessage.includes("anonymous") &&
+            !errorMessage.includes(
+              "LogOut was called but the current user is anonymous"
+            )
+          ) {
+            console.error("Error logging out RevenueCat:", err);
+          }
+        });
+      }
       setCustomerInfo(null);
       setCurrentOffering(null);
       setIsPro(false);
     }
-  }, [user?.id]);
+  }, [user?.id, customerInfo]);
 
   const initializeRevenueCat = async () => {
     try {
       setIsLoading(true);
-      Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
+      Purchases.setLogLevel(LOG_LEVEL.WARN);
       await Purchases.configure({
         apiKey: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY || "",
       });

@@ -511,6 +511,110 @@ export class AuthService {
       ).response;
     }
   }
+
+  async signInWithGoogle(data: {
+    email: string;
+    name: string;
+    googleId: string;
+    accessToken: string;
+    idToken?: string;
+    serverAuthCode?: string;
+  }): Promise<AuthResponse> {
+    try {
+      let user = await prisma.user.findUnique({
+        where: { email: data.email },
+      });
+
+      const account = await prisma.account.findUnique({
+        where: {
+          providerId_accountId: {
+            providerId: "google",
+            accountId: data.googleId,
+          },
+        },
+        include: { user: true },
+      });
+
+      if (account) {
+        user = account.user;
+      } else if (!user) {
+        // Create new user
+        user = await prisma.user.create({
+          data: {
+            email: data.email,
+            name: data.name || data.email.split("@")[0],
+            emailVerified: true,
+          },
+        });
+
+        try {
+          await limitService.initializeUserLimits(user.id);
+        } catch (error) {
+          console.error("Failed to initialize user limits:", error);
+        }
+      } else {
+        if (!user.name && data.name) {
+          user = await prisma.user.update({
+            where: { id: user.id },
+            data: { name: data.name },
+          });
+        }
+      }
+
+      // Create or update account
+      await prisma.account.upsert({
+        where: {
+          providerId_accountId: {
+            providerId: "google",
+            accountId: data.googleId,
+          },
+        },
+        create: {
+          userId: user.id,
+          accountId: data.googleId,
+          providerId: "google",
+          accessToken: data.accessToken,
+          idToken: data.idToken || null,
+        },
+        update: {
+          accessToken: data.accessToken,
+          idToken: data.idToken || null,
+          updatedAt: new Date(),
+        },
+      });
+
+      const sessionToken = globalThis.crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      const dbSession = await prisma.session.create({
+        data: {
+          userId: user.id,
+          token: sessionToken,
+          expiresAt,
+        },
+      });
+
+      return successResponse({
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name || "",
+          emailVerified: user.emailVerified,
+          image: user.image,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        } as User,
+        token: dbSession.token,
+      });
+    } catch (error) {
+      console.error("Google sign in error:", error);
+      return errorResponse(
+        error instanceof Error ? error.message : "Google sign in failed",
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      ).response;
+    }
+  }
 }
 
 export const authService = new AuthService();

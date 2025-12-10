@@ -6,6 +6,7 @@
 import { prisma } from "@/lib/prisma";
 import { subscriptionService } from "../subscription/service";
 import { LIMIT_CONFIG } from "../../config/limit";
+import { env } from "../../config/env";
 
 /**
  * Calculate the next month reset date (same day next month)
@@ -78,6 +79,7 @@ export interface LimitStatus {
   totalReceiptsLimit: number;
   totalReceiptsRemaining: number;
   receiptsResetDate: Date;
+  limitsDisabled: boolean;
 }
 
 export class LimitService {
@@ -116,12 +118,17 @@ export class LimitService {
         LIMIT_CONFIG.TOTAL_RECEIPT_LIMIT - user.totalReceiptsSaved
       ),
       receiptsResetDate: user.receiptsResetDate,
+      limitsDisabled: env.DISABLE_LIMITS,
     };
   }
 
   async canScan(
     userId: string
   ): Promise<{ allowed: boolean; reason?: string }> {
+    if (env.DISABLE_LIMITS) {
+      return { allowed: true };
+    }
+
     const isPro = await subscriptionService
       .isProUser(userId)
       .catch(() => false);
@@ -150,6 +157,10 @@ export class LimitService {
   }
 
   async incrementScanCount(userId: string): Promise<void> {
+    if (env.DISABLE_LIMITS) {
+      return;
+    }
+
     const isPro = await subscriptionService
       .isProUser(userId)
       .catch(() => false);
@@ -172,6 +183,10 @@ export class LimitService {
   async canSaveReceipt(
     userId: string
   ): Promise<{ allowed: boolean; reason?: string }> {
+    if (env.DISABLE_LIMITS) {
+      return { allowed: true };
+    }
+
     const isPro = await subscriptionService
       .isProUser(userId)
       .catch(() => false);
@@ -200,6 +215,10 @@ export class LimitService {
   }
 
   async incrementReceiptCount(userId: string): Promise<void> {
+    if (env.DISABLE_LIMITS) {
+      return;
+    }
+
     const isPro = await subscriptionService
       .isProUser(userId)
       .catch(() => false);

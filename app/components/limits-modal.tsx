@@ -50,6 +50,7 @@ export function LimitsModal({ bottomSheetRef }: LimitsModalProps) {
   const scansLimit = limitStatus?.monthlyScansLimit ?? 0;
   const receiptsRemaining = limitStatus?.totalReceiptsRemaining ?? 0;
   const receiptsLimit = limitStatus?.totalReceiptsLimit ?? 0;
+  const limitsDisabled = limitStatus?.limitsDisabled ?? false;
 
   return (
     <BottomSheetModal
@@ -75,7 +76,7 @@ export function LimitsModal({ bottomSheetRef }: LimitsModalProps) {
           </ThemedText>
         </View>
 
-        <View style={styles.limitsContainer}>
+        {limitsDisabled ? (
           <View
             style={[
               styles.limitCard,
@@ -89,142 +90,180 @@ export function LimitsModal({ bottomSheetRef }: LimitsModalProps) {
               },
             ]}
           >
-            <View style={styles.limitHeader}>
-              <SymbolView
-                name="camera.fill"
-                tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
-                size={24}
-              />
-              <ThemedText size="lg" weight="semibold" style={styles.limitTitle}>
-                Monthly Scans
-              </ThemedText>
-            </View>
             <ThemedText
               size="base"
               style={{
                 color: isDark ? Colors.dark.icon : Colors.light.icon,
-                marginTop: 8,
               }}
             >
-              {scansRemaining} of {scansLimit} scans remaining this month
+              Limits are currently disabled on the server. You have unlimited
+              access to all features.
             </ThemedText>
-            {scansRemaining === 0 && (
-              <ThemedText
-                size="sm"
-                style={{
-                  color: "#FF3B30",
-                  marginTop: 4,
-                }}
-              >
-                Limit reached
-              </ThemedText>
-            )}
           </View>
-
-          <View
-            style={[
-              styles.limitCard,
-              {
-                backgroundColor: isDark
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : "rgba(0, 0, 0, 0.02)",
-                borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.1)",
-              },
-            ]}
-          >
-            <View style={styles.limitHeader}>
-              <SymbolView
-                name="doc.text.fill"
-                tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
-                size={24}
-              />
-              <ThemedText size="lg" weight="semibold" style={styles.limitTitle}>
-                Synced Receipts
-              </ThemedText>
-            </View>
-            <ThemedText
-              size="base"
-              style={{
-                color: isDark ? Colors.dark.icon : Colors.light.icon,
-                marginTop: 8,
-              }}
+        ) : (
+          <View style={styles.limitsContainer}>
+            <View
+              style={[
+                styles.limitCard,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.05)"
+                    : "rgba(0, 0, 0, 0.02)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)",
+                },
+              ]}
             >
-              {receiptsRemaining} of {receiptsLimit} receipts can be synced
-            </ThemedText>
-            {receiptsRemaining === 0 && (
+              <View style={styles.limitHeader}>
+                <SymbolView
+                  name="camera.fill"
+                  tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
+                  size={24}
+                />
+                <ThemedText
+                  size="lg"
+                  weight="semibold"
+                  style={styles.limitTitle}
+                >
+                  Monthly Scans
+                </ThemedText>
+              </View>
               <ThemedText
-                size="sm"
+                size="base"
                 style={{
-                  color: "#FF3B30",
-                  marginTop: 4,
+                  color: isDark ? Colors.dark.icon : Colors.light.icon,
+                  marginTop: 8,
                 }}
               >
-                Limit reached
+                {scansRemaining} of {scansLimit} scans remaining this month
               </ThemedText>
-            )}
-          </View>
-        </View>
+              {scansRemaining === 0 && (
+                <ThemedText
+                  size="sm"
+                  style={{
+                    color: "#FF3B30",
+                    marginTop: 4,
+                  }}
+                >
+                  Limit reached
+                </ThemedText>
+              )}
+            </View>
 
-        <View
-          style={[
-            styles.proSection,
-            {
-              backgroundColor: isDark
-                ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(0, 0, 0, 0.02)",
-              borderColor: isDark
-                ? "rgba(255, 255, 255, 0.1)"
-                : "rgba(0, 0, 0, 0.1)",
-            },
-          ]}
-        >
-          <ThemedText size="lg" weight="bold" style={styles.proTitle}>
-            Upgrade to Tabbit Pro
-          </ThemedText>
-          <View style={styles.benefitsList}>
-            <View style={styles.benefitItem}>
-              <SymbolView
-                name="checkmark.circle.fill"
-                tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
-                size={20}
-              />
-              <ThemedText size="base" style={styles.benefitText}>
-                Unlimited scans
+            <View
+              style={[
+                styles.limitCard,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.05)"
+                    : "rgba(0, 0, 0, 0.02)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)",
+                },
+              ]}
+            >
+              <View style={styles.limitHeader}>
+                <SymbolView
+                  name="doc.text.fill"
+                  tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
+                  size={24}
+                />
+                <ThemedText
+                  size="lg"
+                  weight="semibold"
+                  style={styles.limitTitle}
+                >
+                  Synced Receipts
+                </ThemedText>
+              </View>
+              <ThemedText
+                size="base"
+                style={{
+                  color: isDark ? Colors.dark.icon : Colors.light.icon,
+                  marginTop: 8,
+                }}
+              >
+                {receiptsRemaining} of {receiptsLimit} receipts can be synced
               </ThemedText>
-            </View>
-            <View style={styles.benefitItem}>
-              <SymbolView
-                name="checkmark.circle.fill"
-                tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
-                size={20}
-              />
-              <ThemedText size="base" style={styles.benefitText}>
-                Unlimited synced receipts
-              </ThemedText>
-            </View>
-            <View style={styles.benefitItem}>
-              <SymbolView
-                name="checkmark.circle.fill"
-                tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
-                size={20}
-              />
-              <ThemedText size="base" style={styles.benefitText}>
-                Sync across all your devices
-              </ThemedText>
+              {receiptsRemaining === 0 && (
+                <ThemedText
+                  size="sm"
+                  style={{
+                    color: "#FF3B30",
+                    marginTop: 4,
+                  }}
+                >
+                  Limit reached
+                </ThemedText>
+              )}
             </View>
           </View>
-        </View>
+        )}
 
-        <Button
-          variant="primary"
-          fullWidth
-          onPress={handleUpgrade}
-          style={styles.upgradeButton}
-        >
-          Subscribe to Tabbit Pro
-        </Button>
+        {!limitsDisabled && (
+          <>
+            <View
+              style={[
+                styles.proSection,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.05)"
+                    : "rgba(0, 0, 0, 0.02)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)",
+                },
+              ]}
+            >
+              <ThemedText size="lg" weight="bold" style={styles.proTitle}>
+                Upgrade to Tabbit Pro
+              </ThemedText>
+              <View style={styles.benefitsList}>
+                <View style={styles.benefitItem}>
+                  <SymbolView
+                    name="checkmark.circle.fill"
+                    tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
+                    size={20}
+                  />
+                  <ThemedText size="base" style={styles.benefitText}>
+                    Unlimited scans
+                  </ThemedText>
+                </View>
+                <View style={styles.benefitItem}>
+                  <SymbolView
+                    name="checkmark.circle.fill"
+                    tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
+                    size={20}
+                  />
+                  <ThemedText size="base" style={styles.benefitText}>
+                    Unlimited synced receipts
+                  </ThemedText>
+                </View>
+                <View style={styles.benefitItem}>
+                  <SymbolView
+                    name="checkmark.circle.fill"
+                    tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
+                    size={20}
+                  />
+                  <ThemedText size="base" style={styles.benefitText}>
+                    Sync across all your devices
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+
+            <Button
+              variant="primary"
+              fullWidth
+              onPress={handleUpgrade}
+              style={styles.upgradeButton}
+            >
+              Subscribe to Tabbit Pro
+            </Button>
+          </>
+        )}
       </BottomSheetView>
     </BottomSheetModal>
   );
