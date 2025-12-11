@@ -108,7 +108,12 @@ export default function CameraScreen() {
                   onPress: async () => {
                     setProcessing(true);
                     // Continue with scanning
-                    const response = await scanReceipt(imageUri);
+                    const token = user
+                      ? await SecureStore.getItemAsync(TOKEN_STORAGE_KEY)
+                      : undefined;
+                    const response = await scanReceipt(imageUri, {
+                      token: token ?? undefined,
+                    });
                     await handleScanResponse(response, imageUri);
                   },
                 },
@@ -283,7 +288,12 @@ export default function CameraScreen() {
                   onPress: async () => {
                     setProcessing(true);
                     // Continue with scanning
-                    const response = await scanReceipt(imageUri);
+                    const token = user
+                      ? await SecureStore.getItemAsync(TOKEN_STORAGE_KEY)
+                      : undefined;
+                    const response = await scanReceipt(imageUri, {
+                      token: token ?? undefined,
+                    });
                     await handleScanResponse(response, imageUri);
                   },
                 },
