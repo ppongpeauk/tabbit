@@ -26,6 +26,8 @@ export type ThemedTextProps = TextProps & {
   family?: FontFamily;
   /** Font size: predefined sizes or number */
   size?: FontSize;
+  /** Custom line height. If not provided, uses default based on size */
+  lineHeight?: number;
   /** Legacy type prop for backward compatibility */
   type?:
     | "default"
@@ -173,6 +175,7 @@ export function ThemedText({
   italic = false,
   family = "sans",
   size = "base",
+  lineHeight,
   type,
   children,
   ...props
@@ -206,7 +209,7 @@ export function ThemedText({
         {
           color,
           fontSize: sizeStyles.fontSize,
-          lineHeight: sizeStyles.lineHeight,
+          lineHeight: lineHeight ?? sizeStyles.lineHeight,
           fontFamily,
           ...(fontWeight && { fontWeight }),
           ...(fontStyle && { fontStyle }),

@@ -20,7 +20,7 @@ import type React from "react";
 import { BarcodeDisplay } from "./barcode-display";
 
 interface BarcodeModalProps {
-  bottomSheetRef: React.RefObject<BottomSheetModal>;
+  bottomSheetRef: React.RefObject<BottomSheetModal | null>;
   barcodeValue: string;
   barcodeFormat?: string;
 }

@@ -18,7 +18,6 @@ import {
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useForm, Controller } from "react-hook-form";
 import { useLocalSearchParams, router, useNavigation } from "expo-router";
-import { HeaderButton } from "@react-navigation/elements";
 import { ThemedText } from "@/components/themed-text";
 import { FormTextInput } from "@/components/form-text-input";
 import { Button } from "@/components/button";
@@ -217,15 +216,27 @@ export default function EditGroupScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
-        <HeaderButton onPress={() => router.back()}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={8}
+          style={styles.headerButton}
+        >
           <SymbolView
             name="xmark"
             tintColor={isDark ? Colors.dark.text : Colors.light.text}
           />
-        </HeaderButton>
+        </Pressable>
       ),
       headerRight: () => (
-        <HeaderButton onPress={handleSavePress} disabled={isSubmitting}>
+        <Pressable
+          onPress={handleSavePress}
+          disabled={isSubmitting}
+          hitSlop={8}
+          style={[
+            styles.headerButton,
+            isSubmitting && styles.headerButtonDisabled,
+          ]}
+        >
           {isSubmitting ? (
             <ActivityIndicator
               size="small"
@@ -241,7 +252,7 @@ export default function EditGroupScreen() {
               Save
             </ThemedText>
           )}
-        </HeaderButton>
+        </Pressable>
       ),
     });
   }, [navigation, isDark, isSubmitting, handleSavePress]);
@@ -577,5 +588,15 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     borderWidth: 1,
+  },
+  headerButton: {
+    padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerButtonDisabled: {
+    opacity: 0.5,
   },
 });

@@ -13,6 +13,7 @@
       "bundleIdentifier": "com.ppkl.tabbit",
       "usesAppleSignIn": true,
       "infoPlist": {
+        "UIDesignRequiresCompatibility": true,
         "NSCameraUsageDescription": "This app needs access to your camera to scan receipts and food items.",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select receipt images.",
         "NSContactsUsageDescription": "This app needs access to your contacts to import contacts from your device to add as friends."

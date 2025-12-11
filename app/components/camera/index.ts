@@ -4,6 +4,9 @@ export type {
   CornerBracketProps,
 } from "./corner-bracket";
 
+export { CameraButton } from "./camera-button";
+export type { CameraButtonProps } from "./camera-button";
+
 export { CameraCaptureButton } from "./camera-capture-button";
 export type { CameraCaptureButtonProps } from "./camera-capture-button";
 

@@ -278,14 +278,12 @@ export default function ReceiptsScreen() {
         ]}
       >
         <View style={styles.toolbar}>
-          <TouchableOpacity
-            onPress={handleScanReceipt}
-            activeOpacity={0.7}
-            style={styles.toolbarButton}
-          >
-            <GlassView
+          <View style={[styles.toolbarButtonContainer, { flex: 1 }]}>
+            <TouchableOpacity
+              onPress={handleScanReceipt}
+              activeOpacity={0.7}
               style={[
-                styles.glassButton,
+                styles.toolbarButton,
                 {
                   backgroundColor: isDark
                     ? "rgba(255, 255, 255, 0.1)"
@@ -294,6 +292,7 @@ export default function ReceiptsScreen() {
                     ? "rgba(255, 255, 255, 0.2)"
                     : "rgba(0, 0, 0, 0.15)",
                   borderWidth: 1,
+                  borderRadius: 999,
                 },
               ]}
             >
@@ -314,20 +313,14 @@ export default function ReceiptsScreen() {
               >
                 Scan
               </ThemedText>
-            </GlassView>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleManualEntry}
-            activeOpacity={0.7}
-            style={{
-              aspectRatio: 1,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <GlassView
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.toolbarButtonContainer, { aspectRatio: 1 }]}>
+            <TouchableOpacity
+              onPress={handleManualEntry}
+              activeOpacity={0.7}
               style={[
-                styles.glassButton,
+                styles.toolbarButton,
                 {
                   backgroundColor: isDark
                     ? "rgba(255, 255, 255, 0.1)"
@@ -336,6 +329,13 @@ export default function ReceiptsScreen() {
                     ? "rgba(255, 255, 255, 0.2)"
                     : "rgba(0, 0, 0, 0.15)",
                   borderWidth: 1,
+                  borderRadius: 999,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  gap: 8,
                 },
               ]}
             >
@@ -344,8 +344,8 @@ export default function ReceiptsScreen() {
                 tintColor={isDark ? Colors.dark.text : Colors.light.text}
                 size={24}
               />
-            </GlassView>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </View>
@@ -417,15 +417,25 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   toolbar: {
     flexDirection: "row",
     gap: 8,
     alignItems: "center",
   },
+  toolbarButtonContainer: {
+    height: 56,
+  },
   toolbarButton: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    gap: 8,
   },
   glassButton: {
     flexDirection: "row",

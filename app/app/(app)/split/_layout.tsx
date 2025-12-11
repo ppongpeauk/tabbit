@@ -1,10 +1,10 @@
 import { Stack } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getHeaderScreenOptions } from "@/utils/navigation";
-import { HeaderButton } from "@react-navigation/elements";
 import { SymbolView } from "expo-symbols";
 import { Colors } from "@/constants/theme";
 import { router } from "expo-router";
+import { Pressable, StyleSheet } from "react-native";
 
 export default function SplitLayout() {
   const colorScheme = useColorScheme();
@@ -23,12 +23,16 @@ export default function SplitLayout() {
           title: "Split Receipt",
           presentation: "card",
           headerLeft: () => (
-            <HeaderButton onPress={() => router.back()}>
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={8}
+              style={styles.headerButton}
+            >
               <SymbolView
                 name="xmark"
                 tintColor={isDark ? Colors.dark.text : Colors.light.text}
               />
-            </HeaderButton>
+            </Pressable>
           ),
         }}
       />
@@ -38,12 +42,16 @@ export default function SplitLayout() {
           title: "Add People",
           presentation: "card",
           headerLeft: () => (
-            <HeaderButton onPress={() => router.back()}>
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={8}
+              style={styles.headerButton}
+            >
               <SymbolView
                 name="xmark"
                 tintColor={isDark ? Colors.dark.text : Colors.light.text}
               />
-            </HeaderButton>
+            </Pressable>
           ),
         }}
       />
@@ -53,12 +61,16 @@ export default function SplitLayout() {
           title: "Custom Amounts",
           presentation: "card",
           headerLeft: () => (
-            <HeaderButton onPress={() => router.back()}>
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={8}
+              style={styles.headerButton}
+            >
               <SymbolView
                 name="xmark"
                 tintColor={isDark ? Colors.dark.text : Colors.light.text}
               />
-            </HeaderButton>
+            </Pressable>
           ),
         }}
       />
@@ -68,12 +80,16 @@ export default function SplitLayout() {
           title: "Assign Items",
           presentation: "card",
           headerLeft: () => (
-            <HeaderButton onPress={() => router.back()}>
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={8}
+              style={styles.headerButton}
+            >
               <SymbolView
                 name="xmark"
                 tintColor={isDark ? Colors.dark.text : Colors.light.text}
               />
-            </HeaderButton>
+            </Pressable>
           ),
         }}
       />
@@ -83,12 +99,16 @@ export default function SplitLayout() {
           title: "Review Split",
           presentation: "card",
           headerLeft: () => (
-            <HeaderButton onPress={() => router.back()}>
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={8}
+              style={styles.headerButton}
+            >
               <SymbolView
                 name="xmark"
                 tintColor={isDark ? Colors.dark.text : Colors.light.text}
               />
-            </HeaderButton>
+            </Pressable>
           ),
         }}
       />
@@ -111,3 +131,13 @@ export default function SplitLayout() {
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  headerButton: {
+    padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});

@@ -1,3 +1,8 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Barcode scanner screen for scanning barcodes and QR codes
+ */
+
 import { useState, useRef } from "react";
 import {
   View,
@@ -12,16 +17,14 @@ import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { SymbolView } from "expo-symbols";
-import { GlassView } from "expo-glass-effect";
-import { Colors, Fonts } from "@/constants/theme";
-import { PlatformPressable } from "@react-navigation/elements";
+import { Fonts } from "@/constants/theme";
 import { scanBarcodeImage } from "@/utils/api";
 import {
   CameraGuideOverlay,
   CameraCaptureButton,
   CameraControlButton,
   CameraPermissionPrompt,
+  CameraButton,
 } from "@/components/camera";
 
 export default function BarcodeScannerScreen() {
@@ -154,11 +157,11 @@ export default function BarcodeScannerScreen() {
         />
       )}
       <View style={styles.topControls}>
-        <PlatformPressable onPress={() => router.back()}>
-          <GlassView style={styles.closeButton}>
-            <SymbolView name="xmark" tintColor={Colors.dark.text} />
-          </GlassView>
-        </PlatformPressable>
+        <CameraButton
+          onPress={() => router.back()}
+          variant="close"
+          iconName="close"
+        />
       </View>
       <CameraGuideOverlay aspectRatio={1} />
       <View style={styles.instructionContainer}>
@@ -178,6 +181,7 @@ export default function BarcodeScannerScreen() {
           onPress={toggleFlash}
           iconName={flash === "on" ? "bolt.fill" : "bolt.slash.fill"}
           disabled={processing}
+          size="large"
         />
 
         <CameraCaptureButton
@@ -191,6 +195,7 @@ export default function BarcodeScannerScreen() {
             onPress={pickImage}
             iconName="photo.fill"
             disabled={processing}
+            size="large"
           />
         ) : (
           <View style={styles.controlButton} />
@@ -218,13 +223,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-start",
   },
-  closeButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   controls: {
     position: "absolute",
     bottom: 0,
@@ -238,9 +236,9 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   controlButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     justifyContent: "center",
     alignItems: "center",
   },

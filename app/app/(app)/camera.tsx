@@ -1,12 +1,14 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Camera screen for scanning receipts
+ */
+
 import { useState, useRef } from "react";
 import { View, StyleSheet, Platform, Alert, Text, Image } from "react-native";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { SymbolView } from "expo-symbols";
-import { GlassView } from "expo-glass-effect";
-import { Colors, Fonts } from "@/constants/theme";
-import { PlatformPressable } from "@react-navigation/elements";
+import { Fonts } from "@/constants/theme";
 import { scanReceipt } from "@/utils/api";
 import { hashImage } from "@/utils/hash";
 import { findReceiptByImageHash } from "@/utils/storage";
@@ -16,6 +18,7 @@ import {
   CameraCaptureButton,
   CameraControlButton,
   CameraPermissionPrompt,
+  CameraButton,
 } from "@/components/camera";
 import { useLimits } from "@/hooks/use-limits";
 import { useRevenueCat } from "@/contexts/revenuecat-context";
@@ -355,11 +358,11 @@ export default function CameraScreen() {
         />
       )}
       <View style={styles.topControls}>
-        <PlatformPressable onPress={() => router.back()}>
-          <GlassView style={styles.closeButton}>
-            <SymbolView name="xmark" tintColor={Colors.dark.text} />
-          </GlassView>
-        </PlatformPressable>
+        <CameraButton
+          onPress={() => router.back()}
+          variant="close"
+          iconName="close"
+        />
       </View>
       <CameraGuideOverlay aspectRatio={3 / 5} />
       <View style={styles.instructionContainer}>
@@ -372,6 +375,7 @@ export default function CameraScreen() {
           onPress={toggleFlash}
           iconName={flash === "on" ? "bolt.fill" : "bolt.slash.fill"}
           disabled={processing}
+          size="large"
         />
 
         <CameraCaptureButton
@@ -384,6 +388,7 @@ export default function CameraScreen() {
           onPress={pickImage}
           iconName="photo.fill"
           disabled={processing}
+          size="large"
         />
       </View>
     </View>
@@ -407,13 +412,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     flexDirection: "row",
     justifyContent: "flex-start",
-  },
-  closeButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
   },
   controls: {
     position: "absolute",

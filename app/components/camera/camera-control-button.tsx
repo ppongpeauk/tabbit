@@ -1,13 +1,16 @@
-import { StyleSheet } from "react-native";
-import { SymbolView } from "expo-symbols";
-import { GlassView } from "expo-glass-effect";
-import { PlatformPressable } from "@react-navigation/elements";
-import { Colors } from "@/constants/theme";
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Camera control button for actions like flash toggle, gallery picker, etc.
+ */
+
+import { CameraButton } from "./camera-button";
+import type { CameraButtonProps } from "./camera-button";
 
 export interface CameraControlButtonProps {
   onPress: () => void;
   iconName: string;
   disabled?: boolean;
+  size?: CameraButtonProps["size"];
 }
 
 /**
@@ -17,31 +20,15 @@ export function CameraControlButton({
   onPress,
   iconName,
   disabled = false,
+  size = "small",
 }: CameraControlButtonProps) {
   return (
-    <PlatformPressable onPress={onPress} disabled={disabled}>
-      <GlassView
-        style={[styles.controlButton, disabled && styles.controlButtonDisabled]}
-      >
-        <SymbolView
-          name={iconName}
-          tintColor={disabled ? "#999" : Colors.dark.text}
-          size={32}
-        />
-      </GlassView>
-    </PlatformPressable>
+    <CameraButton
+      onPress={onPress}
+      iconName={iconName}
+      disabled={disabled}
+      variant="control"
+      size={size}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  controlButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  controlButtonDisabled: {
-    opacity: 0.5,
-  },
-});

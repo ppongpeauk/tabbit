@@ -10,10 +10,28 @@ export function formatCurrency(
   amount: number,
   currency: string = "USD"
 ): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-  }).format(amount);
+  // Validate and sanitize currency code
+  // Currency codes must be 3 uppercase letters (ISO 4217)
+  const normalizedCurrency =
+    currency && typeof currency === "string" && currency.trim().length === 3
+      ? currency.trim().toUpperCase()
+      : "USD";
+
+  // Validate currency code by attempting to create a formatter
+  // If it fails, fall back to USD
+  try {
+    const formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: normalizedCurrency,
+    });
+    return formatter.format(amount);
+  } catch {
+    // Fallback to USD if currency is invalid
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  }
 }
 
 /**

@@ -1,5 +1,9 @@
-import { View, StyleSheet, ActivityIndicator, Pressable } from "react-native";
-import { GlassView } from "expo-glass-effect";
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Camera capture button with fixed colors regardless of color scheme
+ */
+
+import { CameraButton } from "./camera-button";
 
 export interface CameraCaptureButtonProps {
   onPress: () => void;
@@ -16,57 +20,11 @@ export function CameraCaptureButton({
   disabled = false,
 }: CameraCaptureButtonProps) {
   return (
-    <Pressable
+    <CameraButton
       onPress={onPress}
-      disabled={disabled || processing}
-      style={disabled && styles.captureButtonDisabled}
-    >
-      <GlassView
-        style={[
-          styles.captureButton,
-          (processing || disabled) && styles.captureButtonProcessing,
-        ]}
-      >
-        {processing ? (
-          <ActivityIndicator
-            size="small"
-            color="#333"
-            style={styles.activityIndicator}
-          />
-        ) : (
-          <View style={styles.captureButtonInner} />
-        )}
-      </GlassView>
-    </Pressable>
+      processing={processing}
+      disabled={disabled}
+      variant="capture"
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  captureButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 36,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 4,
-    borderColor: "rgba(0, 0, 0, 0.1)",
-  },
-  captureButtonProcessing: {
-    backgroundColor: "#ccc",
-    borderColor: "rgba(0, 0, 0, 0.2)",
-    opacity: 0.7,
-  },
-  captureButtonDisabled: {
-    opacity: 0.7,
-  },
-  captureButtonInner: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#fff",
-  },
-  activityIndicator: {
-    position: "absolute",
-  },
-});

@@ -3,14 +3,12 @@
  * @description Groups tab layout with header right plus button and context menu
  */
 
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
-import { HeaderButton } from "@react-navigation/elements";
 import { SymbolView } from "expo-symbols";
-import { View, StyleSheet } from "react-native";
-import { ContextMenu, Host, Button } from "@expo/ui/swift-ui";
-import { router } from "expo-router";
+import { View, StyleSheet, Pressable, Text } from "react-native";
+import { ContextMenu, Host } from "@expo/ui/swift-ui";
 import * as Haptics from "expo-haptics";
 import { getHeaderScreenOptions } from "@/utils/navigation";
 
@@ -36,20 +34,56 @@ function HeaderRight() {
       <Host>
         <ContextMenu>
           <ContextMenu.Items>
-            <Button systemImage="plus.circle.fill" onPress={handleCreateGroup}>
-              Create Group
-            </Button>
-            <Button systemImage="person.2.fill" onPress={handleJoinGroup}>
-              Join Group
-            </Button>
+            <Pressable
+              onPress={handleCreateGroup}
+              style={({ pressed }) => [
+                styles.contextMenuItem,
+                pressed && styles.contextMenuItemPressed,
+              ]}
+            >
+              <SymbolView
+                name="plus.circle.fill"
+                tintColor={isDark ? Colors.dark.text : Colors.light.text}
+                size={20}
+              />
+              <Text
+                style={[
+                  styles.contextMenuText,
+                  { color: isDark ? Colors.dark.text : Colors.light.text },
+                ]}
+              >
+                Create Group
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={handleJoinGroup}
+              style={({ pressed }) => [
+                styles.contextMenuItem,
+                pressed && styles.contextMenuItemPressed,
+              ]}
+            >
+              <SymbolView
+                name="person.2.fill"
+                tintColor={isDark ? Colors.dark.text : Colors.light.text}
+                size={20}
+              />
+              <Text
+                style={[
+                  styles.contextMenuText,
+                  { color: isDark ? Colors.dark.text : Colors.light.text },
+                ]}
+              >
+                Join Group
+              </Text>
+            </Pressable>
           </ContextMenu.Items>
           <ContextMenu.Trigger>
-            <HeaderButton>
+            <Pressable hitSlop={8} style={styles.headerButton}>
               <SymbolView
                 name="plus"
                 tintColor={isDark ? Colors.dark.text : Colors.light.text}
               />
-            </HeaderButton>
+            </Pressable>
           </ContextMenu.Trigger>
         </ContextMenu>
       </Host>
@@ -70,12 +104,12 @@ function HeaderLeft() {
   };
 
   return (
-    <HeaderButton onPress={handleClose}>
+    <Pressable onPress={handleClose} hitSlop={8} style={styles.headerButton}>
       <SymbolView
         name="xmark"
         tintColor={isDark ? Colors.dark.text : Colors.light.text}
       />
-    </HeaderButton>
+    </Pressable>
   );
 }
 
@@ -121,7 +155,6 @@ export default function GroupsLayout() {
         options={{
           title: "Group",
           headerTitle: "Group",
-          headerBackButtonDisplayMode: "minimal",
         }}
       />
       <Stack.Screen
@@ -146,5 +179,27 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  headerButton: {
+    padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  contextMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minHeight: 44,
+  },
+  contextMenuItemPressed: {
+    opacity: 0.7,
+  },
+  contextMenuText: {
+    fontSize: 16,
+    fontFamily: "System",
   },
 });

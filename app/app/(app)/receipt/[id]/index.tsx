@@ -181,8 +181,8 @@ export default function ReceiptDetailScreen() {
     <View style={styles.container}>
       <ThemedView style={styles.container}>
         <ScrollView
-          style={[styles.scrollView, { paddingTop: headerHeight }]}
-          contentContainerStyle={styles.contentContainer}
+          style={[styles.scrollView]}
+          contentContainerStyle={[styles.contentContainer, { paddingTop: 20 }]}
           automaticallyAdjustContentInsets
         >
           <MerchantInfoCard receipt={receipt} />

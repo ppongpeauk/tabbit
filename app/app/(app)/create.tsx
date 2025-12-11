@@ -11,6 +11,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Pressable,
 } from "react-native";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -21,7 +22,6 @@ import { FormTextInput } from "@/components/form-text-input";
 import { Receipt } from "@/components/receipt";
 import { Colors } from "@/constants/theme";
 import { SymbolView } from "expo-symbols";
-import { HeaderButton } from "@react-navigation/elements";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useCreateReceipt } from "@/hooks/use-receipts";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -169,19 +169,29 @@ export default function CreateReceiptScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
-        <HeaderButton onPress={handleBackPress}>
+        <Pressable
+          onPress={handleBackPress}
+          hitSlop={8}
+          style={styles.headerButton}
+        >
           <SymbolView
             name="chevron.left"
             tintColor={
               colorScheme === "dark" ? Colors.dark.text : Colors.light.text
             }
           />
-        </HeaderButton>
+        </Pressable>
       ),
       headerRight: () => (
-        <HeaderButton
+        <Pressable
           onPress={handleSubmit(handleSave)}
           disabled={createReceiptMutation.isPending || !receiptData}
+          hitSlop={8}
+          style={[
+            styles.headerButton,
+            (createReceiptMutation.isPending || !receiptData) &&
+              styles.headerButtonDisabled,
+          ]}
         >
           {createReceiptMutation.isPending ? (
             <ActivityIndicator
@@ -198,7 +208,7 @@ export default function CreateReceiptScreen() {
               }
             />
           )}
-        </HeaderButton>
+        </Pressable>
       ),
     });
   }, [
@@ -618,5 +628,15 @@ const styles = StyleSheet.create({
   },
   receiptWrapper: {
     width: "100%",
+  },
+  headerButton: {
+    padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerButtonDisabled: {
+    opacity: 0.5,
   },
 });

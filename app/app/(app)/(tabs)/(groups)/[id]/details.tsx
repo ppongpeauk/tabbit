@@ -16,7 +16,6 @@ import {
   useFocusEffect,
   useNavigation,
 } from "expo-router";
-import { HeaderButton } from "@react-navigation/elements";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
@@ -117,12 +116,16 @@ export default function GroupDetailsScreen() {
       headerRight: () => {
         if (!isAdmin) return null;
         return (
-          <HeaderButton onPress={handleEdit}>
+          <Pressable
+            onPress={handleEdit}
+            hitSlop={8}
+            style={styles.headerButton}
+          >
             <SymbolView
               name="gearshape.fill"
               tintColor={isDark ? Colors.dark.text : Colors.light.text}
             />
-          </HeaderButton>
+          </Pressable>
         );
       },
     });
@@ -482,5 +485,12 @@ const styles = StyleSheet.create({
     marginTop: -12,
     marginBottom: 16,
     marginLeft: 4,
+  },
+  headerButton: {
+    padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

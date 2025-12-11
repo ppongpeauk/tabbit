@@ -58,11 +58,6 @@ export default function AuthenticatedLayout() {
         options={{
           title: "Receipt Details",
           headerBackButtonDisplayMode: "minimal",
-          headerTransparent: true,
-          headerBlurEffect: "none",
-          headerStyle: {
-            backgroundColor: "transparent",
-          },
         }}
       />
       <Stack.Screen

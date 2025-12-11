@@ -1,28 +1,55 @@
-import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
-import { Fonts } from "@/constants/theme";
+import { Tabs } from "expo-router";
+import { Colors, Fonts } from "@/constants/theme";
+import { SymbolView } from "expo-symbols";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function TabsLayout() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
   return (
-    <NativeTabs
-      minimizeBehavior="onScrollDown"
-      labelStyle={{ fontFamily: Fonts.sans, fontSize: 10, fontWeight: "600" }}
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: isDark
+            ? Colors.dark.tabBarBackground
+            : Colors.light.tabBarBackground,
+        },
+        tabBarLabelStyle: {
+          fontFamily: Fonts.sans,
+          fontSize: 12,
+          fontWeight: "600",
+        },
+      }}
     >
-      <NativeTabs.Trigger name="(receipts)">
-        <Label>Home</Label>
-        <Icon sf="house.fill" />
-      </NativeTabs.Trigger>
-      {/* <NativeTabs.Trigger name="(groups)">
-        <Label>Groups</Label>
-        <Icon sf="person.2.fill" />
-      </NativeTabs.Trigger> */}
-      <NativeTabs.Trigger name="(settings)">
-        <Label>Settings</Label>
-        <Icon sf="gearshape.fill" />
-      </NativeTabs.Trigger>
-      {/* <NativeTabs.Trigger name="search" role="search">
-        <Label>Search</Label>
-        <Icon sf="magnifyingglass" />
-      </NativeTabs.Trigger> */}
-    </NativeTabs>
+      <Tabs.Screen
+        name="(receipts)"
+        options={{
+          title: "Home",
+          tabBarIcon: ({ color, size }) => (
+            <IconSymbol name="house.fill" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="(groups)"
+        options={{
+          title: "Groups",
+          tabBarIcon: ({ color, size }) => (
+            <IconSymbol name="person.2.fill" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="(settings)"
+        options={{
+          title: "Settings",
+          tabBarIcon: ({ color, size }) => (
+            <IconSymbol name="gearshape.fill" color={color} size={size} />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }

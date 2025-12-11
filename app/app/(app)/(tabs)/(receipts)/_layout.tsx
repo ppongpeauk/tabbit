@@ -1,13 +1,17 @@
 import { router, Stack } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { HeaderButton } from "@react-navigation/elements";
 import { SymbolView } from "expo-symbols";
-import { Colors } from "@/constants/theme";
-import { View, StyleSheet, ActivityIndicator, Pressable } from "react-native";
+import { Colors, Fonts } from "@/constants/theme";
+import {
+  View,
+  StyleSheet,
+  ActivityIndicator,
+  Pressable,
+  TouchableOpacity,
+} from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useLimits } from "@/hooks/use-limits";
 import { useRevenueCat } from "@/contexts/revenuecat-context";
-import { Fonts } from "@/constants/theme";
 import { useRef } from "react";
 import { LimitsModal } from "@/components/limits-modal";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -67,13 +71,17 @@ function HeaderRight() {
   // Don't show limits for Pro users
   if (isPro) {
     return (
-      <View style={styles.headerRight}>
-        <HeaderButton onPress={handleCameraPress}>
+      <View>
+        <Pressable
+          onPress={handleCameraPress}
+          hitSlop={8}
+          style={styles.headerButton}
+        >
           <SymbolView
             name="camera"
             tintColor={isDark ? Colors.dark.text : Colors.light.text}
           />
-        </HeaderButton>
+        </Pressable>
       </View>
     );
   }
@@ -81,66 +89,72 @@ function HeaderRight() {
   // Show loading state
   if (isLoading || !limitStatus) {
     return (
-      <View style={styles.headerRight}>
+      <View>
         <View style={styles.limitContainer}>
           <ActivityIndicator
             size="small"
             color={isDark ? Colors.dark.text : Colors.light.text}
           />
         </View>
-        <HeaderButton onPress={handleCameraPress}>
+        <Pressable
+          onPress={handleCameraPress}
+          hitSlop={8}
+          style={styles.headerButton}
+        >
           <SymbolView
             name="camera"
             tintColor={isDark ? Colors.dark.text : Colors.light.text}
           />
-        </HeaderButton>
+        </Pressable>
       </View>
     );
   }
 
   // Show limit status
   const scansRemaining = limitStatus.monthlyScansRemaining;
-  const receiptsRemaining = limitStatus.totalReceiptsRemaining;
   const limitsDisabled = limitStatus.limitsDisabled;
 
   // If limits are disabled, don't show the limit indicator
-  if (limitsDisabled) {
-    return (
-      <>
-        <View style={styles.headerRight}>
-          <HeaderButton onPress={handleCameraPress}>
-            <SymbolView
-              name="camera"
-              tintColor={isDark ? Colors.dark.text : Colors.light.text}
-            />
-          </HeaderButton>
-        </View>
-        <LimitsModal bottomSheetRef={limitsModalRef} />
-      </>
-    );
-  }
+  // if (limitsDisabled) {
+  //   return (
+  //     <>
+  //       <LimitsModal bottomSheetRef={limitsModalRef} />
+  //     </>
+  //   );
+  // }
 
   return (
     <>
-      <View style={styles.headerRight}>
-        <Pressable onPress={handleLimitPress} style={styles.limitContainer}>
-          <SymbolView
-            name="doc.text.fill"
-            tintColor={isDark ? Colors.dark.text : Colors.light.text}
-            size={16}
-          />
+      <View>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={handleLimitPress}
+          hitSlop={8}
+          style={[
+            styles.limitContainer,
+            {
+              paddingHorizontal: 16,
+              height: 40,
+              borderRadius: 100,
+              borderWidth: 1,
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(0, 0, 0, 0.1)",
+              backgroundColor: isDark
+                ? Colors.dark.background
+                : Colors.light.background,
+            },
+          ]}
+        >
           <ThemedText
             size="sm"
             weight="bold"
             family="sans"
-            style={[
-              styles.limitText,
-              scansRemaining === 0 && styles.limitTextWarning,
-            ]}
+            style={styles.limitText}
           >
-            {scansRemaining} / {limitStatus.monthlyScansLimit}
+            {scansRemaining}/{limitStatus.monthlyScansLimit} scans left
           </ThemedText>
-        </Pressable>
+        </TouchableOpacity>
       </View>
       <LimitsModal bottomSheetRef={limitsModalRef} />
     </>
@@ -194,11 +208,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 13,
   },
-  headerRight: {
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "center",
-  },
+
   limitContainer: {
     flexDirection: "row",
     gap: 4,
@@ -206,7 +216,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   limitText: {},
-  limitTextWarning: {
-    opacity: 0.6,
+  headerButton: {
+    padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
