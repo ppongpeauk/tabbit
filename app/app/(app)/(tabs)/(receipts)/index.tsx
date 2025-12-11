@@ -273,7 +273,7 @@ export default function ReceiptsScreen() {
         style={[
           styles.toolbarContainer,
           {
-            bottom: bottomTabBarHeight + 8,
+            bottom: 8,
           },
         ]}
       >
@@ -287,17 +287,13 @@ export default function ReceiptsScreen() {
               style={[
                 styles.glassButton,
                 {
-                  backgroundColor:
-                    Platform.OS === "ios"
-                      ? isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(255, 255, 255, 0.7)"
-                      : isDark
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(255, 255, 255, 0.8)",
-                  borderColor: isDark
+                  backgroundColor: isDark
                     ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.1)",
+                    : "rgba(0, 0, 0, 0.05)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.2)"
+                    : "rgba(0, 0, 0, 0.15)",
+                  borderWidth: 1,
                 },
               ]}
             >
@@ -333,17 +329,13 @@ export default function ReceiptsScreen() {
               style={[
                 styles.glassButton,
                 {
-                  backgroundColor:
-                    Platform.OS === "ios"
-                      ? isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(255, 255, 255, 0.7)"
-                      : isDark
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(255, 255, 255, 0.8)",
-                  borderColor: isDark
+                  backgroundColor: isDark
                     ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.1)",
+                    : "rgba(0, 0, 0, 0.05)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.2)"
+                    : "rgba(0, 0, 0, 0.15)",
+                  borderWidth: 1,
                 },
               ]}
             >
@@ -443,7 +435,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 999,
     gap: 8,
-    borderWidth: Platform.OS === "ios" ? 0 : 1,
   },
   toolbarButtonLabel: {},
 });
