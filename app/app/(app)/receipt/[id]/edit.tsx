@@ -6,6 +6,7 @@ import { ReceiptEditForm } from "@/components/receipt-edit-form";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useReceipt, useUpdateReceipt } from "@/hooks/use-receipts";
+import type { StoredReceipt } from "@/utils/storage";
 import * as Haptics from "expo-haptics";
 
 export default function EditReceiptScreen() {
@@ -18,34 +19,26 @@ export default function EditReceiptScreen() {
   const updateReceiptMutation = useUpdateReceipt();
 
   const handleSave = useCallback(
-    (
-      updatedReceipt: Parameters<
-        typeof updateReceiptMutation.mutate
-      >[0]["updates"]
-    ) => {
+    async (updatedReceipt: Partial<StoredReceipt>): Promise<void> => {
       if (!id) return;
 
-      updateReceiptMutation.mutate(
-        {
+      try {
+        await updateReceiptMutation.mutateAsync({
           id,
           updates: updatedReceipt,
-        },
-        {
-          onSuccess: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            router.back();
-          },
-          onError: (error) => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert(
-              "Error",
-              error instanceof Error
-                ? error.message
-                : "Failed to save changes. Please try again."
-            );
-          },
-        }
-      );
+        });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.back();
+      } catch (error) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          "Error",
+          error instanceof Error
+            ? error.message
+            : "Failed to save changes. Please try again."
+        );
+        throw error;
+      }
     },
     [id, updateReceiptMutation]
   );

@@ -14,6 +14,7 @@ import { limitModule } from "./modules/limits";
 import { subscriptionModule } from "./modules/subscription";
 import { groupModule } from "./modules/group";
 import { syncModule } from "./modules/sync";
+import { plaidModule } from "./modules/plaid";
 import { cacheService } from "./utils/cache";
 import { env } from "./config/env";
 import { betterAuth, authModule } from "./modules/auth";
@@ -78,11 +79,53 @@ const app = new Elysia()
             name: "sync",
             description: "Receipt sync endpoints (Pro feature)",
           },
+          {
+            name: "plaid",
+            description: "Plaid bank account integration endpoints",
+          },
         ],
       },
     })
   )
   .use(betterAuth)
+  .onAfterHandle(({ request, response }) => {
+    // Intercept Better Auth callback responses to handle redirects
+    const url = new URL(request.url);
+    if (url.pathname === "/api/auth/callback/google") {
+      // Better Auth might return HTML that needs to redirect
+      // If it's a 200 with HTML, we should check if it contains a redirect
+      if (response instanceof Response) {
+        const clone = response.clone();
+        clone
+          .text()
+          .then((text) => {
+            // Check if the response contains a redirect URL
+            const redirectMatch = text.match(
+              /window\.location\.href\s*=\s*["']([^"']+)["']/
+            );
+            const metaRefreshMatch = text.match(
+              /content=["']\d+;\s*url=([^"']+)["']/
+            );
+            const redirectUrl = redirectMatch?.[1] || metaRefreshMatch?.[1];
+
+            if (redirectUrl) {
+              console.log(
+                "[Better Auth] Found redirect in response:",
+                redirectUrl
+              );
+            } else {
+              console.log(
+                "[Better Auth] No redirect found in response, status:",
+                clone.status,
+                "length:",
+                text.length
+              );
+            }
+          })
+          .catch(() => {});
+      }
+    }
+  })
   .use(
     cors({
       origin: [
@@ -111,6 +154,7 @@ const app = new Elysia()
   .use(subscriptionModule)
   .use(groupModule)
   .use(syncModule)
+  .use(plaidModule)
   .get("/user", ({ user }) => user, {
     auth: true,
   })

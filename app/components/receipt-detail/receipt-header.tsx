@@ -1,10 +1,16 @@
-import { View, Pressable, StyleSheet, Text } from "react-native";
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Receipt detail header with context menu actions
+ */
+
+import { Pressable } from "react-native";
 import { SymbolView } from "expo-symbols";
-import { ContextMenu, Host } from "@expo/ui/swift-ui";
 import { ThemedText } from "@/components/themed-text";
-import { Colors } from "@/constants/theme";
-import { formatCurrency, formatDate } from "@/utils/format";
 import type { StoredReceipt } from "@/utils/storage";
+import type { StackNavigationOptions } from "@react-navigation/stack";
+import ContextMenu from "react-native-context-menu-view";
+import { Colors } from "@/constants/theme";
+import { router } from "expo-router";
 
 interface ReceiptHeaderProps {
   receipt: StoredReceipt | null;
@@ -26,243 +32,128 @@ export function ReceiptHeader({
   onScanBarcode,
   onShowBarcode,
   onDelete,
-}: ReceiptHeaderProps) {
+}: ReceiptHeaderProps): Partial<StackNavigationOptions> {
   const hasReturnBarcode = Boolean(
     receipt?.returnInfo?.returnBarcode &&
       receipt.returnInfo.returnBarcode.trim().length > 0
   );
+
+  const menuActions = [
+    {
+      title: "Edit Receipt",
+      systemIcon: "pencil",
+      handler: onEdit,
+    },
+    {
+      title: "Share Receipt",
+      systemIcon: "square.and.arrow.up",
+      handler: onShare,
+    },
+    {
+      title: "Split",
+      systemIcon: "person.2",
+      handler: onSplit,
+    },
+    hasReturnBarcode && onShowBarcode
+      ? {
+          title: "Show Return Barcode",
+          systemIcon: "qrcode",
+          handler: onShowBarcode,
+        }
+      : {
+          title: "Scan Return Barcode",
+          systemIcon: "qrcode.viewfinder",
+          handler: onScanBarcode,
+        },
+    {
+      title: "Delete Receipt",
+      systemIcon: "trash",
+      destructive: true,
+      handler: onDelete,
+    },
+  ].filter(Boolean) as {
+    title: string;
+    systemIcon: string;
+    destructive?: boolean;
+    handler: () => void;
+  }[];
+
+  const handleMenuPress = (event: {
+    nativeEvent: { index: number; name: string };
+  }) => {
+    const { index } = event.nativeEvent;
+    const action = menuActions[index];
+    if (action?.handler) {
+      action.handler();
+    }
+  };
+
+  // Remove handler from actions before passing to ContextMenu
+  const contextMenuActions = menuActions.map(
+    ({ handler, ...action }) => action
+  );
+
+  const isDark = colorScheme === "dark";
+
   return {
-    title: receipt?.name || receipt?.merchant.name || "Receipt Details",
+    title: "Receipt Details",
     headerTitle: () => (
-      <View style={{ flexDirection: "column", alignItems: "center" }}>
-        <ThemedText size="base" weight="bold" family="sans">
-          {receipt?.name || receipt?.merchant.name || "Receipt Details"}
-        </ThemedText>
-        <ThemedText size="xs" family="sans" lineHeight={14}>
-          {receipt?.items.length || 0} Items{" • "}
-          {formatDate(receipt?.transaction.datetime || "", false)}
-          {" • "}
-          {formatCurrency(
-            receipt?.totals.total || 0,
-            receipt?.totals.currency || "USD"
-          )}{" "}
-          {receipt?.totals.currency || "USD"}
-        </ThemedText>
-      </View>
+      <ThemedText size="lg" weight="semibold" family="sans">
+        Receipt Details
+      </ThemedText>
     ),
-    // headerRight: () => (
-    //   <Host>
-    //     <ContextMenu>
-    //       <ContextMenu.Items>
-    //         <Pressable
-    //           onPress={onEdit}
-    //           style={({ pressed }) => [
-    //             styles.contextMenuItem,
-    //             pressed && styles.contextMenuItemPressed,
-    //           ]}
-    //         >
-    //           <SymbolView
-    //             name="pencil"
-    //             tintColor={
-    //               colorScheme === "dark" ? Colors.dark.text : Colors.light.text
-    //             }
-    //             size={20}
-    //           />
-    //           <Text
-    //             style={[
-    //               styles.contextMenuText,
-    //               {
-    //                 color:
-    //                   colorScheme === "dark"
-    //                     ? Colors.dark.text
-    //                     : Colors.light.text,
-    //               },
-    //             ]}
-    //           >
-    //             Edit Receipt
-    //           </Text>
-    //         </Pressable>
-    //         <Pressable
-    //           onPress={onShare}
-    //           style={({ pressed }) => [
-    //             styles.contextMenuItem,
-    //             pressed && styles.contextMenuItemPressed,
-    //           ]}
-    //         >
-    //           <SymbolView
-    //             name="square.and.arrow.up"
-    //             tintColor={
-    //               colorScheme === "dark" ? Colors.dark.text : Colors.light.text
-    //             }
-    //             size={20}
-    //           />
-    //           <Text
-    //             style={[
-    //               styles.contextMenuText,
-    //               {
-    //                 color:
-    //                   colorScheme === "dark"
-    //                     ? Colors.dark.text
-    //                     : Colors.light.text,
-    //               },
-    //             ]}
-    //           >
-    //             Share Receipt
-    //           </Text>
-    //         </Pressable>
-    //         <Pressable
-    //           onPress={onSplit}
-    //           style={({ pressed }) => [
-    //             styles.contextMenuItem,
-    //             pressed && styles.contextMenuItemPressed,
-    //           ]}
-    //         >
-    //           <SymbolView
-    //             name="person.2"
-    //             tintColor={
-    //               colorScheme === "dark" ? Colors.dark.text : Colors.light.text
-    //             }
-    //             size={20}
-    //           />
-    //           <Text
-    //             style={[
-    //               styles.contextMenuText,
-    //               {
-    //                 color:
-    //                   colorScheme === "dark"
-    //                     ? Colors.dark.text
-    //                     : Colors.light.text,
-    //               },
-    //             ]}
-    //           >
-    //             Split
-    //           </Text>
-    //         </Pressable>
-    //         {hasReturnBarcode && onShowBarcode ? (
-    //           <Pressable
-    //             onPress={onShowBarcode}
-    //             style={({ pressed }) => [
-    //               styles.contextMenuItem,
-    //               pressed && styles.contextMenuItemPressed,
-    //             ]}
-    //           >
-    //             <SymbolView
-    //               name="qrcode"
-    //               tintColor={
-    //                 colorScheme === "dark"
-    //                   ? Colors.dark.text
-    //                   : Colors.light.text
-    //               }
-    //               size={20}
-    //             />
-    //             <Text
-    //               style={[
-    //                 styles.contextMenuText,
-    //                 {
-    //                   color:
-    //                     colorScheme === "dark"
-    //                       ? Colors.dark.text
-    //                       : Colors.light.text,
-    //                 },
-    //               ]}
-    //             >
-    //               Show Return Barcode
-    //             </Text>
-    //           </Pressable>
-    //         ) : (
-    //           <Pressable
-    //             onPress={onScanBarcode}
-    //             style={({ pressed }) => [
-    //               styles.contextMenuItem,
-    //               pressed && styles.contextMenuItemPressed,
-    //             ]}
-    //           >
-    //             <SymbolView
-    //               name="qrcode.viewfinder"
-    //               tintColor={
-    //                 colorScheme === "dark"
-    //                   ? Colors.dark.text
-    //                   : Colors.light.text
-    //               }
-    //               size={20}
-    //             />
-    //             <Text
-    //               style={[
-    //                 styles.contextMenuText,
-    //                 {
-    //                   color:
-    //                     colorScheme === "dark"
-    //                       ? Colors.dark.text
-    //                       : Colors.light.text,
-    //                 },
-    //               ]}
-    //             >
-    //               Scan Return Barcode
-    //             </Text>
-    //           </Pressable>
-    //         )}
-    //         <Pressable
-    //           onPress={onDelete}
-    //           style={({ pressed }) => [
-    //             styles.contextMenuItem,
-    //             styles.contextMenuItemDestructive,
-    //             pressed && styles.contextMenuItemPressed,
-    //           ]}
-    //         >
-    //           <SymbolView name="trash" tintColor="#FF3B30" size={20} />
-    //           <Text
-    //             style={[
-    //               styles.contextMenuText,
-    //               styles.contextMenuTextDestructive,
-    //             ]}
-    //           >
-    //             Delete Receipt
-    //           </Text>
-    //         </Pressable>
-    //       </ContextMenu.Items>
-    //       <ContextMenu.Trigger>
-    //         <Pressable hitSlop={8} style={styles.headerButton}>
-    //           <SymbolView
-    //             name="ellipsis"
-    //             tintColor={
-    //               colorScheme === "dark" ? Colors.dark.text : Colors.light.text
-    //             }
-    //           />
-    //         </Pressable>
-    //       </ContextMenu.Trigger>
-    //     </ContextMenu>
-    //   </Host>
-    // ),
+    headerTitleAlign: "center" as const,
+    headerLeft: () => (
+      <Pressable
+        onPress={() => router.back()}
+        hitSlop={8}
+        style={{
+          width: 48,
+          height: 48,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 9999,
+        }}
+      >
+        <SymbolView
+          name="arrow.left"
+          tintColor={isDark ? Colors.dark.text : Colors.light.text}
+          style={{ width: 24, height: 24 }}
+        />
+      </Pressable>
+    ),
+    headerRight: () => (
+      <ContextMenu
+        actions={contextMenuActions}
+        onPress={handleMenuPress}
+        dropdownMenuMode={true}
+      >
+        <Pressable
+          hitSlop={8}
+          style={{
+            width: 48,
+            height: 48,
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 9999,
+          }}
+        >
+          <SymbolView
+            name="ellipsis"
+            tintColor={isDark ? Colors.dark.text : Colors.light.text}
+            style={{ width: 24, height: 24 }}
+          />
+        </Pressable>
+      </ContextMenu>
+    ),
+    headerStyle: {
+      backgroundColor: isDark
+        ? "rgba(21, 23, 24, 0.8)"
+        : "rgba(255, 255, 255, 0.8)",
+      borderBottomWidth: 1,
+      borderBottomColor: isDark
+        ? "rgba(255, 255, 255, 0.05)"
+        : "rgba(0, 0, 0, 0.05)",
+    },
   };
 }
-
-const styles = StyleSheet.create({
-  headerButton: {
-    padding: 8,
-    minWidth: 44,
-    minHeight: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  contextMenuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    minHeight: 44,
-  },
-  contextMenuItemPressed: {
-    opacity: 0.7,
-  },
-  contextMenuItemDestructive: {
-    // Destructive items can have special styling if needed
-  },
-  contextMenuText: {
-    fontSize: 16,
-    fontFamily: "System",
-  },
-  contextMenuTextDestructive: {
-    color: "#FF3B30",
-  },
-});

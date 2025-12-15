@@ -1,3 +1,8 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Receipt detail screen with toolbar, content, and footer
+ */
+
 import { useState, useLayoutEffect, useCallback, useRef } from "react";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import {
@@ -6,12 +11,15 @@ import {
   View,
   Alert,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { SymbolView } from "expo-symbols";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useReceipt, useDeleteReceipt } from "@/hooks/use-receipts";
 import { useFriends } from "@/hooks/use-friends";
+import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import {
   MerchantInfoCard,
@@ -25,8 +33,213 @@ import {
   shouldShowReturnInfo,
   BarcodeModal,
 } from "@/components/receipt-detail";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import type { StoredReceipt, Friend } from "@/utils/storage";
+
+// ============================================================================
+// Toolbar Setup Hook
+// ============================================================================
+
+function useReceiptToolbar({
+  receipt,
+  colorScheme,
+  onEdit,
+  onShare,
+  onSplit,
+  onScanBarcode,
+  onShowBarcode,
+  onDelete,
+}: {
+  receipt: StoredReceipt | null;
+  colorScheme: "light" | "dark" | null | undefined;
+  onEdit: () => void;
+  onShare: () => void;
+  onSplit: () => void;
+  onScanBarcode: () => void;
+  onShowBarcode: () => void;
+  onDelete: () => void;
+}) {
+  const navigation = useNavigation();
+
+  useLayoutEffect(() => {
+    navigation.setOptions(
+      ReceiptHeader({
+        receipt,
+        colorScheme: colorScheme || "light",
+        onEdit,
+        onShare,
+        onSplit,
+        onScanBarcode,
+        onShowBarcode,
+        onDelete,
+      })
+    );
+  }, [
+    navigation,
+    colorScheme,
+    receipt,
+    onEdit,
+    onShare,
+    onSplit,
+    onScanBarcode,
+    onShowBarcode,
+    onDelete,
+  ]);
+}
+
+// ============================================================================
+// Loading & Error States
+// ============================================================================
+
+function ReceiptLoadingState() {
+  return (
+    <View style={[styles.container, styles.centerContent]}>
+      <ActivityIndicator size="large" />
+    </View>
+  );
+}
+
+function ReceiptNotFoundState() {
+  return (
+    <View style={[styles.container, styles.centerContent]}>
+      <ThemedText>Receipt not found</ThemedText>
+    </View>
+  );
+}
+
+// ============================================================================
+// Receipt Content Component
+// ============================================================================
+
+function ReceiptContent({
+  receipt,
+  friends,
+  showRawReturnText,
+  onToggleFormat,
+  isDark,
+}: {
+  receipt: StoredReceipt;
+  friends: Friend[];
+  showRawReturnText: boolean;
+  onToggleFormat: () => void;
+  isDark: boolean;
+}) {
+  return (
+    <ScrollView
+      style={[styles.scrollView]}
+      contentContainerStyle={[
+        styles.contentContainer,
+        { paddingTop: 32, paddingBottom: 140 },
+      ]}
+      automaticallyAdjustContentInsets
+    >
+      <MerchantInfoCard receipt={receipt} />
+      <TransactionDetailsCard receipt={receipt} />
+      <View
+        style={[
+          styles.itemsTotalsCard,
+          {
+            backgroundColor: isDark ? Colors.dark.surface : "#FFFFFF",
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.05)"
+              : "rgba(0, 0, 0, 0.05)",
+          },
+        ]}
+      >
+        <ItemsCard receipt={receipt} />
+        <TotalsCard receipt={receipt} />
+      </View>
+      {receipt.splitData && (
+        <SplitSummaryCard receipt={receipt} friends={friends} />
+      )}
+      {shouldShowReturnInfo(receipt.returnInfo) && (
+        <ReturnInfoCard
+          receipt={receipt}
+          showRawReturnText={showRawReturnText}
+          onToggleFormat={onToggleFormat}
+        />
+      )}
+    </ScrollView>
+  );
+}
+
+// ============================================================================
+// Footer Component
+// ============================================================================
+
+function ReceiptFooter({
+  isDark,
+  onShare,
+  onEdit,
+}: {
+  isDark: boolean;
+  onShare: () => void;
+  onEdit: () => void;
+}) {
+  return (
+    <View
+      style={[
+        styles.footer,
+        {
+          backgroundColor: isDark
+            ? "rgba(21, 23, 24, 0.9)"
+            : "rgba(255, 255, 255, 0.9)",
+          borderTopColor: isDark
+            ? "rgba(255, 255, 255, 0.05)"
+            : "rgba(0, 0, 0, 0.05)",
+        },
+      ]}
+    >
+      <TouchableOpacity
+        style={[
+          styles.footerButtonSecondary,
+          {
+            backgroundColor: isDark ? Colors.dark.surface : "#F5F5F5",
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.1)"
+              : "rgba(0, 0, 0, 0.1)",
+          },
+        ]}
+        onPress={onShare}
+      >
+        <SymbolView
+          name="square.and.arrow.up"
+          tintColor={isDark ? Colors.dark.text : Colors.light.text}
+          style={styles.footerIcon}
+        />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[
+          styles.footerButtonPrimary,
+          {
+            backgroundColor: isDark ? "#FFFFFF" : Colors.light.text,
+          },
+        ]}
+        onPress={onEdit}
+      >
+        <SymbolView
+          name="doc.text"
+          tintColor={isDark ? Colors.dark.background : "#FFFFFF"}
+          style={styles.footerIcon}
+        />
+        <ThemedText
+          size="base"
+          weight="bold"
+          style={{
+            color: isDark ? Colors.dark.background : "#FFFFFF",
+            marginLeft: 8,
+          }}
+        >
+          View Original Receipt
+        </ThemedText>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 export default function ReceiptDetailScreen() {
   const { id } = useLocalSearchParams<{
@@ -35,11 +248,9 @@ export default function ReceiptDetailScreen() {
   }>();
   const [showRawReturnText, setShowRawReturnText] = useState(false);
   const colorScheme = useColorScheme();
-  const navigation = useNavigation();
-  const headerHeight = useHeaderHeight();
   const barcodeModalRef = useRef<BottomSheetModal>(null);
 
-  // Use React Query hooks
+  // React Query hooks
   const {
     data: receipt,
     isLoading: isLoadingReceipt,
@@ -59,6 +270,7 @@ export default function ReceiptDetailScreen() {
     },
   });
 
+  // Event Handlers
   const handleDelete = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
@@ -131,76 +343,51 @@ export default function ReceiptDetailScreen() {
     });
   }, [id]);
 
-  useLayoutEffect(() => {
-    navigation.setOptions(
-      ReceiptHeader({
-        receipt: receipt || null,
-        colorScheme: colorScheme || "light",
-        onEdit: handleEdit,
-        onShare: handleShare,
-        onSplit: handleSplit,
-        onScanBarcode: handleScanBarcode,
-        onShowBarcode: handleShowBarcode,
-        onDelete: handleDelete,
-      })
-    );
-  }, [
-    navigation,
-    colorScheme,
-    handleDelete,
-    handleScanBarcode,
-    handleShowBarcode,
-    handleEdit,
-    handleShare,
-    handleSplit,
-    receipt,
-  ]);
-
   const toggleReturnTextFormat = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowRawReturnText((prev) => !prev);
   }, []);
 
+  // Setup toolbar
+  useReceiptToolbar({
+    receipt: receipt || null,
+    colorScheme,
+    onEdit: handleEdit,
+    onShare: handleShare,
+    onSplit: handleSplit,
+    onScanBarcode: handleScanBarcode,
+    onShowBarcode: handleShowBarcode,
+    onDelete: handleDelete,
+  });
+
+  // Loading state
   if (isLoading) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <ReceiptLoadingState />;
   }
 
+  // Not found state
   if (!receipt) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ThemedText>Receipt not found</ThemedText>
-      </View>
-    );
+    return <ReceiptNotFoundState />;
   }
+
+  const isDark = colorScheme === "dark";
 
   return (
     <View style={styles.container}>
       <ThemedView style={styles.container}>
-        <ScrollView
-          style={[styles.scrollView]}
-          contentContainerStyle={[styles.contentContainer, { paddingTop: 20 }]}
-          automaticallyAdjustContentInsets
-        >
-          <MerchantInfoCard receipt={receipt} />
-          <TransactionDetailsCard receipt={receipt} />
-          <ItemsCard receipt={receipt} />
-          <TotalsCard receipt={receipt} />
-          {receipt.splitData && (
-            <SplitSummaryCard receipt={receipt} friends={friends} />
-          )}
-          {shouldShowReturnInfo(receipt.returnInfo) && (
-            <ReturnInfoCard
-              receipt={receipt}
-              showRawReturnText={showRawReturnText}
-              onToggleFormat={toggleReturnTextFormat}
-            />
-          )}
-        </ScrollView>
+        <ReceiptContent
+          receipt={receipt}
+          friends={friends}
+          showRawReturnText={showRawReturnText}
+          onToggleFormat={toggleReturnTextFormat}
+          isDark={isDark}
+        />
       </ThemedView>
+      <ReceiptFooter
+        isDark={isDark}
+        onShare={handleShare}
+        onEdit={handleEdit}
+      />
       {receipt.returnInfo?.returnBarcode && (
         <BarcodeModal
           bottomSheetRef={barcodeModalRef}
@@ -224,8 +411,60 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 40,
+    paddingHorizontal: 24,
     gap: 16,
+  },
+  itemsTotalsCard: {
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    flexDirection: "row",
+    gap: 16,
+  },
+  footerButtonSecondary: {
+    width: 56,
+    height: 56,
+    borderRadius: 9999,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  footerButtonPrimary: {
+    flex: 1,
+    height: 56,
+    borderRadius: 9999,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  footerIcon: {
+    width: 24,
+    height: 24,
   },
 });

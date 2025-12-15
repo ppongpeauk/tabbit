@@ -4,7 +4,6 @@ import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
 import { formatCurrency } from "@/utils/format";
-import { getCardStyle } from "./utils";
 import { SplitSummary } from "@/components/split/split-summary";
 import type { StoredReceipt, Friend } from "@/utils/storage";
 import * as Haptics from "expo-haptics";
@@ -31,7 +30,18 @@ export function SplitSummaryCard({ receipt, friends }: SplitSummaryCardProps) {
   };
 
   return (
-    <View style={[styles.card, getCardStyle(isDark)]}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: isDark ? Colors.dark.surface : "#FFFFFF",
+          borderColor: isDark
+            ? "rgba(255, 255, 255, 0.05)"
+            : "rgba(0, 0, 0, 0.05)",
+          borderWidth: 1,
+        },
+      ]}
+    >
       <View style={styles.header}>
         <ThemedText size="xl" weight="bold">
           Split
@@ -60,9 +70,17 @@ export function SplitSummaryCard({ receipt, friends }: SplitSummaryCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
     gap: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   header: {
     flexDirection: "row",

@@ -70,6 +70,7 @@ export default function Home() {
 
         <div className="space-y-4">
           <HomeLink href="/scan">Scan a receipt</HomeLink>
+          <HomeLink href="/plaid">Link Bank Account (Plaid Test)</HomeLink>
 
           <div className="pt-4 border-t border-gray-200">
             <button

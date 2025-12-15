@@ -5,7 +5,6 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { formatReturnByDate } from "@/utils/format";
 import {
-  getCardStyle,
   hasBulletPointData,
   formatReturnPolicyBullets,
   getRawReturnText,
@@ -35,7 +34,19 @@ export function ReturnInfoCard({
     : {};
 
   return (
-    <CardWrapper {...wrapperProps} style={[styles.card, getCardStyle(isDark)]}>
+    <CardWrapper
+      {...wrapperProps}
+      style={[
+        styles.card,
+        {
+          backgroundColor: isDark ? Colors.dark.surface : "#FFFFFF",
+          borderColor: isDark
+            ? "rgba(255, 255, 255, 0.05)"
+            : "rgba(0, 0, 0, 0.05)",
+          borderWidth: 1,
+        },
+      ]}
+    >
       <View style={styles.returnInfoHeader}>
         <ThemedText size="xl" weight="bold" style={{ marginBottom: 4 }}>
           Return Information
@@ -95,9 +106,17 @@ export function ReturnInfoCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
     gap: 4,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   returnInfoHeader: {
     flexDirection: "row",

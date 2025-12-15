@@ -63,10 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     // Better Auth redirects to Google, then back to server callback
     // Server then redirects to callbackURL with session cookie
-    await authClient.signIn.social({
+    const result = await authClient.signIn.social({
       provider: "google",
       callbackURL: `${window.location.origin}/auth/callback`,
     });
+
+    if (result.error) {
+      throw new Error(result.error.message || "Google sign in failed");
+    }
   };
 
   const signOut = async () => {

@@ -3,7 +3,6 @@ import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatCurrency } from "@/utils/format";
 import { Colors } from "@/constants/theme";
-import { getCardStyle } from "./utils";
 import type { StoredReceipt } from "@/utils/storage";
 
 interface ItemsCardProps {
@@ -14,44 +13,45 @@ export function ItemsCard({ receipt }: ItemsCardProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   return (
-    <View>
-      <View
-        style={{
-          flexDirection: "row",
-          gap: 4,
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <ThemedText size="xl" weight="bold">
-          Items
-        </ThemedText>
-        <ThemedText size="xl" weight="semibold" style={{ opacity: 0.7 }}>
-          {receipt.items.length}
-        </ThemedText>
-      </View>
+    <View style={styles.itemsContainer}>
       {receipt.items.map((item, index) => (
         <View key={index} style={styles.itemRow}>
           <View style={styles.itemLeft}>
-            <ThemedText
-              size="base"
-              weight="semibold"
-              style={{ marginBottom: 4 }}
-            >
-              {item.name}
-            </ThemedText>
-            <ThemedText
-              size="sm"
-              style={{
-                color: isDark ? Colors.dark.icon : Colors.light.icon,
-              }}
-            >
-              {item.quantity} ×{" "}
-              {formatCurrency(item.unitPrice, receipt.totals.currency)}
-              {item.category && ` • ${item.category}`}
-            </ThemedText>
+            <View style={styles.quantityBadge}>
+              <ThemedText
+                size="xs"
+                weight="medium"
+                style={{
+                  color: isDark ? Colors.dark.icon : Colors.light.icon,
+                }}
+              >
+                {item.quantity}
+              </ThemedText>
+            </View>
+            <View style={styles.itemInfo}>
+              <ThemedText size="sm" weight="medium" style={styles.itemName}>
+                {item.name}
+              </ThemedText>
+              {(item.category || item.quantity > 1) && (
+                <ThemedText
+                  size="xs"
+                  style={{
+                    color: isDark ? Colors.dark.subtle : Colors.light.icon,
+                  }}
+                >
+                  {item.category || ""}
+                  {item.category && item.quantity > 1 ? " • " : ""}
+                  {item.quantity > 1
+                    ? `${item.quantity} × ${formatCurrency(
+                        item.unitPrice,
+                        receipt.totals.currency
+                      )}`
+                    : ""}
+                </ThemedText>
+              )}
+            </View>
           </View>
-          <ThemedText size="base" weight="semibold">
+          <ThemedText size="sm" weight="medium" style={styles.itemPrice}>
             {formatCurrency(item.totalPrice, receipt.totals.currency)}
           </ThemedText>
         </View>
@@ -61,20 +61,40 @@ export function ItemsCard({ receipt }: ItemsCardProps) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 12,
-    padding: 16,
-    gap: 4,
+  itemsContainer: {
+    flexDirection: "column",
+    gap: 24,
+    paddingVertical: 8,
   },
   itemRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0, 0, 0, 0.1)",
+    alignItems: "flex-start",
+    gap: 16,
   },
   itemLeft: {
     flex: 1,
-    marginRight: 12,
+    flexDirection: "row",
+    gap: 12,
+  },
+  quantityBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 9999,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  itemInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  itemName: {
+    lineHeight: 20,
+  },
+  itemPrice: {
+    lineHeight: 20,
+    textAlign: "right",
   },
 });

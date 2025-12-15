@@ -31,6 +31,30 @@ interface GoogleTokenResponse {
   refresh_token?: string;
 }
 
+/**
+ * Helper function to handle Better Auth OAuth callback
+ * Calls Better Auth's handler directly without making an HTTP request
+ */
+async function handleBetterAuthCallback(
+  request: Request,
+  callbackPath: string
+): Promise<Response> {
+  const url = new URL(request.url);
+  const betterAuthCallbackUrl = `${url.protocol}//${url.host}${callbackPath}${url.search}`;
+
+  // Create a new request with the Better Auth callback path
+  // Preserve all headers (especially cookies) from the original request
+  const betterAuthRequest = new Request(betterAuthCallbackUrl, {
+    method: "GET",
+    headers: request.headers,
+    credentials: request.credentials,
+    mode: request.mode,
+  });
+
+  // Call Better Auth's handler directly
+  return await auth.handler(betterAuthRequest);
+}
+
 // Better Auth handler (mounts Better Auth's built-in endpoints)
 export const betterAuth = new Elysia({ name: "better-auth" })
   .mount(auth.handler)
@@ -337,47 +361,63 @@ export const authModule = new Elysia({ prefix: "/auth" })
       },
     }
   )
-  .post(
-    "/apple/callback",
-    async ({ body, set }) => {
+  .get(
+    "/google/callback",
+    async ({ set, request }) => {
       try {
-        // Handle Apple Sign In callback from native SDK
-        // Better Auth expects the callback to be handled via OAuth flow
-        // For native Apple Sign In, we need to exchange the identity token
-        const result = await authService.signInWithApple(body);
-        const { result: response, status } = handleServiceResult(
-          result,
-          HTTP_STATUS.OK,
-          HTTP_STATUS.UNAUTHORIZED
+        // Handle Google OAuth callback by calling Better Auth's handler directly
+        const response = await handleBetterAuthCallback(
+          request,
+          "/api/auth/callback/google"
         );
-        set.status = status;
-        return response;
+
+        // Copy all response headers (especially Set-Cookie for session)
+        response.headers.forEach((value, key) => {
+          set.headers[key] = value;
+        });
+
+        // If Better Auth returns a redirect (3xx status), extract the location and redirect
+        if (response.status >= 300 && response.status < 400) {
+          const location = response.headers.get("Location");
+          if (location) {
+            set.status = response.status;
+            set.redirect = location;
+            return;
+          }
+        }
+
+        // If Better Auth returns HTML (like a redirect page with window.location), return it
+        const contentType = response.headers.get("Content-Type");
+        if (contentType?.includes("text/html")) {
+          set.status = response.status;
+          return response.text();
+        }
+
+        // For other response types, return as JSON
+        set.status = response.status;
+        try {
+          return await response.json();
+        } catch {
+          return await response.text();
+        }
       } catch (error) {
+        console.error("[Google OAuth Callback] Error:", error);
         set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
         return {
           success: false,
           message:
-            error instanceof Error ? error.message : "Apple sign in failed",
+            error instanceof Error
+              ? error.message
+              : "Failed to handle Google OAuth callback",
         };
       }
     },
     {
-      body: t.Object({
-        identityToken: t.String(),
-        authorizationCode: t.Optional(t.String()),
-        user: t.String(),
-        email: t.Optional(t.String()),
-        fullName: t.Optional(
-          t.Object({
-            givenName: t.Optional(t.String()),
-            familyName: t.Optional(t.String()),
-          })
-        ),
-      }),
       detail: {
         tags: ["auth"],
-        summary: "Apple Sign In callback",
-        description: "Handle Apple Sign In callback from native SDK",
+        summary: "Google OAuth callback handler",
+        description:
+          "Handles Google OAuth callback by forwarding to Better Auth's handler on the same server",
       },
     }
   );

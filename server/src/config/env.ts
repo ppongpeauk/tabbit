@@ -18,13 +18,6 @@ export const env = {
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || "",
   GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI || "",
-  // OAuth - Apple
-  APPLE_CLIENT_ID: process.env.APPLE_CLIENT_ID || "",
-  APPLE_CLIENT_SECRET: process.env.APPLE_CLIENT_SECRET || "",
-  APPLE_REDIRECT_URI: process.env.APPLE_REDIRECT_URI || "",
-  APPLE_TEAM_ID: process.env.APPLE_TEAM_ID || "",
-  APPLE_KEY_ID: process.env.APPLE_KEY_ID || "",
-  APPLE_PRIVATE_KEY: process.env.APPLE_PRIVATE_KEY || "",
   // Resend
   RESEND_API_KEY: process.env.RESEND_API_KEY || "",
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || "noreply@example.com",
@@ -37,6 +30,10 @@ export const env = {
   AWS_DEFAULT_REGION: process.env.AWS_DEFAULT_REGION || "auto",
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID || "",
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY || "",
+  // Plaid
+  PLAID_CLIENT_ID: process.env.PLAID_CLIENT_ID || "",
+  PLAID_SECRET: process.env.PLAID_SECRET || "",
+  PLAID_ENV: process.env.PLAID_ENV || "sandbox",
 } as const;
 
 export function validateEnv(): void {

@@ -7,8 +7,8 @@ import { Stack, router } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { SymbolView } from "expo-symbols";
-import { View, StyleSheet, Pressable, Text } from "react-native";
-import { ContextMenu, Host } from "@expo/ui/swift-ui";
+import { View, StyleSheet, Pressable } from "react-native";
+import ContextMenu from "react-native-context-menu-view";
 import * as Haptics from "expo-haptics";
 import { getHeaderScreenOptions } from "@/utils/navigation";
 
@@ -29,64 +29,42 @@ function HeaderRight() {
     router.push("/(app)/(tabs)/(groups)/join");
   };
 
+  const menuActions = [
+    {
+      title: "Create Group",
+      systemIcon: "plus.circle.fill",
+    },
+    {
+      title: "Join Group",
+      systemIcon: "person.2.fill",
+    },
+  ];
+
+  const handleMenuPress = (event: {
+    nativeEvent: { index: number; name: string };
+  }) => {
+    const { index } = event.nativeEvent;
+    if (index === 0) {
+      handleCreateGroup();
+    } else if (index === 1) {
+      handleJoinGroup();
+    }
+  };
+
   return (
     <View style={styles.headerRight}>
-      <Host>
-        <ContextMenu>
-          <ContextMenu.Items>
-            <Pressable
-              onPress={handleCreateGroup}
-              style={({ pressed }) => [
-                styles.contextMenuItem,
-                pressed && styles.contextMenuItemPressed,
-              ]}
-            >
-              <SymbolView
-                name="plus.circle.fill"
-                tintColor={isDark ? Colors.dark.text : Colors.light.text}
-                size={20}
-              />
-              <Text
-                style={[
-                  styles.contextMenuText,
-                  { color: isDark ? Colors.dark.text : Colors.light.text },
-                ]}
-              >
-                Create Group
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={handleJoinGroup}
-              style={({ pressed }) => [
-                styles.contextMenuItem,
-                pressed && styles.contextMenuItemPressed,
-              ]}
-            >
-              <SymbolView
-                name="person.2.fill"
-                tintColor={isDark ? Colors.dark.text : Colors.light.text}
-                size={20}
-              />
-              <Text
-                style={[
-                  styles.contextMenuText,
-                  { color: isDark ? Colors.dark.text : Colors.light.text },
-                ]}
-              >
-                Join Group
-              </Text>
-            </Pressable>
-          </ContextMenu.Items>
-          <ContextMenu.Trigger>
-            <Pressable hitSlop={8} style={styles.headerButton}>
-              <SymbolView
-                name="plus"
-                tintColor={isDark ? Colors.dark.text : Colors.light.text}
-              />
-            </Pressable>
-          </ContextMenu.Trigger>
-        </ContextMenu>
-      </Host>
+      <ContextMenu
+        actions={menuActions}
+        onPress={handleMenuPress}
+        dropdownMenuMode={true}
+      >
+        <Pressable hitSlop={8} style={styles.headerButton}>
+          <SymbolView
+            name="plus"
+            tintColor={isDark ? Colors.dark.text : Colors.light.text}
+          />
+        </Pressable>
+      </ContextMenu>
     </View>
   );
 }
@@ -186,20 +164,5 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: "center",
     alignItems: "center",
-  },
-  contextMenuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    minHeight: 44,
-  },
-  contextMenuItemPressed: {
-    opacity: 0.7,
-  },
-  contextMenuText: {
-    fontSize: 16,
-    fontFamily: "System",
   },
 });

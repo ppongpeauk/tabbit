@@ -15,7 +15,6 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useReceipts } from "@/hooks/use-receipts";
 import type { StoredReceipt } from "@/utils/storage";
 import { formatCurrency, formatReceiptDateTime } from "@/utils/format";
-import { GlassView } from "expo-glass-effect";
 import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -161,23 +160,6 @@ export default function ReceiptsScreen() {
         activeOpacity={0.7}
         onPress={handlePress}
       >
-        <View
-          style={[
-            styles.receiptEmoji,
-            {
-              backgroundColor: isDark
-                ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(0, 0, 0, 0.05)",
-            },
-          ]}
-        >
-          <ThemedText
-            size="lg"
-            style={{ color: isDark ? Colors.dark.text : Colors.light.text }}
-          >
-            {receiptEmoji}
-          </ThemedText>
-        </View>
         <View style={styles.receiptInfo}>
           <View style={styles.receiptHeader}>
             <ThemedText weight="semibold" size="base">

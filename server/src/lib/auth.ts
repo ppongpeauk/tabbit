@@ -68,27 +68,25 @@ export const auth = betterAuth({
     },
   },
   socialProviders: {
-    // Google OAuth is handled by our custom /auth/google/callback endpoint
-    // Disabled here to prevent Better Auth from intercepting our custom OAuth flow
-    // google: {
-    //   clientId: env.GOOGLE_CLIENT_ID,
-    //   clientSecret: env.GOOGLE_CLIENT_SECRET,
-    //   redirectURI:
-    //     env.GOOGLE_REDIRECT_URI ||
-    //     `${env.BETTER_AUTH_BASE_URL}/api/auth/callback/google`,
-    // },
-    apple: {
-      clientId: env.APPLE_CLIENT_ID,
-      clientSecret: env.APPLE_CLIENT_SECRET,
-      redirectURI: env.APPLE_REDIRECT_URI,
-      teamId: env.APPLE_TEAM_ID,
-      keyId: env.APPLE_KEY_ID,
-      privateKey: env.APPLE_PRIVATE_KEY,
+    google: {
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      // Better Auth's callback endpoint - Google should redirect directly here
+      // Update Google Cloud Console to use this as the authorized redirect URI
+      redirectURI:
+        env.GOOGLE_REDIRECT_URI ||
+        `${env.BETTER_AUTH_BASE_URL}/api/auth/callback/google`,
     },
   },
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_BASE_URL,
   basePath: "/api/auth",
+  trustedOrigins: [
+    "http://localhost:3000", // Web app
+    "http://localhost:8081", // Web app alternative port
+    "http://localhost:3001", // Server itself
+    "https://*.railway.app", // Production deployments (wildcard for all subdomains)
+  ],
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days in seconds
     updateAge: 60 * 60 * 24, // 1 day in seconds

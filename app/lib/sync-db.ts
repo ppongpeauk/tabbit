@@ -129,3 +129,4 @@ export async function setSyncEnabled(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(SYNC_ENABLED_KEY, enabled ? "true" : "false");
 }
 
+

@@ -71,6 +71,7 @@
     "react-native-worklets": "0.5.1"
   },
   "devDependencies": {
+    "@react-navigation/stack": "^7.6.12",
     "@types/moment": "^2.13.0",
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",

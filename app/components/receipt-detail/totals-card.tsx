@@ -2,7 +2,7 @@ import { View, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatCurrency } from "@/utils/format";
-import { getCardStyle } from "./utils";
+import { Colors } from "@/constants/theme";
 import type { StoredReceipt } from "@/utils/storage";
 
 interface TotalsCardProps {
@@ -12,99 +12,103 @@ interface TotalsCardProps {
 export function TotalsCard({ receipt }: TotalsCardProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+
+  // Calculate tax percentage for display
+  const taxPercentage =
+    receipt.totals.subtotal > 0
+      ? ((receipt.totals.tax / receipt.totals.subtotal) * 100).toFixed(2)
+      : "0";
+
   return (
-    <View>
-      <ThemedText size="xl" weight="bold" style={{ marginBottom: 4 }}>
-        Totals
-      </ThemedText>
-      <View style={styles.totalRow}>
-        <ThemedText size="base" weight="semibold" style={{ opacity: 0.7 }}>
-          Subtotal
-        </ThemedText>
-        <ThemedText size="base" weight="semibold">
-          {formatCurrency(receipt.totals.subtotal, receipt.totals.currency)}
-        </ThemedText>
-      </View>
-      {receipt.totals.taxBreakdown && receipt.totals.taxBreakdown.length > 0 ? (
-        receipt.totals.taxBreakdown.map((taxItem, index) => (
-          <View key={index} style={styles.totalRow}>
-            <ThemedText size="base" weight="semibold" style={{ opacity: 0.7 }}>
-              {taxItem.label}
-            </ThemedText>
-            <ThemedText size="base" weight="semibold">
-              {formatCurrency(taxItem.amount, receipt.totals.currency)}
-            </ThemedText>
-          </View>
-        ))
-      ) : (
+    <View style={styles.container}>
+      <View style={styles.divider} />
+      <View style={styles.totalsSection}>
         <View style={styles.totalRow}>
-          <ThemedText size="base" weight="semibold" style={{ opacity: 0.7 }}>
-            Tax
+          <ThemedText
+            size="sm"
+            style={{
+              color: isDark ? Colors.dark.subtle : Colors.light.icon,
+            }}
+          >
+            Subtotal
           </ThemedText>
-          <ThemedText size="base" weight="semibold">
-            {formatCurrency(receipt.totals.tax, receipt.totals.currency)}
+          <ThemedText size="sm" weight="semibold">
+            {formatCurrency(receipt.totals.subtotal, receipt.totals.currency)}
           </ThemedText>
         </View>
-      )}
-      <View
-        style={[
-          styles.totalRow,
-          styles.totalRowFinal,
-          {
-            borderTopWidth: 1,
-            borderTopColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(0, 0, 0, 0.1)",
-          },
-        ]}
-      >
-        <ThemedText size="xl" weight="bold">
-          Total
-        </ThemedText>
-        <ThemedText size="xl" weight="bold">
-          {formatCurrency(receipt.totals.total, receipt.totals.currency)}
-        </ThemedText>
-      </View>
-      {receipt.totals.amountPaid !== undefined && (
-        <View style={styles.totalRow}>
-          <ThemedText size="base" weight="semibold" style={{ opacity: 0.7 }}>
-            Amount Paid
-          </ThemedText>
-          <ThemedText size="base" weight="semibold">
-            {formatCurrency(receipt.totals.amountPaid, receipt.totals.currency)}
-          </ThemedText>
-        </View>
-      )}
-      {receipt.totals.changeDue !== undefined &&
-        receipt.totals.changeDue > 0 && (
+        {receipt.totals.taxBreakdown &&
+        receipt.totals.taxBreakdown.length > 0 ? (
+          receipt.totals.taxBreakdown.map((taxItem, index) => (
+            <View key={index} style={styles.totalRow}>
+              <ThemedText
+                size="sm"
+                style={{
+                  color: isDark ? Colors.dark.subtle : Colors.light.icon,
+                }}
+              >
+                {taxItem.label}
+              </ThemedText>
+              <ThemedText size="sm" weight="semibold">
+                {formatCurrency(taxItem.amount, receipt.totals.currency)}
+              </ThemedText>
+            </View>
+          ))
+        ) : receipt.totals.tax > 0 ? (
           <View style={styles.totalRow}>
-            <ThemedText size="base" weight="semibold" style={{ opacity: 0.7 }}>
-              Change
+            <ThemedText
+              size="sm"
+              style={{
+                color: isDark ? Colors.dark.subtle : Colors.light.icon,
+              }}
+            >
+              Tax ({taxPercentage}%)
             </ThemedText>
-            <ThemedText size="base" weight="semibold">
-              {formatCurrency(
-                receipt.totals.changeDue,
-                receipt.totals.currency
-              )}
+            <ThemedText size="sm" weight="semibold">
+              {formatCurrency(receipt.totals.tax, receipt.totals.currency)}
             </ThemedText>
           </View>
-        )}
+        ) : null}
+        <View style={[styles.totalRow, styles.totalRowFinal]}>
+          <ThemedText size="lg" weight="semibold">
+            Total
+          </ThemedText>
+          <ThemedText
+            size="2xl"
+            weight="bold"
+            style={{
+              color: isDark ? "#FFFFFF" : Colors.light.text,
+            }}
+          >
+            {formatCurrency(receipt.totals.total, receipt.totals.currency)}
+          </ThemedText>
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 12,
-    padding: 16,
+  container: {
+    marginTop: 24,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginBottom: 24,
+  },
+  totalsSection: {
+    flexDirection: "column",
+    gap: 12,
   },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 6,
+    alignItems: "center",
   },
   totalRowFinal: {
+    paddingTop: 16,
     marginTop: 8,
-    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
 });

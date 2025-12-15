@@ -14,6 +14,7 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     const handleCallback = async () => {
+      console.log("Callback page loaded");
       try {
         // Better Auth handles the callback automatically via cookies
         // We just need to wait a moment for the session to be established
@@ -21,6 +22,7 @@ export default function AuthCallbackPage() {
 
         // Check if we have a session
         const session = await authClient.getSession();
+
         if (session?.data?.user) {
           // Redirect to home page after successful auth
           router.push("/");
