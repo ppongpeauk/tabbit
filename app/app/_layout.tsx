@@ -8,6 +8,7 @@ import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import "react-native-reanimated";
 import "expo-dev-client";
+import "../global.css";
 import {
   DarkTheme,
   DefaultTheme,

@@ -187,9 +187,6 @@ export default function ReceiptsLayout() {
           headerLargeTitleStyle: {
             fontFamily: Fonts.sansBold,
           },
-          headerLeft: shouldShowSyncIndicator
-            ? () => <HeaderLeft />
-            : undefined,
           headerRight: () => <HeaderRight />,
         }}
       />

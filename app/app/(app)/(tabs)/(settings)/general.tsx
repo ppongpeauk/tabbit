@@ -4,17 +4,11 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  Modal,
-} from "react-native";
+import { View, ScrollView, StyleSheet, Modal } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { RadioButton } from "@/components/ui/radio-button";
 import { Button } from "@/components/button";
 import {
   SettingsSection,
@@ -22,45 +16,11 @@ import {
   SettingsModalHeader,
   SettingsModalFooter,
 } from "@/components/settings";
+import { SplitModeChoices } from "@/components/split/split-mode-choices";
 import { SplitStrategy } from "@/utils/split";
 import { getDefaultSplitMode, setDefaultSplitMode } from "@/utils/storage";
+import { getSplitModeLabel } from "@/utils/split-constants";
 import * as Haptics from "expo-haptics";
-
-const SPLIT_MODE_OPTIONS = [
-  {
-    value: SplitStrategy.EQUAL,
-    label: "Even",
-    icon: "equal.circle",
-    description:
-      "Split the total amount equally among all selected people. Perfect for shared meals or group expenses.",
-  },
-  {
-    value: SplitStrategy.ITEMIZED,
-    label: "Itemized",
-    icon: "list.bullet",
-    description:
-      "Assign specific items from the receipt to each person. Great when people ordered different things.",
-  },
-  {
-    value: SplitStrategy.PERCENTAGE,
-    label: "Percentage",
-    icon: "percent",
-    description:
-      "Split by percentage of the total. Each person pays a specific percentage of the bill.",
-  },
-  {
-    value: SplitStrategy.CUSTOM,
-    label: "Custom",
-    icon: "slider.horizontal.3",
-    description:
-      "Manually set custom amounts for each person. Use this for complex splits or specific arrangements.",
-  },
-];
-
-const getSplitModeLabel = (mode: SplitStrategy): string => {
-  const option = SPLIT_MODE_OPTIONS.find((opt) => opt.value === mode);
-  return option?.label || "Even";
-};
 
 export default function GeneralScreen() {
   const colorScheme = useColorScheme();
@@ -163,19 +123,10 @@ export default function GeneralScreen() {
               Choose the default split mode that will be pre-selected when
               splitting a receipt.
             </ThemedText>
-            <View style={styles.optionsContainer}>
-              {SPLIT_MODE_OPTIONS.map((option) => (
-                <RadioButton
-                  key={option.value}
-                  value={option.value}
-                  label={option.label}
-                  icon={option.icon}
-                  description={option.description}
-                  isSelected={tempSelectedMode === option.value}
-                  onPress={() => handleModeSelect(option.value)}
-                />
-              ))}
-            </View>
+            <SplitModeChoices
+              selectedStrategy={tempSelectedMode}
+              onSelect={handleModeSelect}
+            />
           </ScrollView>
           <SettingsModalFooter>
             <Button
@@ -219,11 +170,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 20,
   },
-  optionsContainer: {
-    gap: 12,
-  },
   modalButton: {
     flex: 1,
   },
 });
-

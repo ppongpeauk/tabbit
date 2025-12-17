@@ -3,20 +3,20 @@
  * @description Navigation utilities for shared header styling, screen options, and route helpers
  */
 
-import { StackNavigationOptions } from "@react-navigation/stack";
+import type { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 import { Colors, Fonts } from "@/constants/theme";
 
 /**
  * Creates common header screen options with consistent styling
  * @param colorScheme - Current color scheme ("light" | "dark" | null | undefined)
  * @param includeLargeTitle - Whether to include large title style (default: false)
- * @returns StackNavigationOptions with common header styling
+ * @returns NativeStackNavigationOptions with common header styling
  */
 export function getHeaderScreenOptions(
   colorScheme: "light" | "dark" | null | undefined,
   includeLargeTitle = false
-): Partial<StackNavigationOptions> {
-  const baseOptions: Partial<StackNavigationOptions> = {
+): Partial<NativeStackNavigationOptions> {
+  const baseOptions: Partial<NativeStackNavigationOptions> = {
     headerBackTitleStyle: {
       fontFamily: Fonts.sansBold,
     },

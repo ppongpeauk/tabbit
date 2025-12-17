@@ -350,6 +350,7 @@ export default function SettingsScreen() {
                 />
               )}
               <Pressable
+                cssInterop={false}
                 onPress={item.onPress}
                 disabled={isDisabled}
                 style={({ pressed }) => [

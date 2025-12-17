@@ -160,8 +160,8 @@ export default function SyncScreen() {
                 enabled
                   ? "#FFFFFF"
                   : isDark
-                  ? "rgba(255, 255, 255, 0.9)"
-                  : "#FFFFFF"
+                    ? "rgba(255, 255, 255, 0.9)"
+                    : "#FFFFFF"
               }
               ios_backgroundColor={
                 isDark ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.2)"
@@ -270,8 +270,8 @@ export default function SyncScreen() {
                           ? Colors.dark.tint
                           : Colors.light.tint
                         : isDark
-                        ? Colors.dark.icon
-                        : Colors.light.icon,
+                          ? Colors.dark.icon
+                          : Colors.light.icon,
                   }}
                 >
                   {status.pendingCount} receipt(s)

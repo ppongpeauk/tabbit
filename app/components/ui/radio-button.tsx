@@ -168,6 +168,7 @@ export function RadioButton({
         style={[styles.optionButton, borderAnimatedStyle, buttonContainerStyle]}
       >
         <Pressable
+          cssInterop={false}
           onPress={onPress}
           style={({ pressed }) => [
             styles.pressableContainer,
@@ -199,8 +200,8 @@ export function RadioButton({
                         ? Colors.dark.tint
                         : Colors.light.tint
                       : isDark
-                      ? Colors.dark.text
-                      : Colors.light.text
+                        ? Colors.dark.text
+                        : Colors.light.text
                   }
                   size={24}
                 />

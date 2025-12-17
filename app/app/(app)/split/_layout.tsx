@@ -1,9 +1,8 @@
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getHeaderScreenOptions } from "@/utils/navigation";
 import { SymbolView } from "expo-symbols";
 import { Colors } from "@/constants/theme";
-import { router } from "expo-router";
 import { Pressable, StyleSheet } from "react-native";
 
 export default function SplitLayout() {
@@ -117,7 +116,6 @@ export default function SplitLayout() {
         options={{
           title: "Sending",
           presentation: "card",
-          headerLeft: () => null,
         }}
       />
       <Stack.Screen
@@ -125,7 +123,6 @@ export default function SplitLayout() {
         options={{
           title: "Sent",
           presentation: "card",
-          headerLeft: () => null,
         }}
       />
     </Stack>

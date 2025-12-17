@@ -9,7 +9,6 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/button";
-import { RadioButton } from "@/components/ui/radio-button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
@@ -19,7 +18,7 @@ import type { StoredReceipt } from "@/utils/storage";
 import { SplitStrategy } from "@/utils/split";
 import { formatCurrency } from "@/utils/format";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ExpenseDistributionExample } from "@/components/split/expense-distribution-example";
+import { SplitModeChoices } from "@/components/split/split-mode-choices";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
 
@@ -234,53 +233,11 @@ export default function ChooseSplitModeScreen() {
           <ThemedText size="lg" weight="bold" style={styles.stepTitle}>
             Choose Split Mode
           </ThemedText>
-          <View style={styles.optionsContainer}>
-            {[
-              {
-                value: SplitStrategy.EQUAL,
-                label: "Even",
-                icon: "equal.circle",
-                description:
-                  "Split the total amount equally among all selected people. Perfect for shared meals or group expenses.",
-              },
-              {
-                value: SplitStrategy.ITEMIZED,
-                label: "Itemized",
-                icon: "list.bullet",
-                description:
-                  "Assign specific items from the receipt to each person. Great when people ordered different things.",
-              },
-              {
-                value: SplitStrategy.PERCENTAGE,
-                label: "Percentage",
-                icon: "percent",
-                description:
-                  "Split by percentage of the total. Each person pays a specific percentage of the bill.",
-              },
-              {
-                value: SplitStrategy.CUSTOM,
-                label: "Custom",
-                icon: "slider.horizontal.3",
-                description:
-                  "Manually set custom amounts for each person. Use this for complex splits or specific arrangements.",
-              },
-            ].map(({ value, label, icon, description }) => (
-              <RadioButton
-                key={value}
-                value={value}
-                label={label}
-                icon={icon}
-                description={description}
-                example={
-                  <ExpenseDistributionExample
-                    amounts={getExampleAmounts(value)}
-                  />
-                }
-                isSelected={selectedStrategy === value}
-                onPress={() => handleStrategySelect(value)}
-              />
-            ))}
-          </View>
+          <SplitModeChoices
+            selectedStrategy={selectedStrategy}
+            onSelect={handleStrategySelect}
+            getExampleAmounts={getExampleAmounts}
+          />
         </View>
       </ScrollView>
 
@@ -335,9 +292,6 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     marginBottom: 8,
-  },
-  optionsContainer: {
-    gap: 12,
   },
   footer: {
     position: "absolute",

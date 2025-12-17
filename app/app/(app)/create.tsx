@@ -162,26 +162,8 @@ export default function CreateReceiptScreen() {
     ]
   );
 
-  const handleBackPress = useCallback(() => {
-    router.back();
-  }, []);
-
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerLeft: () => (
-        <Pressable
-          onPress={handleBackPress}
-          hitSlop={8}
-          style={styles.headerButton}
-        >
-          <SymbolView
-            name="chevron.left"
-            tintColor={
-              colorScheme === "dark" ? Colors.dark.text : Colors.light.text
-            }
-          />
-        </Pressable>
-      ),
       headerRight: () => (
         <Pressable
           onPress={handleSubmit(handleSave)}
@@ -218,7 +200,6 @@ export default function CreateReceiptScreen() {
     colorScheme,
     handleSave,
     handleSubmit,
-    handleBackPress,
   ]);
 
   // Handle back button with confirmation if form is dirty

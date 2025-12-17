@@ -17,6 +17,7 @@ export function SettingsSection({ children }: SettingsSectionProps) {
 
   return (
     <View
+      cssInterop={false}
       style={[
         styles.container,
         {
@@ -25,9 +26,7 @@ export function SettingsSection({ children }: SettingsSectionProps) {
             : "rgba(255, 255, 255, 1)",
           borderWidth: colorScheme === "light" ? 1 : 0,
           borderColor:
-            colorScheme === "light"
-              ? "rgba(0, 0, 0, 0.1)"
-              : "transparent",
+            colorScheme === "light" ? "rgba(0, 0, 0, 0.1)" : "transparent",
         },
       ]}
     >
@@ -42,11 +41,3 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 });
-
-
-
-
-
-
-
-

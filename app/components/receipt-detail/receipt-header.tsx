@@ -10,7 +10,6 @@ import type { StoredReceipt } from "@/utils/storage";
 import type { StackNavigationOptions } from "@react-navigation/stack";
 import ContextMenu from "react-native-context-menu-view";
 import { Colors } from "@/constants/theme";
-import { router } from "expo-router";
 
 interface ReceiptHeaderProps {
   receipt: StoredReceipt | null;
@@ -35,7 +34,7 @@ export function ReceiptHeader({
 }: ReceiptHeaderProps): Partial<StackNavigationOptions> {
   const hasReturnBarcode = Boolean(
     receipt?.returnInfo?.returnBarcode &&
-      receipt.returnInfo.returnBarcode.trim().length > 0
+    receipt.returnInfo.returnBarcode.trim().length > 0
   );
 
   const menuActions = [
@@ -103,25 +102,6 @@ export function ReceiptHeader({
       </ThemedText>
     ),
     headerTitleAlign: "center" as const,
-    headerLeft: () => (
-      <Pressable
-        onPress={() => router.back()}
-        hitSlop={8}
-        style={{
-          width: 48,
-          height: 48,
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: 9999,
-        }}
-      >
-        <SymbolView
-          name="arrow.left"
-          tintColor={isDark ? Colors.dark.text : Colors.light.text}
-          style={{ width: 24, height: 24 }}
-        />
-      </Pressable>
-    ),
     headerRight: () => (
       <ContextMenu
         actions={contextMenuActions}

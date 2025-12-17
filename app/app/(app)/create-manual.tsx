@@ -4,19 +4,12 @@
  */
 
 import { useState, useLayoutEffect, useCallback, useRef } from "react";
-import {
-  View,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  Pressable,
-} from "react-native";
+import { View, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { router, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { ThemedView } from "@/components/themed-view";
 import { ManualReceiptForm } from "@/components/manual-receipt-form";
 import { Colors } from "@/constants/theme";
-import { SymbolView } from "expo-symbols";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { saveReceipt } from "@/utils/storage";
 import { useLimits } from "@/hooks/use-limits";
@@ -140,20 +133,6 @@ export default function CreateManualReceiptScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerLeft: () => (
-        <Pressable
-          onPress={handleCancel}
-          hitSlop={8}
-          style={styles.headerButton}
-        >
-          <SymbolView
-            name="chevron.left"
-            tintColor={
-              colorScheme === "dark" ? Colors.dark.text : Colors.light.text
-            }
-          />
-        </Pressable>
-      ),
       title: "Manual Entry",
     });
   }, [navigation, colorScheme, handleCancel]);
@@ -244,12 +223,5 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  headerButton: {
-    padding: 8,
-    minWidth: 44,
-    minHeight: 44,
-    justifyContent: "center",
-    alignItems: "center",
   },
 });

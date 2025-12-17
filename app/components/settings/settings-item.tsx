@@ -38,6 +38,7 @@ export function SettingsItem({
 
   return (
     <Pressable
+      cssInterop={false}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
@@ -48,12 +49,7 @@ export function SettingsItem({
         },
       ]}
     >
-      <ThemedText
-        style={[
-          styles.label,
-          isDestructive && { color: "#FF3B30" },
-        ]}
-      >
+      <ThemedText style={[styles.label, isDestructive && { color: "#FF3B30" }]}>
         {label}
       </ThemedText>
       <View style={styles.rightContent}>
@@ -75,9 +71,7 @@ export function SettingsItem({
               <SymbolView
                 name="chevron.right"
                 size={18}
-                tintColor={
-                  isDark ? Colors.dark.icon : Colors.light.icon
-                }
+                tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
               />
             )}
           </>
@@ -109,11 +103,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-
-
-
-
-
-
-
-

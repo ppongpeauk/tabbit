@@ -70,28 +70,6 @@ function HeaderRight() {
 }
 
 /**
- * Header left component with X close button
- */
-function HeaderLeft() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-
-  const handleClose = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.back();
-  };
-
-  return (
-    <Pressable onPress={handleClose} hitSlop={8} style={styles.headerButton}>
-      <SymbolView
-        name="xmark"
-        tintColor={isDark ? Colors.dark.text : Colors.light.text}
-      />
-    </Pressable>
-  );
-}
-
-/**
  * GroupsLayout component - configures the groups stack navigation
  */
 export default function GroupsLayout() {
@@ -116,7 +94,6 @@ export default function GroupsLayout() {
           title: "Create Group",
           headerTitle: "Create Group",
           presentation: "modal",
-          headerLeft: () => <HeaderLeft />,
         }}
       />
       <Stack.Screen
@@ -125,7 +102,6 @@ export default function GroupsLayout() {
           title: "Join Group",
           headerTitle: "Join Group",
           presentation: "modal",
-          headerLeft: () => <HeaderLeft />,
         }}
       />
       <Stack.Screen

@@ -169,7 +169,10 @@ export function Button({
         {};
 
       // Check if icon already has tintColor prop (SymbolView) or color prop
-      const hasTintColor = icon.props && "tintColor" in icon.props;
+      const hasTintColor =
+        icon.props &&
+        typeof icon.props === "object" &&
+        "tintColor" in icon.props;
       const iconTypeName =
         icon.type && typeof icon.type === "function" ? icon.type.name : "";
 
@@ -191,6 +194,7 @@ export function Button({
     <Pressable
       {...pressableProps}
       disabled={isDisabled}
+      cssInterop={false}
       style={({ pressed }) => [
         styles.button,
         {
@@ -199,8 +203,8 @@ export function Button({
               ? "rgba(255, 255, 255, 0.05)"
               : "rgba(0, 0, 0, 0.05)"
             : pressed
-            ? variantStyles.pressedBackgroundColor
-            : variantStyles.backgroundColor,
+              ? variantStyles.pressedBackgroundColor
+              : variantStyles.backgroundColor,
           borderColor:
             variant === "outline"
               ? isDisabled
@@ -237,8 +241,8 @@ export function Button({
               sizeStyles.fontSize === 14
                 ? "sm"
                 : sizeStyles.fontSize === 18
-                ? "lg"
-                : "base"
+                  ? "lg"
+                  : "base"
             }
             style={[
               styles.text,
