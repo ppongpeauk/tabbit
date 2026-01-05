@@ -3,13 +3,14 @@
  * @description Receipt detail header with context menu actions
  */
 
-import { Pressable } from "react-native";
 import { SymbolView } from "expo-symbols";
 import { ThemedText } from "@/components/themed-text";
 import type { StoredReceipt } from "@/utils/storage";
 import type { StackNavigationOptions } from "@react-navigation/stack";
 import ContextMenu from "react-native-context-menu-view";
 import { Colors } from "@/constants/theme";
+import { PlatformPressable } from "@react-navigation/elements";
+import * as Haptics from "expo-haptics";
 
 interface ReceiptHeaderProps {
   receipt: StoredReceipt | null;
@@ -108,14 +109,16 @@ export function ReceiptHeader({
         onPress={handleMenuPress}
         dropdownMenuMode={true}
       >
-        <Pressable
+        <PlatformPressable
           hitSlop={8}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }}
           style={{
-            width: 48,
-            height: 48,
+            minWidth: 44,
+            minHeight: 44,
             alignItems: "center",
             justifyContent: "center",
-            borderRadius: 9999,
           }}
         >
           <SymbolView
@@ -123,17 +126,8 @@ export function ReceiptHeader({
             tintColor={isDark ? Colors.dark.text : Colors.light.text}
             style={{ width: 24, height: 24 }}
           />
-        </Pressable>
+        </PlatformPressable>
       </ContextMenu>
     ),
-    headerStyle: {
-      backgroundColor: isDark
-        ? "rgba(21, 23, 24, 0.8)"
-        : "rgba(255, 255, 255, 0.8)",
-      borderBottomWidth: 1,
-      borderBottomColor: isDark
-        ? "rgba(255, 255, 255, 0.05)"
-        : "rgba(0, 0, 0, 0.05)",
-    },
   };
 }

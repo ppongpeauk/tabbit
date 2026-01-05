@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import {
   View,
   ScrollView,
-  StyleSheet,
   TextInput,
   Alert,
   ActivityIndicator,
@@ -188,15 +187,12 @@ export default function CustomInputsScreen() {
   if (loading) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ActivityIndicator
           size="large"
@@ -209,15 +205,12 @@ export default function CustomInputsScreen() {
   if (!receipt) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ThemedText>Receipt not found</ThemedText>
       </View>
@@ -228,21 +221,24 @@ export default function CustomInputsScreen() {
 
   return (
     <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: isDark
-            ? Colors.dark.background
-            : Colors.light.background,
-        },
-      ]}
+      className="flex-1"
+      style={{
+        backgroundColor: isDark
+          ? Colors.dark.background
+          : Colors.light.background,
+      }}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingVertical: 16,
+          gap: 24,
+          paddingBottom: 100,
+        }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.stepContainer}>
-          <ThemedText size="xl" weight="bold" style={styles.stepTitle}>
+        <View className="gap-3">
+          <ThemedText size="xl" weight="bold" className="mb-2">
             Custom Amounts
           </ThemedText>
           <ThemedText
@@ -260,34 +256,37 @@ export default function CustomInputsScreen() {
             return (
               <View
                 key={friendId}
-                style={[
-                  styles.customAmountRow,
-                  {
+                className="flex-row items-center justify-between py-3 px-4 rounded-lg border"
+                style={{
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.05)"
+                    : "rgba(0, 0, 0, 0.02)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)",
+                }}
+              >
+                <ThemedText className="font-sans text-base flex-1">
+                  {personName}
+                </ThemedText>
+                <TextInput
+                  style={{
+                    width: 100,
+                    borderRadius: 6,
+                    borderWidth: 1,
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    fontSize: 16,
+                    fontFamily: Fonts.sans,
+                    textAlign: "right",
                     backgroundColor: isDark
                       ? "rgba(255, 255, 255, 0.05)"
                       : "rgba(0, 0, 0, 0.02)",
                     borderColor: isDark
                       ? "rgba(255, 255, 255, 0.1)"
                       : "rgba(0, 0, 0, 0.1)",
-                  },
-                ]}
-              >
-                <ThemedText style={styles.customAmountLabel}>
-                  {personName}
-                </ThemedText>
-                <TextInput
-                  style={[
-                    styles.customAmountInput,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255, 255, 255, 0.05)"
-                        : "rgba(0, 0, 0, 0.02)",
-                      borderColor: isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(0, 0, 0, 0.1)",
-                      color: isDark ? Colors.dark.text : Colors.light.text,
-                    },
-                  ]}
+                    color: isDark ? Colors.dark.text : Colors.light.text,
+                  }}
                   value={customAmounts[friendId] || ""}
                   onChangeText={(text) =>
                     setCustomAmounts({
@@ -309,17 +308,15 @@ export default function CustomInputsScreen() {
 
       {/* Continue Button */}
       <View
-        style={[
-          styles.footer,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-            borderTopColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(0, 0, 0, 0.1)",
-          },
-        ]}
+        className="absolute bottom-0 left-0 right-0 px-5 pt-4 pb-10 border-t"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+          borderTopColor: isDark
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.1)",
+        }}
       >
         <Button
           variant="primary"
@@ -333,59 +330,3 @@ export default function CustomInputsScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 24,
-    paddingBottom: 100,
-  },
-  stepContainer: {
-    gap: 12,
-  },
-  stepTitle: {
-    marginBottom: 8,
-  },
-  customAmountRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  customAmountLabel: {
-    fontFamily: Fonts.sans,
-    fontSize: 16,
-    flex: 1,
-  },
-  customAmountInput: {
-    width: 100,
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    fontFamily: Fonts.sans,
-    textAlign: "right",
-  },
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 40,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-});

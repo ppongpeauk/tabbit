@@ -23,6 +23,11 @@ const pool = new Pool({
 
 const adapter = new PrismaPg(pool);
 
+// check to see if the database is connected
+const isConnected = await pool.query("SELECT 1");
+if (isConnected.rows.length === 0)
+  throw new Error("Failed to connect to the database");
+
 export { pool };
 
 export const prisma =

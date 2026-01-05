@@ -15,6 +15,7 @@ export interface SyncReceipt extends StoredReceipt {
   syncStatus: "pending" | "synced" | "error";
   syncError?: string;
   lastSyncedAt?: string;
+  updatedAt?: string; // Timestamp for conflict resolution
 }
 
 /**
@@ -34,52 +35,114 @@ export async function getSyncReceipts(): Promise<SyncReceipt[]> {
 
 /**
  * Save receipt to local sync database
+ * Ensures atomic operation and proper timestamp handling
  */
 export async function saveSyncReceipt(
   receipt: Partial<SyncReceipt> & { id?: string }
 ): Promise<SyncReceipt> {
-  const receipts = await getSyncReceipts();
-  const receiptId = receipt.id || Date.now().toString();
-  const newReceipt: SyncReceipt = {
-    ...receipt,
-    id: receiptId,
-    syncStatus: receipt.syncStatus || (receipt.serverId ? "synced" : "pending"),
-    createdAt: receipt.createdAt || new Date().toISOString(),
-  } as SyncReceipt;
+  try {
+    const receipts = await getSyncReceipts();
+    const receiptId = receipt.id || Date.now().toString();
+    const now = new Date().toISOString();
 
-  const existingIndex = receipts.findIndex((r) => r.id === receiptId);
-  if (existingIndex >= 0) {
-    receipts[existingIndex] = { ...receipts[existingIndex], ...newReceipt };
-  } else {
-    receipts.unshift(newReceipt);
+    const newReceipt: SyncReceipt = {
+      ...receipt,
+      id: receiptId,
+      syncStatus: receipt.syncStatus || (receipt.serverId ? "synced" : "pending"),
+      createdAt: receipt.createdAt || now,
+      updatedAt: receipt.updatedAt || receipt.createdAt || now,
+    } as SyncReceipt;
+
+    const existingIndex = receipts.findIndex((r) => r.id === receiptId);
+    if (existingIndex >= 0) {
+      // Merge with existing - preserve sync metadata if not provided
+      const existing = receipts[existingIndex];
+      receipts[existingIndex] = {
+        ...existing,
+        ...newReceipt,
+        // Preserve sync metadata if not explicitly updating
+        syncStatus: newReceipt.syncStatus ?? existing.syncStatus,
+        serverId: newReceipt.serverId ?? existing.serverId,
+        lastSyncedAt: newReceipt.lastSyncedAt ?? existing.lastSyncedAt,
+      };
+    } else {
+      receipts.unshift(newReceipt);
+    }
+
+    await AsyncStorage.setItem(SYNC_DB_KEY, JSON.stringify(receipts));
+    return receipts[existingIndex >= 0 ? existingIndex : 0];
+  } catch (error) {
+    console.error("Error saving sync receipt:", error);
+    throw new Error(
+      `Failed to save receipt: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
   }
-
-  await AsyncStorage.setItem(SYNC_DB_KEY, JSON.stringify(receipts));
-  return receipts[existingIndex >= 0 ? existingIndex : 0];
 }
 
 /**
  * Update receipt in local sync database
+ * Ensures atomic operation and updates updatedAt timestamp
  */
 export async function updateSyncReceipt(
   id: string,
   updates: Partial<SyncReceipt>
 ): Promise<void> {
-  const receipts = await getSyncReceipts();
-  const index = receipts.findIndex((r) => r.id === id);
-  if (index >= 0) {
-    receipts[index] = { ...receipts[index], ...updates };
-    await AsyncStorage.setItem(SYNC_DB_KEY, JSON.stringify(receipts));
+  try {
+    const receipts = await getSyncReceipts();
+    const index = receipts.findIndex((r) => r.id === id);
+    if (index >= 0) {
+      const existing = receipts[index];
+      const now = new Date().toISOString();
+
+      // Update receipt with new data
+      receipts[index] = {
+        ...existing,
+        ...updates,
+        // Always update updatedAt when receipt data changes (unless explicitly set)
+        updatedAt: updates.updatedAt || (updates.syncStatus ? existing.updatedAt : now),
+        // Preserve ID
+        id: existing.id,
+      };
+
+      await AsyncStorage.setItem(SYNC_DB_KEY, JSON.stringify(receipts));
+    } else {
+      console.warn(`Receipt ${id} not found for update`);
+    }
+  } catch (error) {
+    console.error("Error updating sync receipt:", error);
+    throw new Error(
+      `Failed to update receipt: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
   }
 }
 
 /**
  * Delete receipt from local sync database
+ * Ensures atomic operation
  */
 export async function deleteSyncReceipt(id: string): Promise<void> {
-  const receipts = await getSyncReceipts();
-  const filtered = receipts.filter((r) => r.id !== id);
-  await AsyncStorage.setItem(SYNC_DB_KEY, JSON.stringify(filtered));
+  try {
+    const receipts = await getSyncReceipts();
+    const filtered = receipts.filter((r) => r.id !== id);
+
+    // Only update if receipt was actually found
+    if (filtered.length !== receipts.length) {
+      await AsyncStorage.setItem(SYNC_DB_KEY, JSON.stringify(filtered));
+    } else {
+      console.warn(`Receipt ${id} not found for deletion`);
+    }
+  } catch (error) {
+    console.error("Error deleting sync receipt:", error);
+    throw new Error(
+      `Failed to delete receipt: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
 }
 
 /**

@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, StyleSheet, Modal } from "react-native";
+import { View, ScrollView, Modal } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { ThemedText } from "@/components/themed-text";
@@ -81,9 +81,9 @@ export default function GeneralScreen() {
 
   return (
     <>
-      <ThemedView style={styles.container}>
+      <ThemedView className="flex-1">
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerClassName="px-5 pt-5 pb-10"
           showsVerticalScrollIndicator={false}
         >
           <SettingsSection>
@@ -103,14 +103,14 @@ export default function GeneralScreen() {
         presentationStyle="pageSheet"
         onRequestClose={handleCloseModal}
       >
-        <ThemedView style={styles.modalContainer}>
+        <ThemedView className="flex-1">
           <SettingsModalHeader
             title="Default Split Mode"
             onClose={handleCloseModal}
           />
           <ScrollView
-            style={styles.modalContent}
-            contentContainerStyle={styles.modalScrollContent}
+            className="flex-1"
+            contentContainerClassName="px-5 pt-6 pb-5"
             showsVerticalScrollIndicator={false}
           >
             <ThemedText
@@ -132,14 +132,14 @@ export default function GeneralScreen() {
             <Button
               variant="secondary"
               onPress={handleCloseModal}
-              style={styles.modalButton}
+              className="flex-1"
             >
               Cancel
             </Button>
             <Button
               variant="primary"
               onPress={handleSave}
-              style={styles.modalButton}
+              className="flex-1"
             >
               Save
             </Button>
@@ -149,28 +149,3 @@ export default function GeneralScreen() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  modalContent: {
-    flex: 1,
-  },
-  modalScrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 20,
-  },
-  modalButton: {
-    flex: 1,
-  },
-});

@@ -11,7 +11,6 @@ import { logger } from "./middleware/logger";
 import { userModule } from "./modules/user";
 import { receiptModule } from "./modules/receipt";
 import { limitModule } from "./modules/limits";
-import { subscriptionModule } from "./modules/subscription";
 import { groupModule } from "./modules/group";
 import { syncModule } from "./modules/sync";
 import { plaidModule } from "./modules/plaid";
@@ -67,10 +66,6 @@ const app = new Elysia()
             description: "Barcode and QR code detection endpoints",
           },
           { name: "limits", description: "Limit checking endpoints" },
-          {
-            name: "subscription",
-            description: "Subscription management endpoints",
-          },
           {
             name: "groups",
             description: "Group management endpoints",
@@ -151,7 +146,6 @@ const app = new Elysia()
   .use(userModule)
   .use(receiptModule)
   .use(limitModule)
-  .use(subscriptionModule)
   .use(groupModule)
   .use(syncModule)
   .use(plaidModule)

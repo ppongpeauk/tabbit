@@ -1,4 +1,5 @@
 import { StyleSheet, Text, type TextProps, type TextStyle } from "react-native";
+import { cssInterop } from "nativewind";
 
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Fonts } from "@/constants/theme";
@@ -222,6 +223,8 @@ export function ThemedText({
     </Text>
   );
 }
+
+cssInterop(ThemedText, { className: "style" });
 
 // Legacy styles for backward compatibility
 const styles = StyleSheet.create({

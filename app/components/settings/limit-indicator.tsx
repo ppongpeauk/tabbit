@@ -9,7 +9,6 @@ import { ThemedText } from "../themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { useLimits } from "@/hooks/use-limits";
-import { useRevenueCat } from "@/contexts/revenuecat-context";
 
 type LimitIndicatorProps = {
   title?: string;
@@ -88,12 +87,6 @@ export function LimitIndicator({
   subtitle = "You are currently on our free plan.",
 }: LimitIndicatorProps) {
   const { limitStatus, isLoading } = useLimits();
-  const { isPro } = useRevenueCat();
-
-  // Don't show limits for Pro users
-  if (isPro) {
-    return null;
-  }
 
   // Show loading state
   if (isLoading || !limitStatus) {

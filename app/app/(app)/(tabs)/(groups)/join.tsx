@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react";
-import { View, StyleSheet, ScrollView, Alert } from "react-native";
+import { View, ScrollView, Alert } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useForm, Controller } from "react-hook-form";
 import { router } from "expo-router";
@@ -74,24 +74,22 @@ export default function JoinGroupScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[
-        styles.container,
-        {
-          backgroundColor: isDark
-            ? Colors.dark.background
-            : Colors.light.background,
-        },
-      ]}
+      className="flex-1"
+      style={{
+        backgroundColor: isDark
+          ? Colors.dark.background
+          : Colors.light.background,
+      }}
       behavior="padding"
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerClassName="flex-grow items-center"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.contentContainer}>
+        <View className="w-full px-5 pt-5 pb-10">
           {/* Form Section */}
-          <View style={styles.formSection}>
+          <View className="w-full">
             <Controller
               control={control}
               rules={{
@@ -135,7 +133,8 @@ export default function JoinGroupScreen() {
             />
             {errors.code && (
               <ThemedText
-                style={[styles.errorText, { color: "#FF3B30" }]}
+                className="-mt-3 mb-4 ml-1"
+                style={{ color: "#FF3B30" }}
                 size="sm"
               >
                 {errors.code.message}
@@ -144,12 +143,10 @@ export default function JoinGroupScreen() {
 
             <ThemedText
               size="sm"
-              style={[
-                styles.hintText,
-                {
-                  color: isDark ? Colors.dark.icon : Colors.light.icon,
-                },
-              ]}
+              className="-mt-2 mb-6 ml-1 opacity-60 leading-[18px]"
+              style={{
+                color: isDark ? Colors.dark.icon : Colors.light.icon,
+              }}
             >
               Ask the group creator for the code, or scan a QR code if
               available.
@@ -161,7 +158,7 @@ export default function JoinGroupScreen() {
               disabled={isSubmitting}
               loading={isSubmitting}
               fullWidth
-              style={styles.submitButton}
+              className="mt-2"
             >
               {isSubmitting ? "Joining..." : "Join Group"}
             </Button>
@@ -172,36 +169,5 @@ export default function JoinGroupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    alignItems: "center",
-  },
-  contentContainer: {
-    width: "100%",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  formSection: {
-    width: "100%",
-  },
-  errorText: {
-    marginTop: -12,
-    marginBottom: 16,
-    marginLeft: 4,
-  },
-  hintText: {
-    marginTop: -8,
-    marginBottom: 24,
-    marginLeft: 4,
-    opacity: 0.6,
-    lineHeight: 18,
-  },
-  submitButton: {
-    marginTop: 8,
-  },
-});
+// Styles removed in favor of Tailwind CSS (NativeWind)
+

@@ -3,7 +3,7 @@
  * @description Form component for manually entering receipt information
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from "react";
 import { View, StyleSheet, ScrollView, TextInput, Alert } from "react-native";
 import { ThemedText } from "./themed-text";
 import { ThemedView } from "./themed-view";
@@ -33,15 +33,15 @@ interface ManualReceiptFormData {
 
 interface ManualReceiptFormProps {
   onSave: (data: ManualReceiptFormData) => Promise<void>;
-  onCancel: () => void;
   onFormDataChange?: (hasData: boolean) => void;
 }
 
-export function ManualReceiptForm({
-  onSave,
-  onCancel,
-  onFormDataChange,
-}: ManualReceiptFormProps) {
+export interface ManualReceiptFormRef {
+  save: () => Promise<void>;
+}
+
+export const ManualReceiptForm = forwardRef<ManualReceiptFormRef, ManualReceiptFormProps>(
+  ({ onSave, onFormDataChange }, ref) => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const colors = Colors[colorScheme ?? "light"];
@@ -251,6 +251,7 @@ export function ManualReceiptForm({
           ? error.message
           : "Failed to save receipt. Please try again."
       );
+      throw error; // Re-throw so parent can handle it
     }
   }, [
     name,
@@ -279,6 +280,11 @@ export function ManualReceiptForm({
     recalculateTotals,
     onSave,
   ]);
+
+  // Expose save method via ref
+  useImperativeHandle(ref, () => ({
+    save: handleSave,
+  }));
 
   const totals = recalculateTotals();
   const displaySubtotal = parseFloat(subtotal) || totals.subtotal;
@@ -654,27 +660,17 @@ export function ManualReceiptForm({
             textAlignVertical="top"
           />
         </View>
-
-        {/* Action Buttons */}
-        <View style={styles.actions}>
-          <Button variant="secondary" onPress={onCancel} style={{ flex: 1 }}>
-            Cancel
-          </Button>
-          <Button variant="primary" onPress={handleSave} style={{ flex: 1 }}>
-            Save Receipt
-          </Button>
-        </View>
       </ThemedView>
     </ScrollView>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 40,
+    paddingBottom: 100, // Extra padding for toolbar
   },
   form: {
     paddingHorizontal: 20,
@@ -790,10 +786,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.sans,
     minHeight: 80,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 32,
   },
 });

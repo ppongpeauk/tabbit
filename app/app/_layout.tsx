@@ -18,9 +18,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { RevenueCatProvider } from "@/contexts/revenuecat-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { PostHogProvider } from "posthog-react-native";
 import { ReactQueryProvider } from "@/lib/react-query";
 
@@ -109,7 +107,7 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView className="flex-1">
       <PostHogProvider
         apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY}
         options={{
@@ -119,15 +117,11 @@ export default function RootLayout() {
         autocapture
       >
         <ReactQueryProvider>
-          <BottomSheetModalProvider>
-            <KeyboardProvider>
-              <AuthProvider>
-                <RevenueCatProvider>
-                  <RootLayoutNav />
-                </RevenueCatProvider>
-              </AuthProvider>
-            </KeyboardProvider>
-          </BottomSheetModalProvider>
+          <KeyboardProvider>
+            <AuthProvider>
+              <RootLayoutNav />
+            </AuthProvider>
+          </KeyboardProvider>
         </ReactQueryProvider>
       </PostHogProvider>
     </GestureHandlerRootView>

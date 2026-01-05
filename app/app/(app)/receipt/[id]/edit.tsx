@@ -1,6 +1,6 @@
 import { useLayoutEffect, useCallback } from "react";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
-import { View, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import { View, Alert, ActivityIndicator } from "react-native";
 import { ThemedView } from "@/components/themed-view";
 import { ReceiptEditForm } from "@/components/receipt-edit-form";
 import { ThemedText } from "@/components/themed-text";
@@ -56,11 +56,11 @@ export default function EditReceiptScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <ThemedView style={styles.container}>
-          <View style={styles.loadingContainer}>
+      <View className="flex-1">
+        <ThemedView className="flex-1">
+          <View className="flex-1 justify-center items-center p-5">
             <ActivityIndicator size="large" />
-            <ThemedText style={styles.loadingText}>
+            <ThemedText className="text-base opacity-70 mt-4">
               Loading receipt...
             </ThemedText>
           </View>
@@ -71,10 +71,10 @@ export default function EditReceiptScreen() {
 
   if (!receipt) {
     return (
-      <View style={styles.container}>
-        <ThemedView style={styles.container}>
-          <View style={styles.loadingContainer}>
-            <ThemedText style={styles.loadingText}>
+      <View className="flex-1">
+        <ThemedView className="flex-1">
+          <View className="flex-1 justify-center items-center p-5">
+            <ThemedText className="text-base opacity-70">
               Receipt not found
             </ThemedText>
           </View>
@@ -84,8 +84,8 @@ export default function EditReceiptScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <ThemedView style={styles.container}>
+    <View className="flex-1">
+      <ThemedView className="flex-1">
         <ReceiptEditForm
           receipt={receipt}
           onSave={handleSave}
@@ -95,19 +95,3 @@ export default function EditReceiptScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    opacity: 0.7,
-  },
-});

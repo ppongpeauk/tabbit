@@ -13,7 +13,6 @@ import {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
-import * as AppleAuthentication from "expo-apple-authentication";
 import {
   GoogleSignin,
   statusCodes,
@@ -300,53 +299,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithApple = async (): Promise<void> => {
-    try {
-      const isAvailable = await AppleAuthentication.isAvailableAsync();
-      if (!isAvailable) {
-        throw new Error("Apple Authentication is not available on this device");
-      }
-
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-
-      const response = await fetch(`${API_BASE_URL}/auth/apple/callback`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          identityToken: credential.identityToken,
-          authorizationCode: credential.authorizationCode,
-          user: credential.user,
-          email: credential.email,
-          fullName: credential.fullName
-            ? {
-                givenName: credential.fullName.givenName,
-                familyName: credential.fullName.familyName,
-              }
-            : null,
-        }),
-      });
-
-      const { token, user: baseUser } = await handleAuthResponse(
-        response,
-        "Apple sign in failed"
-      );
-
-      const userData: User = {
-        ...baseUser,
-        name: baseUser.name || credential.fullName?.givenName || "",
-      };
-
-      await storeAuthData(token, userData);
-    } catch (error) {
-      console.error("Error signing in with Apple:", error);
-      throw error;
-    }
+    // TODO: Implement Sign in with Apple
+    throw new Error("Sign in with Apple is not yet implemented");
   };
 
   const clearAuthState = async (): Promise<void> => {

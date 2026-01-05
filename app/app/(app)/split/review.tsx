@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import {
   View,
   ScrollView,
-  StyleSheet,
   Alert,
   ActivityIndicator,
 } from "react-native";
@@ -184,15 +183,12 @@ export default function ReviewScreen() {
   if (isLoading) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ActivityIndicator
           size="large"
@@ -205,15 +201,12 @@ export default function ReviewScreen() {
   if (!receipt) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ThemedText>Receipt not found</ThemedText>
       </View>
@@ -223,15 +216,12 @@ export default function ReviewScreen() {
   if (!calculatedSplitData) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ThemedText>Unable to calculate split</ThemedText>
       </View>
@@ -240,21 +230,19 @@ export default function ReviewScreen() {
 
   return (
     <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: isDark
-            ? Colors.dark.background
-            : Colors.light.background,
-        },
-      ]}
+      className="flex-1"
+      style={{
+        backgroundColor: isDark
+          ? Colors.dark.background
+          : Colors.light.background,
+      }}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerClassName="px-5 py-4 gap-6 pb-[100px]"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.stepContainer}>
-          <ThemedText size="xl" weight="bold" style={styles.stepTitle}>
+        <View className="gap-4">
+          <ThemedText size="xl" weight="bold" className="mb-2">
             Review Split Summary
           </ThemedText>
           <SplitSummary
@@ -269,17 +257,15 @@ export default function ReviewScreen() {
 
       {/* Send Button */}
       <View
-        style={[
-          styles.footer,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-            borderTopColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(0, 0, 0, 0.1)",
-          },
-        ]}
+        className="absolute bottom-0 left-0 right-0 px-5 pt-4 pb-10 border-t"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+          borderTopColor: isDark
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.1)",
+        }}
       >
         <Button variant="primary" onPress={handleSend} fullWidth>
           Send Requests
@@ -289,34 +275,4 @@ export default function ReviewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 24,
-    paddingBottom: 100,
-  },
-  stepContainer: {
-    gap: 16,
-  },
-  stepTitle: {
-    marginBottom: 8,
-  },
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 40,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-});
+// Styles removed in favor of Tailwind CSS (NativeWind)

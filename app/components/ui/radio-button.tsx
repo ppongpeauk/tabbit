@@ -68,11 +68,20 @@ export function RadioButton({
         duration: AnimationConfig.fast,
         easing: Easing.out(Easing.ease),
       });
-      expandProgress.value = withSpring(isSelected ? 1 : 0, {
-        damping: 18,
-        stiffness: 150,
-        mass: 0.5,
-      });
+      // Collapse immediately when deselected, expand smoothly when selected
+      // This prevents the layout bump when switching selections
+      if (isSelected) {
+        expandProgress.value = withSpring(1, {
+          damping: 18,
+          stiffness: 150,
+          mass: 0.5,
+        });
+      } else {
+        expandProgress.value = withTiming(0, {
+          duration: 200,
+          easing: Easing.out(Easing.ease),
+        });
+      }
     }
   }, [isSelected, selectionProgress, expandProgress]);
 

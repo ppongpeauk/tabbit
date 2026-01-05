@@ -3,7 +3,7 @@
  * @description Welcome/start screen with social authentication options
  */
 
-import { View, StyleSheet, ActivityIndicator, Image } from "react-native";
+import { View, ActivityIndicator, Image } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/button";
 import { Colors } from "@/constants/theme";
@@ -18,20 +18,18 @@ import AppleIcon from "@/assets/images/brand/apple.png";
 export default function WelcomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const { user, isLoading, signInWithGoogle, signInWithApple } = useAuth();
+  const { user, isLoading, signInWithGoogle } = useAuth();
 
   // Show loading while checking auth state
   if (isLoading) {
     return (
       <View
-        style={[
-          styles.container,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-between pt-[100px] pb-[60px] px-8"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ActivityIndicator
           size="large"
@@ -62,29 +60,23 @@ export default function WelcomeScreen() {
   };
 
   const handleAppleSignIn = async () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await signInWithApple();
-    } catch (error) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      console.error("Apple sign in error:", error);
-    }
+    // TODO: Implement Sign in with Apple
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    // Button kept for future implementation
   };
 
   return (
     <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: isDark
-            ? Colors.dark.background
-            : Colors.light.background,
-        },
-      ]}
+      className="flex-1 justify-between pt-[100px] pb-[60px] px-8"
+      style={{
+        backgroundColor: isDark
+          ? Colors.dark.background
+          : Colors.light.background,
+      }}
     >
       {/* Hero Section */}
-      <View style={styles.heroSection}>
-        <View style={styles.heroIcon}>
+      <View className="flex-1 justify-center items-center gap-1">
+        <View className="mb-2">
           <ThemedText size={72} family="serif" weight="bold">
             🧾
           </ThemedText>
@@ -92,20 +84,18 @@ export default function WelcomeScreen() {
         <ThemedText
           family="serif"
           weight="bold"
-          style={styles.heroTitle}
+          className="text-center"
           size="3xl"
         >
           Tabbit
         </ThemedText>
         <ThemedText
-          style={[
-            styles.heroSubtitle,
-            {
-              color: isDark
-                ? Colors.dark.text + "CC"
-                : Colors.light.text + "CC",
-            },
-          ]}
+          className="text-center leading-6 px-4 max-w-[320px]"
+          style={{
+            color: isDark
+              ? Colors.dark.text + "CC"
+              : Colors.light.text + "CC",
+          }}
           size="base"
         >
           Track your receipts, split expenses, and manage your finances with
@@ -114,7 +104,7 @@ export default function WelcomeScreen() {
       </View>
 
       {/* Action Buttons */}
-      <View style={styles.actionsSection}>
+      <View className="gap-3 w-full">
         {/* Old buttons - commented out */}
         {/* <Button
           variant="primary"
@@ -138,7 +128,7 @@ export default function WelcomeScreen() {
           leftIcon={
             <Image
               source={GoogleIcon}
-              style={styles.brandIcon}
+              className="w-5 h-5"
               resizeMode="contain"
             />
           }
@@ -151,10 +141,12 @@ export default function WelcomeScreen() {
           size="base"
           onPress={handleAppleSignIn}
           fullWidth
+          disabled
           leftIcon={
             <Image
               source={AppleIcon}
-              style={[styles.brandIcon, !isDark && styles.appleIconLight]}
+              className={`w-5 h-5 ${!isDark ? "tint-white" : ""}`}
+              style={!isDark ? { tintColor: "#FFFFFF" } : undefined}
               resizeMode="contain"
             />
           }
@@ -163,14 +155,12 @@ export default function WelcomeScreen() {
         </Button>
 
         <ThemedText
-          style={[
-            styles.termsText,
-            {
-              color: isDark
-                ? Colors.dark.text + "80"
-                : Colors.light.text + "80",
-            },
-          ]}
+          className="text-center px-4"
+          style={{
+            color: isDark
+              ? Colors.dark.text + "80"
+              : Colors.light.text + "80",
+          }}
           size="sm"
         >
           By continuing, you agree to our Terms of Service and Privacy Policy.
@@ -179,46 +169,3 @@ export default function WelcomeScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "space-between",
-    paddingTop: 100,
-    paddingBottom: 60,
-    paddingHorizontal: 32,
-  },
-  heroSection: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 4,
-  },
-  heroIcon: {
-    marginBottom: 8,
-  },
-  heroTitle: {
-    textAlign: "center",
-  },
-  heroSubtitle: {
-    textAlign: "center",
-    lineHeight: 24,
-    paddingHorizontal: 16,
-    maxWidth: 320,
-  },
-  actionsSection: {
-    gap: 12,
-    width: "100%",
-  },
-  termsText: {
-    textAlign: "center",
-    paddingHorizontal: 16,
-  },
-  brandIcon: {
-    width: 20,
-    height: 20,
-  },
-  appleIconLight: {
-    tintColor: "#FFFFFF", // Invert to white in light mode (black button background)
-  },
-});

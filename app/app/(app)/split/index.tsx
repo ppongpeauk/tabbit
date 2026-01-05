@@ -1,11 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { View, ScrollView, Alert, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/button";
@@ -148,15 +142,12 @@ export default function ChooseSplitModeScreen() {
   if (loading || isLoadingReceipt || !receipt) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ActivityIndicator
           size="large"
@@ -169,15 +160,12 @@ export default function ChooseSplitModeScreen() {
   if (!receipt) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ThemedText>Receipt not found</ThemedText>
       </View>
@@ -186,41 +174,37 @@ export default function ChooseSplitModeScreen() {
 
   return (
     <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: isDark
-            ? Colors.dark.background
-            : Colors.light.background,
-        },
-      ]}
+      className="flex-1"
+      style={{
+        backgroundColor: isDark
+          ? Colors.dark.background
+          : Colors.light.background,
+      }}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerClassName="px-5 py-4 gap-4 pb-[100px]"
         showsVerticalScrollIndicator={false}
       >
         {/* Receipt summary */}
         <View
-          style={[
-            styles.receiptCard,
-            {
-              backgroundColor: isDark
-                ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(0, 0, 0, 0.02)",
-              borderColor: isDark
-                ? "rgba(255, 255, 255, 0.1)"
-                : "rgba(0, 0, 0, 0.1)",
-            },
-          ]}
+          className="rounded-xl p-4 border"
+          style={{
+            backgroundColor: isDark
+              ? "rgba(255, 255, 255, 0.05)"
+              : "rgba(0, 0, 0, 0.02)",
+            borderColor: isDark
+              ? "rgba(255, 255, 255, 0.1)"
+              : "rgba(0, 0, 0, 0.1)",
+          }}
         >
           <ThemedText size="lg" weight="bold">
             {receipt.merchant.name}
           </ThemedText>
           <ThemedText
             size="base"
+            className="mt-1"
             style={{
               color: isDark ? Colors.dark.icon : Colors.light.icon,
-              marginTop: 4,
             }}
           >
             Total:{" "}
@@ -229,8 +213,8 @@ export default function ChooseSplitModeScreen() {
         </View>
 
         {/* Choose Split Mode */}
-        <View style={styles.stepContainer}>
-          <ThemedText size="lg" weight="bold" style={styles.stepTitle}>
+        <View className="gap-1">
+          <ThemedText size="lg" weight="bold" className="mb-2">
             Choose Split Mode
           </ThemedText>
           <SplitModeChoices
@@ -243,17 +227,15 @@ export default function ChooseSplitModeScreen() {
 
       {/* Continue Button */}
       <View
-        style={[
-          styles.footer,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-            borderTopColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(0, 0, 0, 0.1)",
-          },
-        ]}
+        className="absolute bottom-0 left-0 right-0 px-5 pt-4 pb-10 border-t"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+          borderTopColor: isDark
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.1)",
+        }}
       >
         <Button
           variant="primary"
@@ -268,39 +250,4 @@ export default function ChooseSplitModeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 16,
-    paddingBottom: 100,
-  },
-  receiptCard: {
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-  },
-  stepContainer: {
-    gap: 4,
-  },
-  stepTitle: {
-    marginBottom: 8,
-  },
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 40,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-});
+// Styles removed in favor of Tailwind CSS (NativeWind)

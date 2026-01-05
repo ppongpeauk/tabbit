@@ -13,10 +13,8 @@ import {
 } from "react";
 import {
   View,
-  StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
-  type ViewStyle,
   Platform,
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
@@ -32,13 +30,14 @@ import { Colors } from "@/constants/theme";
 import { getGroup, getPresignedUrl, type Group } from "@/utils/api";
 import { GroupHeader, ShareBottomSheet } from "@/components/group-detail";
 import * as Haptics from "expo-haptics";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { SwipeableTabView } from "@/components/swipeable-tab-view";
 import { SymbolView } from "expo-symbols";
 import { formatCurrency } from "@/utils/format";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { GlassView } from "expo-glass-effect";
 import type React from "react";
+import { ToolbarButton } from "@/components/toolbar/toolbar-button";
+import { Toolbar } from "@/components/toolbar";
 
 export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -93,9 +92,7 @@ export default function GroupDetailScreen() {
     }, [loadGroup])
   );
 
-  const shareBottomSheetRef = useRef<React.ComponentRef<
-    typeof BottomSheetModal
-  > | null>(null);
+  const shareBottomSheetRef = useRef<TrueSheet>(null);
 
   const handleHeaderPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -316,12 +313,12 @@ export default function GroupDetailScreen() {
       const isFullyPaid = remainingBalance <= 0.01;
 
       return (
-        <TouchableOpacity style={styles.receiptCard} activeOpacity={0.7}>
-          <View style={styles.receiptEmoji}>
+        <TouchableOpacity className="flex-row p-4 gap-3" activeOpacity={0.7}>
+          <View className="w-12 h-12 rounded-full items-center justify-center bg-black/5">
             <ThemedText size="lg">{receipt.emoji}</ThemedText>
           </View>
-          <View style={styles.receiptInfo}>
-            <View style={styles.receiptHeader}>
+          <View className="flex-1 justify-center gap-1">
+            <View className="flex-row justify-between items-center">
               <ThemedText weight="semibold" size="base">
                 {receipt.merchant}
               </ThemedText>
@@ -335,7 +332,7 @@ export default function GroupDetailScreen() {
                 {formatCurrency(receipt.amount, receipt.currency)}
               </ThemedText>
             </View>
-            <View style={styles.receiptMetaRow}>
+            <View className="flex-row justify-between items-center">
               <ThemedText
                 size="sm"
                 style={{ color: isDark ? Colors.dark.icon : Colors.light.icon }}
@@ -353,27 +350,23 @@ export default function GroupDetailScreen() {
                 </ThemedText>
               )}
             </View>
-            <View style={styles.progressBarContainer}>
+            <View className="mt-2">
               <View
-                style={[
-                  styles.progressBarBackground,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(0, 0, 0, 0.1)",
-                  },
-                ]}
+                className="h-[3px] rounded-full overflow-hidden"
+                style={{
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)",
+                }}
               >
                 <View
-                  style={[
-                    styles.progressBarFill,
-                    {
-                      width: `${progressPercentage}%`,
-                      backgroundColor: isDark
-                        ? Colors.dark.tint
-                        : Colors.light.tint,
-                    },
-                  ]}
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${progressPercentage}%`,
+                    backgroundColor: isDark
+                      ? Colors.dark.tint
+                      : Colors.light.tint,
+                  }}
                 />
               </View>
             </View>
@@ -387,12 +380,12 @@ export default function GroupDetailScreen() {
   const renderActivityItem = useCallback(
     ({ item: activity }: { item: ActivityItem }) => {
       return (
-        <View style={styles.activityCard}>
-          <View style={styles.activityEmoji}>
+        <View className="flex-row p-4 gap-3">
+          <View className="w-12 h-12 rounded-full items-center justify-center bg-black/5">
             <ThemedText size="lg">{activity.emoji}</ThemedText>
           </View>
-          <View style={styles.activityInfo}>
-            <View style={styles.activityHeader}>
+          <View className="flex-1 justify-center gap-1">
+            <View className="flex-row justify-between items-center">
               <ThemedText size="base">
                 <ThemedText weight="semibold">{activity.member}</ThemedText>{" "}
                 {activity.action}
@@ -410,7 +403,7 @@ export default function GroupDetailScreen() {
                 )}
               </ThemedText>
             </View>
-            <View style={styles.activityMetaRow}>
+            <View className="flex-row justify-between items-center">
               <ThemedText
                 size="sm"
                 style={{
@@ -430,20 +423,20 @@ export default function GroupDetailScreen() {
   const renderBalanceItem = useCallback(
     ({ item: balance }: { item: BalanceItem }) => {
       return (
-        <View style={styles.balanceCard}>
-          <View style={styles.balanceAvatar}>
+        <View className="flex-row p-4 gap-3">
+          <View className="w-12 h-12 rounded-full items-center justify-center bg-black/5">
             <ThemedText size="base" weight="semibold">
               {balance.initials}
             </ThemedText>
           </View>
-          <View style={styles.balanceInfo}>
-            <View style={styles.balanceHeader}>
+          <View className="flex-1 justify-center gap-1">
+            <View className="flex-row justify-between items-center">
               <ThemedText size="base" weight="semibold">
                 {balance.member}
               </ThemedText>
-              <View style={styles.balanceAmount}>
+              <View className="items-end">
                 {balance.status === "settled" ? (
-                  <View style={styles.settledBadge}>
+                  <View className="w-8 h-8 items-center justify-center">
                     <SymbolView
                       name="checkmark.circle.fill"
                       tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
@@ -464,7 +457,7 @@ export default function GroupDetailScreen() {
                 )}
               </View>
             </View>
-            <View style={styles.balanceMetaRow}>
+            <View className="flex-row justify-between items-center">
               <ThemedText
                 size="sm"
                 style={{
@@ -474,8 +467,8 @@ export default function GroupDetailScreen() {
                 {balance.status === "owed"
                   ? "is owed"
                   : balance.status === "owes"
-                  ? "owes"
-                  : "settled up"}
+                    ? "owes"
+                    : "settled up"}
               </ThemedText>
             </View>
           </View>
@@ -494,17 +487,15 @@ export default function GroupDetailScreen() {
               data={placeholderReceipts}
               renderItem={renderReceiptItem}
               keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.scrollContent}
+              contentContainerClassName="pb-4"
               ItemSeparatorComponent={() => (
                 <View
-                  style={[
-                    styles.separator,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(0, 0, 0, 0.1)",
-                    },
-                  ]}
+                  className="h-[1px]"
+                  style={{
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 0, 0, 0.1)",
+                  }}
                 />
               )}
             />
@@ -515,17 +506,15 @@ export default function GroupDetailScreen() {
               data={placeholderActivity}
               renderItem={renderActivityItem}
               keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.scrollContent}
+              contentContainerClassName="pb-4"
               ItemSeparatorComponent={() => (
                 <View
-                  style={[
-                    styles.separator,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(0, 0, 0, 0.1)",
-                    },
-                  ]}
+                  className="h-[1px]"
+                  style={{
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 0, 0, 0.1)",
+                  }}
                 />
               )}
             />
@@ -536,17 +525,15 @@ export default function GroupDetailScreen() {
               data={placeholderBalances}
               renderItem={renderBalanceItem}
               keyExtractor={(item, idx) => `${item.member}-${idx}`}
-              contentContainerStyle={styles.scrollContent}
+              contentContainerClassName="pb-4"
               ItemSeparatorComponent={() => (
                 <View
-                  style={[
-                    styles.separator,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(0, 0, 0, 0.1)",
-                    },
-                  ]}
+                  className="h-[1px]"
+                  style={{
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 0, 0, 0.1)",
+                  }}
                 />
               )}
             />
@@ -588,15 +575,12 @@ export default function GroupDetailScreen() {
   if (loading) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ActivityIndicator
           size="large"
@@ -609,23 +593,17 @@ export default function GroupDetailScreen() {
   if (!group) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ThemedText size="lg" weight="semibold">
           Group not found
         </ThemedText>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
+        <TouchableOpacity onPress={() => router.back()} className="mt-4 p-3">
           <ThemedText size="base" style={{ color: Colors.light.tint }}>
             Go Back
           </ThemedText>
@@ -634,316 +612,31 @@ export default function GroupDetailScreen() {
     );
   }
 
-  const containerStyle: ViewStyle[] = [
-    styles.container,
-    {
-      backgroundColor: isDark
-        ? Colors.dark.background
-        : Colors.light.background,
-    },
-  ];
-
   return (
     <>
-      <SwipeableTabView
-        tabs={tabs}
-        renderTabContent={renderTabContent}
-        style={containerStyle}
-      />
+      <SwipeableTabView tabs={tabs} renderTabContent={renderTabContent} />
       <ShareBottomSheet group={group} bottomSheetRef={shareBottomSheetRef} />
-      {/* Toolbar above bottom tab bar */}
-      <View
-        style={[
-          styles.toolbarContainer,
-          {
-            bottom: bottomTabBarHeight + 8,
-          },
-        ]}
-      >
-        <View style={styles.toolbar}>
-          <TouchableOpacity
-            onPress={handleScanReceipt}
-            activeOpacity={0.7}
-            style={styles.toolbarButton}
-          >
-            <GlassView
-              style={[
-                styles.glassButton,
-                {
-                  backgroundColor:
-                    Platform.OS === "ios"
-                      ? isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(255, 255, 255, 0.7)"
-                      : isDark
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(255, 255, 255, 0.8)",
-                  borderColor: isDark
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.1)",
-                },
-              ]}
-            >
-              <SymbolView
-                name="camera.fill"
-                tintColor={isDark ? Colors.dark.text : Colors.light.text}
-                size={24}
-              />
-              <ThemedText
-                size="base"
-                weight="semibold"
-                style={[
-                  styles.toolbarButtonLabel,
-                  {
-                    color: isDark ? Colors.dark.text : Colors.light.text,
-                  },
-                ]}
-              >
-                Scan
-              </ThemedText>
-            </GlassView>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleSettle}
-            activeOpacity={0.7}
-            style={styles.toolbarButton}
-          >
-            <GlassView
-              style={[
-                styles.glassButton,
-                {
-                  backgroundColor:
-                    Platform.OS === "ios"
-                      ? isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(255, 255, 255, 0.7)"
-                      : isDark
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(255, 255, 255, 0.8)",
-                  borderColor: isDark
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.1)",
-                },
-              ]}
-            >
-              <SymbolView
-                name="checkmark.circle.fill"
-                tintColor={isDark ? Colors.dark.text : Colors.light.text}
-                size={24}
-              />
-              <ThemedText
-                size="base"
-                weight="semibold"
-                style={[
-                  styles.toolbarButtonLabel,
-                  {
-                    color: isDark ? Colors.dark.text : Colors.light.text,
-                  },
-                ]}
-              >
-                Settle Up
-              </ThemedText>
-            </GlassView>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleSettle}
-            activeOpacity={0.7}
-            style={{
-              aspectRatio: 1,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <GlassView
-              style={[
-                styles.glassButton,
-                {
-                  backgroundColor:
-                    Platform.OS === "ios"
-                      ? isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(255, 255, 255, 0.7)"
-                      : isDark
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(255, 255, 255, 0.8)",
-                  borderColor: isDark
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.1)",
-                },
-              ]}
-            >
-              <SymbolView
-                name="pencil.and.list.clipboard"
-                tintColor={isDark ? Colors.dark.text : Colors.light.text}
-                size={24}
-              />
-            </GlassView>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Toolbar bottom={bottomTabBarHeight + 8}>
+        <ToolbarButton
+          onPress={handleScanReceipt}
+          icon="camera.fill"
+          label="Scan"
+          variant="glass"
+        />
+        <ToolbarButton
+          onPress={handleSettle}
+          icon="checkmark.circle.fill"
+          label="Settle Up"
+          variant="glass"
+        />
+        <ToolbarButton
+          onPress={() => router.push("/camera?mode=manual")}
+          icon="pencil.and.list.clipboard"
+          variant="glass"
+        />
+      </Toolbar>
     </>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  tabContent: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 16,
-  },
-  receiptCard: {
-    flexDirection: "row",
-    padding: 16,
-    gap: 12,
-  },
-  receiptEmoji: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-  },
-  receiptInfo: {
-    flex: 1,
-    justifyContent: "center",
-    gap: 4,
-  },
-  receiptHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  receiptMetaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  progressBarContainer: {
-    marginTop: 8,
-  },
-  progressBarBackground: {
-    height: 3,
-    borderRadius: 1.5,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: 3,
-  },
-
-  activityCard: {
-    flexDirection: "row",
-    padding: 16,
-    gap: 12,
-  },
-  activityEmoji: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-  },
-  activityInfo: {
-    flex: 1,
-    justifyContent: "center",
-    gap: 4,
-  },
-  activityHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  activityMetaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  balanceCard: {
-    flexDirection: "row",
-    padding: 16,
-    gap: 12,
-  },
-  balanceAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.05)",
-  },
-  balanceInfo: {
-    flex: 1,
-    justifyContent: "center",
-    gap: 4,
-  },
-  balanceHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  balanceMetaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  balanceAmount: {
-    alignItems: "flex-end",
-  },
-  settledBadge: {
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyText: {
-    opacity: 0.6,
-    fontStyle: "italic",
-  },
-  placeholderText: {
-    marginBottom: 16,
-  },
-  backButton: {
-    marginTop: 16,
-    padding: 12,
-  },
-  separator: {
-    height: 1,
-  },
-  toolbarContainer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    paddingHorizontal: 16,
-  },
-  toolbar: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-  },
-  toolbarButton: {
-    flex: 1,
-  },
-  glassButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 999,
-
-    gap: 8,
-    borderWidth: Platform.OS === "ios" ? 0 : 1,
-  },
-  toolbarButtonLabel: {},
-});
+// Styles removed in favor of Tailwind CSS (NativeWind)

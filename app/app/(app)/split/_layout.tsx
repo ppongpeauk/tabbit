@@ -3,7 +3,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getHeaderScreenOptions } from "@/utils/navigation";
 import { SymbolView } from "expo-symbols";
 import { Colors } from "@/constants/theme";
-import { Pressable, StyleSheet } from "react-native";
+import { Pressable } from "react-native";
 
 export default function SplitLayout() {
   const colorScheme = useColorScheme();
@@ -25,7 +25,7 @@ export default function SplitLayout() {
             <Pressable
               onPress={() => router.back()}
               hitSlop={8}
-              style={styles.headerButton}
+              className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
             >
               <SymbolView
                 name="xmark"
@@ -44,7 +44,7 @@ export default function SplitLayout() {
             <Pressable
               onPress={() => router.back()}
               hitSlop={8}
-              style={styles.headerButton}
+              className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
             >
               <SymbolView
                 name="xmark"
@@ -63,7 +63,7 @@ export default function SplitLayout() {
             <Pressable
               onPress={() => router.back()}
               hitSlop={8}
-              style={styles.headerButton}
+              className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
             >
               <SymbolView
                 name="xmark"
@@ -82,7 +82,7 @@ export default function SplitLayout() {
             <Pressable
               onPress={() => router.back()}
               hitSlop={8}
-              style={styles.headerButton}
+              className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
             >
               <SymbolView
                 name="xmark"
@@ -101,7 +101,7 @@ export default function SplitLayout() {
             <Pressable
               onPress={() => router.back()}
               hitSlop={8}
-              style={styles.headerButton}
+              className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
             >
               <SymbolView
                 name="xmark"
@@ -128,13 +128,3 @@ export default function SplitLayout() {
     </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  headerButton: {
-    padding: 8,
-    minWidth: 44,
-    minHeight: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});

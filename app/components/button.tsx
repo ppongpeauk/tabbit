@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   ViewStyle,
 } from "react-native";
+import { cssInterop } from "nativewind";
 import { ReactNode, ReactElement, cloneElement, isValidElement } from "react";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
@@ -36,6 +37,8 @@ export interface ButtonProps extends Omit<PressableProps, "style"> {
   style?: ViewStyle | ViewStyle[];
   /** Whether button should take full width */
   fullWidth?: boolean;
+  /** Tailwind CSS classes */
+  className?: string;
 }
 
 /**
@@ -51,6 +54,7 @@ export function Button({
   rightIcon,
   style,
   fullWidth = false,
+  className,
   ...pressableProps
 }: ButtonProps) {
   const colorScheme = useColorScheme();
@@ -194,6 +198,7 @@ export function Button({
     <Pressable
       {...pressableProps}
       disabled={isDisabled}
+      className={className}
       cssInterop={false}
       style={({ pressed }) => [
         styles.button,
@@ -267,6 +272,8 @@ export function Button({
     </Pressable>
   );
 }
+
+cssInterop(Button, { className: "style" });
 
 const styles = StyleSheet.create({
   button: {

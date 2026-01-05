@@ -4,7 +4,6 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { subscriptionService } from "../subscription/service";
 import { LIMIT_CONFIG } from "../../config/limit";
 import { env } from "../../config/env";
 
@@ -129,13 +128,6 @@ export class LimitService {
       return { allowed: true };
     }
 
-    const isPro = await subscriptionService
-      .isProUser(userId)
-      .catch(() => false);
-    if (isPro) {
-      return { allowed: true };
-    }
-
     await ensureUserLimits(userId);
 
     const status = await this.getLimitStatus(userId);
@@ -161,13 +153,6 @@ export class LimitService {
       return;
     }
 
-    const isPro = await subscriptionService
-      .isProUser(userId)
-      .catch(() => false);
-    if (isPro) {
-      return;
-    }
-
     await ensureUserLimits(userId);
 
     await prisma.user.update({
@@ -184,13 +169,6 @@ export class LimitService {
     userId: string
   ): Promise<{ allowed: boolean; reason?: string }> {
     if (env.DISABLE_LIMITS) {
-      return { allowed: true };
-    }
-
-    const isPro = await subscriptionService
-      .isProUser(userId)
-      .catch(() => false);
-    if (isPro) {
       return { allowed: true };
     }
 
@@ -216,13 +194,6 @@ export class LimitService {
 
   async incrementReceiptCount(userId: string): Promise<void> {
     if (env.DISABLE_LIMITS) {
-      return;
-    }
-
-    const isPro = await subscriptionService
-      .isProUser(userId)
-      .catch(() => false);
-    if (isPro) {
       return;
     }
 

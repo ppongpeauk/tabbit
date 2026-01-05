@@ -42,8 +42,6 @@ export interface StoredReceipt {
   returnInfo?: ReturnInfo;
   appData?: AppData;
   technical?: Technical;
-  imageUri?: string;
-  imageHash?: string;
   splitData?: SplitData;
   createdAt: string;
 }
@@ -129,9 +127,12 @@ export async function updateReceipt(
     if (existing) {
       await updateSyncReceiptDb(id, {
         ...updates,
+        updatedAt: new Date().toISOString(), // Always update timestamp
         syncStatus:
           existing.syncStatus === "synced" ? "pending" : existing.syncStatus,
       });
+    } else {
+      console.warn(`Receipt ${id} not found for update`);
     }
   } else {
     // Use regular AsyncStorage
@@ -144,17 +145,6 @@ export async function updateReceipt(
   }
 }
 
-/**
- * Check if a receipt with the given image hash already exists
- * @param imageHash - SHA-256 hash of the image
- * @returns The existing receipt if found, null otherwise
- */
-export async function findReceiptByImageHash(
-  imageHash: string
-): Promise<StoredReceipt | null> {
-  const receipts = await getReceipts();
-  return receipts.find((r) => r.imageHash === imageHash) || null;
-}
 
 /**
  * Save a new friend
@@ -258,3 +248,4 @@ export async function setDefaultSplitMode(mode: SplitStrategy): Promise<void> {
     throw error;
   }
 }
+

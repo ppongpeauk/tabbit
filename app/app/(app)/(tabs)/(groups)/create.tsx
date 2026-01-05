@@ -6,7 +6,6 @@
 import { useState } from "react";
 import {
   View,
-  StyleSheet,
   ScrollView,
   Alert,
   Image,
@@ -183,60 +182,61 @@ export default function CreateGroupScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[
-        styles.container,
-        {
-          backgroundColor: isDark
-            ? Colors.dark.background
-            : Colors.light.background,
-        },
-      ]}
+      className="flex-1"
+      style={{
+        backgroundColor: isDark
+          ? Colors.dark.background
+          : Colors.light.background,
+      }}
       behavior="padding"
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerClassName="flex-grow items-center"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.contentContainer}>
+        <View className="w-full px-5 pt-5 pb-10">
           {/* Image Picker Section */}
-          <View style={styles.imageSection}>
+          <View className="w-full mb-6">
             <Pressable
               onPress={pickImage}
-              style={({ pressed }) => [
-                styles.imagePicker,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255, 255, 255, 0.05)"
-                    : "rgba(0, 0, 0, 0.05)",
-                  borderColor: isDark
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.1)",
-                  opacity: pressed ? 0.7 : 1,
-                },
-              ]}
+              style={({ pressed }) => ({
+                width: 120,
+                height: 120,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderStyle: "dashed",
+                alignItems: "center",
+                justifyContent: "center",
+                alignSelf: "center",
+                backgroundColor: isDark
+                  ? "rgba(255, 255, 255, 0.05)"
+                  : "rgba(0, 0, 0, 0.05)",
+                borderColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.1)",
+                opacity: pressed ? 0.7 : 1,
+              })}
             >
               {selectedImage ? (
-                <View style={styles.imageContainer}>
+                <View className="w-full h-full relative">
                   <Image
                     source={{ uri: selectedImage }}
-                    style={styles.image}
+                    className="w-full h-full rounded-2xl"
                     resizeMode="cover"
                   />
                   <TouchableOpacity
-                    style={styles.removeButton}
+                    className="absolute top-2 right-2"
                     onPress={removeImage}
                     hitSlop={8}
                   >
                     <View
-                      style={[
-                        styles.removeButtonInner,
-                        {
-                          backgroundColor: isDark
-                            ? "rgba(0, 0, 0, 0.7)"
-                            : "rgba(255, 255, 255, 0.9)",
-                        },
-                      ]}
+                      className="w-6 h-6 rounded-full items-center justify-center"
+                      style={{
+                        backgroundColor: isDark
+                          ? "rgba(0, 0, 0, 0.7)"
+                          : "rgba(255, 255, 255, 0.9)",
+                      }}
                     >
                       <SymbolView
                         name="xmark"
@@ -249,7 +249,7 @@ export default function CreateGroupScreen() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={styles.imagePlaceholder}>
+                <View className="items-center justify-center gap-2">
                   <SymbolView
                     name="photo.fill"
                     tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
@@ -257,12 +257,10 @@ export default function CreateGroupScreen() {
                   />
                   <ThemedText
                     size="sm"
-                    style={[
-                      styles.imagePlaceholderText,
-                      {
-                        color: isDark ? Colors.dark.icon : Colors.light.icon,
-                      },
-                    ]}
+                    className="text-xs opacity-60"
+                    style={{
+                      color: isDark ? Colors.dark.icon : Colors.light.icon,
+                    }}
                   >
                     Tap to add icon
                   </ThemedText>
@@ -272,7 +270,7 @@ export default function CreateGroupScreen() {
           </View>
 
           {/* Form Section */}
-          <View style={styles.formSection}>
+          <View className="w-full">
             <Controller
               control={control}
               rules={{
@@ -308,7 +306,8 @@ export default function CreateGroupScreen() {
             />
             {errors.name && (
               <ThemedText
-                style={[styles.errorText, { color: "#FF3B30" }]}
+                className="-mt-3 mb-4 ml-1"
+                style={{ color: "#FF3B30" }}
                 size="sm"
               >
                 {errors.name.message}
@@ -336,7 +335,7 @@ export default function CreateGroupScreen() {
                   autoCapitalize="sentences"
                   autoCorrect={true}
                   editable={!isSubmitting}
-                  style={styles.descriptionInput}
+                  className="min-h-[100px] pt-3"
                   leftIcon={
                     <SymbolView
                       name="text.alignleft"
@@ -349,7 +348,8 @@ export default function CreateGroupScreen() {
             />
             {errors.description && (
               <ThemedText
-                style={[styles.errorText, { color: "#FF3B30" }]}
+                className="-mt-3 mb-4 ml-1"
+                style={{ color: "#FF3B30" }}
                 size="sm"
               >
                 {errors.description.message}
@@ -362,7 +362,7 @@ export default function CreateGroupScreen() {
               disabled={isSubmitting}
               loading={isSubmitting}
               fullWidth
-              style={styles.submitButton}
+              className="mt-2"
             >
               {isSubmitting ? "Creating..." : "Create Group"}
             </Button>
@@ -373,81 +373,5 @@ export default function CreateGroupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    alignItems: "center",
-  },
-  contentContainer: {
-    width: "100%",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  imageSection: {
-    width: "100%",
-    marginBottom: 24,
-  },
-  label: {
-    marginBottom: 12,
-  },
-  imagePicker: {
-    width: 120,
-    height: 120,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
-  },
-  imageContainer: {
-    width: "100%",
-    height: "100%",
-    position: "relative",
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 16,
-  },
-  removeButton: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-  },
-  removeButtonInner: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  imagePlaceholder: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  imagePlaceholderText: {
-    fontSize: 12,
-    opacity: 0.6,
-  },
-  formSection: {
-    width: "100%",
-  },
-  descriptionInput: {
-    minHeight: 100,
-    paddingTop: 12,
-  },
-  errorText: {
-    marginTop: -12,
-    marginBottom: 16,
-    marginLeft: 4,
-  },
-  submitButton: {
-    marginTop: 8,
-  },
-});
+// Styles removed in favor of Tailwind CSS (NativeWind)
+

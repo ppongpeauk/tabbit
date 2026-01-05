@@ -7,7 +7,6 @@ import {
 } from "react";
 import {
   View,
-  StyleSheet,
   ScrollView,
   Image,
   Pressable,
@@ -219,7 +218,7 @@ export default function EditGroupScreen() {
         <Pressable
           onPress={() => router.back()}
           hitSlop={8}
-          style={styles.headerButton}
+          className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
         >
           <SymbolView
             name="xmark"
@@ -232,10 +231,7 @@ export default function EditGroupScreen() {
           onPress={handleSavePress}
           disabled={isSubmitting}
           hitSlop={8}
-          style={[
-            styles.headerButton,
-            isSubmitting && styles.headerButtonDisabled,
-          ]}
+          className={`p-2 min-w-[44px] min-h-[44px] justify-center items-center ${isSubmitting ? 'opacity-50' : ''}`}
         >
           {isSubmitting ? (
             <ActivityIndicator
@@ -303,15 +299,12 @@ export default function EditGroupScreen() {
   if (loading) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ActivityIndicator
           size="large"
@@ -324,15 +317,12 @@ export default function EditGroupScreen() {
   if (!group) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ThemedText size="lg" weight="semibold">
           Group not found
@@ -343,59 +333,57 @@ export default function EditGroupScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[
-        styles.container,
-        {
-          backgroundColor: isDark
-            ? Colors.dark.background
-            : Colors.light.background,
-        },
-      ]}
+      className="flex-1"
+      style={{
+        backgroundColor: isDark
+          ? Colors.dark.background
+          : Colors.light.background,
+      }}
       behavior="padding"
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerClassName="p-5 gap-6"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Image Picker Section */}
-        <View style={styles.imageSection}>
+        <View className="items-center">
           <Pressable
             onPress={pickImage}
-            style={({ pressed }) => [
-              styles.imagePicker,
-              {
-                backgroundColor: isDark
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : "rgba(0, 0, 0, 0.05)",
-                borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.1)",
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
+            style={({ pressed }) => ({
+              width: 120,
+              height: 120,
+              borderRadius: 24,
+              borderWidth: 1,
+              overflow: "hidden",
+              backgroundColor: isDark
+                ? "rgba(255, 255, 255, 0.05)"
+                : "rgba(0, 0, 0, 0.05)",
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(0, 0, 0, 0.1)",
+              opacity: pressed ? 0.7 : 1,
+            })}
           >
             {selectedImage ? (
-              <View style={styles.imageContainer}>
+              <View className="w-full h-full relative">
                 <Image
                   source={{ uri: selectedImage }}
-                  style={styles.image}
+                  className="w-full h-full"
                   resizeMode="cover"
                 />
                 <TouchableOpacity
-                  style={styles.removeButton}
+                  className="absolute top-2 right-2"
                   onPress={removeImage}
                   hitSlop={8}
                 >
                   <View
-                    style={[
-                      styles.removeButtonInner,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(0, 0, 0, 0.7)"
-                          : "rgba(255, 255, 255, 0.9)",
-                      },
-                    ]}
+                    className="w-6 h-6 rounded-full items-center justify-center"
+                    style={{
+                      backgroundColor: isDark
+                        ? "rgba(0, 0, 0, 0.7)"
+                        : "rgba(255, 255, 255, 0.9)",
+                    }}
                   >
                     <SymbolView
                       name="xmark"
@@ -406,7 +394,7 @@ export default function EditGroupScreen() {
                 </TouchableOpacity>
               </View>
             ) : (
-              <View style={styles.imagePlaceholder}>
+              <View className="w-full h-full items-center justify-center">
                 <SymbolView
                   name="photo"
                   tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
@@ -414,9 +402,9 @@ export default function EditGroupScreen() {
                 />
                 <ThemedText
                   size="sm"
+                  className="mt-2"
                   style={{
                     color: isDark ? Colors.dark.icon : Colors.light.icon,
-                    marginTop: 8,
                   }}
                 >
                   Tap to add icon
@@ -427,7 +415,7 @@ export default function EditGroupScreen() {
         </View>
 
         {/* Form Fields */}
-        <View style={styles.formSection}>
+        <View className="gap-4">
           <Controller
             control={control}
             rules={{
@@ -456,7 +444,8 @@ export default function EditGroupScreen() {
           />
           {errors.name && (
             <ThemedText
-              style={[styles.errorText, { color: "#FF3B30" }]}
+              className="-mt-3 mb-4 ml-1"
+              style={{ color: "#FF3B30" }}
               size="sm"
             >
               {errors.name.message}
@@ -487,7 +476,8 @@ export default function EditGroupScreen() {
           />
           {errors.description && (
             <ThemedText
-              style={[styles.errorText, { color: "#FF3B30" }]}
+              className="-mt-3 mb-4 ml-1"
+              style={{ color: "#FF3B30" }}
               size="sm"
             >
               {errors.description.message}
@@ -496,17 +486,15 @@ export default function EditGroupScreen() {
         </View>
 
         {/* Delete Button */}
-        <View style={styles.deleteSection}>
+        <View className="mt-2">
           <Button
             variant="outline"
             onPress={handleDelete}
             disabled={isDeleting || isSubmitting}
-            style={StyleSheet.flatten([
-              styles.deleteButton,
-              {
-                borderColor: "#FF3B30",
-              },
-            ])}
+            className="border"
+            style={{
+              borderColor: "#FF3B30",
+            }}
           >
             {isDeleting ? (
               <ActivityIndicator size="small" color="#FF3B30" />
@@ -526,77 +514,5 @@ export default function EditGroupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  scrollContent: {
-    padding: 20,
-    gap: 24,
-  },
-  imageSection: {
-    alignItems: "center",
-  },
-  imagePicker: {
-    width: 120,
-    height: 120,
-    borderRadius: 24,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  imageContainer: {
-    width: "100%",
-    height: "100%",
-    position: "relative",
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
-  removeButton: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-  },
-  removeButtonInner: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  imagePlaceholder: {
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  formSection: {
-    gap: 16,
-  },
-  errorText: {
-    marginTop: -12,
-    marginBottom: 16,
-    marginLeft: 4,
-  },
-  deleteSection: {
-    marginTop: 8,
-  },
-  deleteButton: {
-    borderWidth: 1,
-  },
-  headerButton: {
-    padding: 8,
-    minWidth: 44,
-    minHeight: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerButtonDisabled: {
-    opacity: 0.5,
-  },
-});
+// Styles removed in favor of Tailwind CSS (NativeWind)
+

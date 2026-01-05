@@ -1,7 +1,11 @@
 import { View, StyleSheet, Text } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Fonts } from "@/constants/theme";
-import { formatCurrency } from "@/utils/format";
+import {
+  formatCurrency,
+  formatReceiptDate,
+  formatReceiptTime,
+} from "@/utils/format";
 import type { Receipt } from "@/utils/api";
 
 interface ReceiptProps {
@@ -12,18 +16,9 @@ export function Receipt({ data }: ReceiptProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  // Format date for receipt (more compact)
-  const receiptDate = new Date(data.transaction.datetime);
-  const dateStr = receiptDate.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-  const timeStr = receiptDate.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
+  // Format date for receipt using safe formatters
+  const dateStr = formatReceiptDate(data.transaction.datetime);
+  const timeStr = formatReceiptTime(data.transaction.datetime);
 
   const currency = data.totals.currency;
   const merchantAddress = data.merchant.address

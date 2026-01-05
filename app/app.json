@@ -11,7 +11,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ppkl.tabbit",
-      "usesAppleSignIn": true,
       "infoPlist": {
         "UIDesignRequiresCompatibility": true,
         "NSCameraUsageDescription": "This app needs access to your camera to scan receipts and food items.",
@@ -37,7 +36,6 @@
     },
     "plugins": [
       "expo-router",
-      "expo-apple-authentication",
       [
         "expo-contacts",
         {

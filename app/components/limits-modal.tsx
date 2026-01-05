@@ -1,23 +1,17 @@
-import { useCallback, useMemo } from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
-import {
-  BottomSheetModal,
-  BottomSheetBackdrop,
-  BottomSheetView,
-  type BottomSheetBackdropProps,
-} from "@gorhom/bottom-sheet";
+import { useCallback } from "react";
+import { View, StyleSheet } from "react-native";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
 import { useLimits } from "@/hooks/use-limits";
-import { presentPaywall } from "@/utils/paywall";
 import type React from "react";
 import { Button } from "./button";
 
 interface LimitsModalProps {
-  bottomSheetRef: React.RefObject<BottomSheetModal | null>;
+  bottomSheetRef: React.RefObject<TrueSheet | null>;
 }
 
 export function LimitsModal({ bottomSheetRef }: LimitsModalProps) {
@@ -25,25 +19,9 @@ export function LimitsModal({ bottomSheetRef }: LimitsModalProps) {
   const isDark = colorScheme === "dark";
   const { limitStatus } = useLimits();
 
-  const snapPoints = useMemo(() => ["75%"], []);
-
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        animatedIndex={props.animatedIndex}
-        animatedPosition={props.animatedPosition}
-        style={props.style}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    []
-  );
-
-  const handleUpgrade = useCallback(async () => {
+  const handleUpgrade = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await presentPaywall();
+    // Upgrade functionality removed
   }, []);
 
   const scansRemaining = limitStatus?.monthlyScansRemaining ?? 0;
@@ -53,23 +31,15 @@ export function LimitsModal({ bottomSheetRef }: LimitsModalProps) {
   const limitsDisabled = limitStatus?.limitsDisabled ?? false;
 
   return (
-    <BottomSheetModal
+    <TrueSheet
       ref={bottomSheetRef}
-      index={0}
-      snapPoints={snapPoints}
-      backgroundStyle={{
-        backgroundColor: isDark
-          ? Colors.dark.background
-          : Colors.light.background,
-      }}
-      handleIndicatorStyle={{
-        backgroundColor: isDark
-          ? "rgba(255, 255, 255, 0.3)"
-          : "rgba(0, 0, 0, 0.3)",
-      }}
-      backdropComponent={renderBackdrop}
+      // sizes={["75%"]}
+      backgroundColor={
+        isDark ? Colors.dark.background : Colors.light.background
+      }
+      cornerRadius={24}
     >
-      <BottomSheetView style={styles.contentContainer}>
+      <View style={styles.contentContainer}>
         <View style={styles.header}>
           <ThemedText size="xl" weight="bold">
             Free Plan Limits
@@ -259,13 +229,14 @@ export function LimitsModal({ bottomSheetRef }: LimitsModalProps) {
               fullWidth
               onPress={handleUpgrade}
               style={styles.upgradeButton}
+              disabled
             >
-              Subscribe to Tabbit Pro
+              Upgrade unavailable
             </Button>
           </>
         )}
-      </BottomSheetView>
-    </BottomSheetModal>
+      </View>
+    </TrueSheet>
   );
 }
 
@@ -273,7 +244,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingVertical: 20,
   },
   header: {
     marginBottom: 24,

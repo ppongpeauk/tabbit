@@ -49,7 +49,7 @@ export function SettingsItem({
         },
       ]}
     >
-      <ThemedText style={[styles.label, isDestructive && { color: "#FF3B30" }]}>
+      <ThemedText style={[isDestructive && { color: "#FF3B30" }]}>
         {label}
       </ThemedText>
       <View style={styles.rightContent}>

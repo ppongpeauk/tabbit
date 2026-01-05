@@ -11,7 +11,6 @@ import {
   View,
   SectionList,
   Pressable,
-  StyleSheet,
   Alert,
   Modal,
   ScrollView,
@@ -23,8 +22,6 @@ import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/contexts/auth-context";
-import { useRevenueCat } from "@/contexts/revenuecat-context";
-import { presentPaywall, presentCustomerCenter } from "@/utils/paywall";
 import { API_BASE_URL } from "@/utils/config";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -55,11 +52,8 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const { signOut, user } = useAuth();
-  const { isPro, restorePurchases, redeemPromoCode } = useRevenueCat();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
-  const [isRedeeming, setIsRedeeming] = useState(false);
 
   const handleAboutPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -69,51 +63,6 @@ export default function SettingsScreen() {
   const handleContactSupport = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Linking.openURL("mailto:support@usetabbit.com");
-  };
-
-  const handleUpgradeToPro = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const success = await presentPaywall();
-    if (success) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-  };
-
-  const handleManageSubscription = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await presentCustomerCenter();
-  };
-
-  const handleRestorePurchases = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsRestoring(true);
-    try {
-      const success = await restorePurchases();
-      if (success) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    } catch (error) {
-      console.error("Error restoring purchases:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setIsRestoring(false);
-    }
-  };
-
-  const handleRedeemPromoCode = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsRedeeming(true);
-    try {
-      const success = await redeemPromoCode();
-      if (success) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    } catch (error) {
-      console.error("Error redeeming promo code:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setIsRedeeming(false);
-    }
   };
 
   const handleDeleteAccount = () => {
@@ -233,40 +182,6 @@ export default function SettingsScreen() {
       ],
     },
     {
-      title: "Subscription",
-      data: [
-        ...(isPro
-          ? [
-              {
-                id: "manage",
-                label: "Manage Subscription",
-                onPress: handleManageSubscription,
-                showChevron: true,
-              },
-            ]
-          : [
-              {
-                id: "upgrade",
-                label: "Upgrade to Tabbit Pro",
-                onPress: handleUpgradeToPro,
-                showChevron: true,
-              },
-            ]),
-        {
-          id: "promo",
-          label: "Have a promo code?",
-          onPress: handleRedeemPromoCode,
-          showChevron: false,
-        },
-        {
-          id: "restore",
-          label: "Restore Purchases",
-          onPress: handleRestorePurchases,
-          showChevron: false,
-        },
-      ],
-    },
-    {
       title: "About the app",
       data: [
         {
@@ -320,52 +235,46 @@ export default function SettingsScreen() {
 
     return (
       <View
-        style={[
-          styles.sectionContainer,
-          {
-            backgroundColor:
-              colorScheme === "dark"
-                ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(255, 255, 255, 1)",
-            borderWidth: colorScheme === "light" ? 1 : 0,
-            borderColor:
-              colorScheme === "light" ? "rgba(0, 0, 0, 0.1)" : "transparent",
-          },
-        ]}
+        className="rounded-xl overflow-hidden"
+        style={{
+          backgroundColor:
+            colorScheme === "dark"
+              ? "rgba(255, 255, 255, 0.05)"
+              : "rgba(255, 255, 255, 1)",
+          borderWidth: colorScheme === "light" ? 1 : 0,
+          borderColor:
+            colorScheme === "light" ? "rgba(0, 0, 0, 0.1)" : "transparent",
+        }}
       >
         {section.data.map((item, index) => {
           const isDestructive = item.variant === "destructive";
-          const isDisabled =
-            (item.id === "restore" && isRestoring) ||
-            (item.id === "promo" && isRedeeming);
+          const isDisabled = false;
 
           return (
             <View key={item.id}>
               {index > 0 && (
                 <View
-                  style={[
-                    styles.itemSeparator,
-                    { backgroundColor: separatorColor },
-                  ]}
+                  className="h-[1px] mx-4"
+                  style={{ backgroundColor: separatorColor }}
                 />
               )}
               <Pressable
                 cssInterop={false}
                 onPress={item.onPress}
                 disabled={isDisabled}
-                style={({ pressed }) => [
-                  styles.settingItem,
-                  {
-                    backgroundColor: pressed ? pressedBg : "transparent",
-                    opacity: isDisabled ? 0.5 : 1,
-                  },
-                ]}
+                style={({ pressed }) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingVertical: 16,
+                  paddingHorizontal: 16,
+                  backgroundColor: pressed ? pressedBg : "transparent",
+                  opacity: isDisabled ? 0.5 : 1,
+                })}
               >
                 <ThemedText
-                  style={[
-                    styles.settingLabel,
-                    isDestructive && { color: "#FF3B30" },
-                  ]}
+                  size="base"
+                  style={isDestructive ? { color: "#FF3B30" } : undefined}
                 >
                   {item.label}
                 </ThemedText>
@@ -406,18 +315,20 @@ export default function SettingsScreen() {
   };
 
   const renderSectionHeader = ({ section }: { section: Section }) => (
-    <View style={styles.sectionHeader}>
-      <ThemedText style={styles.sectionHeaderText}>{section.title}</ThemedText>
+    <View className="px-1 pt-0">
+      <ThemedText className="text-[13px] font-semibold uppercase tracking-widest opacity-60">
+        {section.title}
+      </ThemedText>
     </View>
   );
 
-  const renderSectionFooter = () => <View style={styles.sectionSeparator} />;
+  const renderSectionFooter = () => <View className="h-8" />;
 
   return (
     <>
       <View
+        className="flex-1"
         style={{
-          flex: 1,
           backgroundColor:
             colorScheme === "dark"
               ? Colors.dark.background
@@ -439,7 +350,7 @@ export default function SettingsScreen() {
                 ? section.data[0].section
                 : null;
             return (
-              <View style={styles.sectionWrapper}>
+              <View className="mb-1">
                 {originalSection &&
                   renderSectionHeader({ section: originalSection })}
               </View>
@@ -447,7 +358,7 @@ export default function SettingsScreen() {
           }}
           renderSectionFooter={renderSectionFooter}
           ListHeaderComponent={<LimitIndicator />}
-          contentContainerStyle={styles.contentContainer}
+          contentContainerClassName="px-5 pt-5 pb-[100px]"
           stickySectionHeadersEnabled={false}
           ItemSeparatorComponent={null}
         />
@@ -459,17 +370,15 @@ export default function SettingsScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => !isDeleting && setShowDeleteModal(false)}
       >
-        <ThemedView style={styles.modalContainer}>
+        <ThemedView className="flex-1">
           <View
-            style={[
-              styles.modalHeader,
-              {
-                borderBottomColor:
-                  colorScheme === "dark"
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.1)",
-              },
-            ]}
+            className="flex-row items-center justify-between px-5 pt-5 pb-4 border-b"
+            style={{
+              borderBottomColor:
+                colorScheme === "dark"
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.1)",
+            }}
           >
             <ThemedText size="xl" weight="bold">
               Delete Account
@@ -483,81 +392,77 @@ export default function SettingsScreen() {
               </Pressable>
             )}
           </View>
-          <ScrollView style={styles.modalContent}>
-            <ThemedText size="lg" weight="semibold" style={styles.modalTitle}>
+          <ScrollView className="flex-1 px-5 pt-6">
+            <ThemedText size="lg" weight="semibold" className="mb-3">
               Are you sure?
             </ThemedText>
-            <ThemedText size="base" style={styles.modalDescription}>
+            <ThemedText size="base" className="mb-6 opacity-80 leading-[22px]">
               This action cannot be undone. Deleting your account will
               permanently:
             </ThemedText>
-            <View style={styles.consequencesList}>
-              <View style={styles.consequenceItem}>
+            <View className="gap-4 mb-6">
+              <View className="flex-row items-start gap-3">
                 <SymbolView
                   name="minus.circle.fill"
                   tintColor="#FF3B30"
-                  style={styles.consequenceIcon}
+                  className="mt-0.5"
                 />
-                <ThemedText size="base" style={styles.consequenceText}>
+                <ThemedText size="base" className="flex-1 leading-[22px]">
                   Delete all your receipts and expense data
                 </ThemedText>
               </View>
-              <View style={styles.consequenceItem}>
+              <View className="flex-row items-start gap-3">
                 <SymbolView
                   name="minus.circle.fill"
                   tintColor="#FF3B30"
-                  style={styles.consequenceIcon}
+                  className="mt-0.5"
                 />
-                <ThemedText size="base" style={styles.consequenceText}>
+                <ThemedText size="base" className="flex-1 leading-[22px]">
                   Remove all split expense records
                 </ThemedText>
               </View>
-              <View style={styles.consequenceItem}>
+              <View className="flex-row items-start gap-3">
                 <SymbolView
                   name="minus.circle.fill"
                   tintColor="#FF3B30"
-                  style={styles.consequenceIcon}
+                  className="mt-0.5"
                 />
-                <ThemedText size="base" style={styles.consequenceText}>
+                <ThemedText size="base" className="flex-1 leading-[22px]">
                   Cancel any pending expense splits
                 </ThemedText>
               </View>
-              <View style={styles.consequenceItem}>
+              <View className="flex-row items-start gap-3">
                 <SymbolView
                   name="minus.circle.fill"
                   tintColor="#FF3B30"
-                  style={styles.consequenceIcon}
+                  className="mt-0.5"
                 />
-                <ThemedText size="base" style={styles.consequenceText}>
+                <ThemedText size="base" className="flex-1 leading-[22px]">
                   Permanently remove your account and all associated data
                 </ThemedText>
               </View>
             </View>
             <ThemedText
               size="sm"
-              style={[
-                styles.modalWarning,
-                {
-                  color: isDark
-                    ? "rgba(255, 59, 48, 0.8)"
-                    : "rgba(255, 59, 48, 0.9)",
-                },
-              ]}
+              className="font-semibold leading-5 mt-2"
+              style={{
+                color: isDark
+                  ? "rgba(255, 59, 48, 0.8)"
+                  : "rgba(255, 59, 48, 0.9)",
+              }}
             >
               This action is irreversible. If you&apos;re sure you want to
               proceed, click the delete button below.
             </ThemedText>
           </ScrollView>
           <View
-            style={[
-              styles.modalFooter,
-              {
-                borderTopColor:
-                  colorScheme === "dark"
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.1)",
-              },
-            ]}
+            className="flex-row gap-3 px-5 py-5 border-t"
+            style={{
+              borderTopColor:
+                colorScheme === "dark"
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.1)",
+            }}
           >
             <Button
               variant="secondary"
@@ -583,100 +488,4 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  contentContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 100,
-  },
-  sectionWrapper: {
-    marginBottom: 4,
-  },
-  sectionHeader: {
-    paddingHorizontal: 4,
-    paddingTop: 0,
-  },
-  sectionHeaderText: {
-    fontFamily: Fonts.sans,
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    opacity: 0.6,
-  },
-  sectionContainer: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  settingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
-  settingLabel: {
-    fontFamily: Fonts.sans,
-    fontSize: 16,
-  },
-  itemSeparator: {
-    height: 1,
-    marginHorizontal: 16,
-  },
-  sectionSeparator: {
-    height: 32,
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-  },
-  modalContent: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-  },
-  modalTitle: {
-    marginBottom: 12,
-  },
-  modalDescription: {
-    marginBottom: 24,
-    opacity: 0.8,
-    lineHeight: 22,
-  },
-  consequencesList: {
-    gap: 16,
-    marginBottom: 24,
-  },
-  consequenceItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-  },
-  consequenceIcon: {
-    marginTop: 2,
-  },
-  consequenceText: {
-    flex: 1,
-    lineHeight: 22,
-  },
-  modalWarning: {
-    fontWeight: "600",
-    lineHeight: 20,
-    marginTop: 8,
-  },
-  modalFooter: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderTopWidth: 1,
-  },
-});
+// Styles removed in favor of Tailwind CSS (NativeWind)

@@ -7,7 +7,6 @@ import { useState, useEffect, useCallback } from "react";
 import { API_BASE_URL } from "@/utils/config";
 import * as SecureStore from "expo-secure-store";
 import { useAuth } from "@/contexts/auth-context";
-import { useRevenueCat } from "@/contexts/revenuecat-context";
 
 const TOKEN_STORAGE_KEY = "tabbit.token";
 
@@ -30,13 +29,12 @@ export interface LimitCheckResult {
 
 export function useLimits() {
   const { user } = useAuth();
-  const { isPro } = useRevenueCat();
   const [limitStatus, setLimitStatus] = useState<LimitStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchLimitStatus = useCallback(async () => {
-    if (!user || isPro) {
+    if (!user) {
       setIsLoading(false);
       return;
     }
@@ -75,10 +73,10 @@ export function useLimits() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, isPro]);
+  }, [user]);
 
   const checkScanLimit = useCallback(async (): Promise<LimitCheckResult> => {
-    if (!user || isPro) {
+    if (!user) {
       return { allowed: true };
     }
 
@@ -116,10 +114,10 @@ export function useLimits() {
         reason: err instanceof Error ? err.message : "Unknown error",
       };
     }
-  }, [user, isPro]);
+  }, [user]);
 
   const checkSaveLimit = useCallback(async (): Promise<LimitCheckResult> => {
-    if (!user || isPro) {
+    if (!user) {
       return { allowed: true };
     }
 
@@ -157,7 +155,7 @@ export function useLimits() {
         reason: err instanceof Error ? err.message : "Unknown error",
       };
     }
-  }, [user, isPro]);
+  }, [user]);
 
   useEffect(() => {
     fetchLimitStatus();

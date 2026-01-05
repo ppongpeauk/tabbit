@@ -5,12 +5,7 @@
 
 import { useCallback, useMemo } from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
-import {
-  BottomSheetModal,
-  BottomSheetBackdrop,
-  BottomSheetView,
-  type BottomSheetBackdropProps,
-} from "@gorhom/bottom-sheet";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
@@ -20,7 +15,7 @@ import type React from "react";
 import { BarcodeDisplay } from "./barcode-display";
 
 interface BarcodeModalProps {
-  bottomSheetRef: React.RefObject<BottomSheetModal | null>;
+  bottomSheetRef: React.RefObject<TrueSheet | null>;
   barcodeValue: string;
   barcodeFormat?: string;
 }
@@ -42,45 +37,21 @@ export function BarcodeModal({
     return null;
   }
 
-  const snapPoints = useMemo(() => ["50%"], []);
-
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        animatedIndex={props.animatedIndex}
-        animatedPosition={props.animatedPosition}
-        style={props.style}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    []
-  );
-
   const handleClose = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     bottomSheetRef.current?.dismiss();
   }, [bottomSheetRef]);
 
   return (
-    <BottomSheetModal
+    <TrueSheet
       ref={bottomSheetRef}
-      index={0}
-      snapPoints={snapPoints}
-      backgroundStyle={{
-        backgroundColor: isDark
-          ? Colors.dark.background
-          : Colors.light.background,
-      }}
-      handleIndicatorStyle={{
-        backgroundColor: isDark
-          ? "rgba(255, 255, 255, 0.3)"
-          : "rgba(0, 0, 0, 0.3)",
-      }}
-      backdropComponent={renderBackdrop}
+      sizes={["50%"]}
+      backgroundColor={
+        isDark ? Colors.dark.background : Colors.light.background
+      }
+      cornerRadius={24}
     >
-      <BottomSheetView style={styles.contentContainer}>
+      <View style={styles.contentContainer}>
         <View style={styles.header}>
           <ThemedText size="xl" weight="bold">
             Return Barcode
@@ -101,8 +72,8 @@ export function BarcodeModal({
         <View style={styles.barcodeContainer}>
           <BarcodeDisplay value={barcodeValue} format={barcodeFormat} />
         </View>
-      </BottomSheetView>
-    </BottomSheetModal>
+      </View>
+    </TrueSheet>
   );
 }
 

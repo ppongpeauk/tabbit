@@ -20,7 +20,12 @@ function PersonExpense({ amount }: PersonExpenseProps) {
     <View style={styles.personContainer}>
       <Image
         source={require("@/assets/images/symbols/rabbit-silhouette.png")}
-        style={styles.rabbitIcon}
+        style={[
+          styles.rabbitIcon,
+          {
+            tintColor: isDark ? "#FFFFFF" : "#000000",
+          },
+        ]}
         resizeMode="contain"
       />
       <ThemedText

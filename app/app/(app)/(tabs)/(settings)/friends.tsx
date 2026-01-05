@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import {
   View,
-  StyleSheet,
   FlatList,
   Pressable,
   Alert,
@@ -152,38 +151,36 @@ export default function FriendsScreen() {
   const renderFriendItem = useCallback(
     ({ item }: { item: Friend }) => (
       <View
-        style={[
-          styles.friendItem,
-          {
-            backgroundColor: isDark
-              ? "rgba(255, 255, 255, 0.05)"
-              : "rgba(0, 0, 0, 0.02)",
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(0, 0, 0, 0.1)",
-          },
-        ]}
+        className="flex-row justify-between items-center py-4 px-4 my-1 rounded-xl border"
+        style={{
+          backgroundColor: isDark
+            ? "rgba(255, 255, 255, 0.05)"
+            : "rgba(0, 0, 0, 0.02)",
+          borderColor: isDark
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.1)",
+        }}
       >
-        <View style={styles.friendInfo}>
+        <View className="flex-1">
           <ThemedText size="base" weight="semibold">
             {item.name}
           </ThemedText>
           {(item.phoneNumber || item.email) && (
             <ThemedText
               size="sm"
+              className="mt-1"
               style={{
                 color: isDark ? Colors.dark.icon : Colors.light.icon,
-                marginTop: 4,
               }}
             >
               {item.phoneNumber || item.email}
             </ThemedText>
           )}
         </View>
-        <View style={styles.friendActions}>
+        <View className="flex-row gap-3">
           <Pressable
             onPress={() => handleEditFriend(item)}
-            style={styles.actionButton}
+            className="p-2"
           >
             <SymbolView
               name="pencil"
@@ -192,7 +189,7 @@ export default function FriendsScreen() {
           </Pressable>
           <Pressable
             onPress={() => handleDeleteFriend(item)}
-            style={styles.actionButton}
+            className="p-2"
           >
             <SymbolView
               name="trash"
@@ -222,8 +219,8 @@ export default function FriendsScreen() {
         setEmail("");
       }}
     >
-      <ThemedView style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
+      <ThemedView className="flex-1">
+        <View className="flex-row justify-between items-center px-5 py-4 border-b border-black/10 dark:border-white/10">
           <ThemedText size="xl" weight="bold">
             {isEdit ? "Edit Friend" : "Add Friend"}
           </ThemedText>
@@ -246,7 +243,7 @@ export default function FriendsScreen() {
             />
           </Pressable>
         </View>
-        <ScrollView style={styles.modalContent}>
+        <ScrollView className="flex-1 px-5 pt-5">
           <FormTextInput
             label="Name"
             value={name}
@@ -270,7 +267,7 @@ export default function FriendsScreen() {
             autoCapitalize="none"
           />
         </ScrollView>
-        <View style={styles.modalFooter}>
+        <View className="flex-row gap-3 px-5 py-4 border-t border-black/10 dark:border-white/10">
           <Button
             variant="secondary"
             onPress={() => {
@@ -303,15 +300,12 @@ export default function FriendsScreen() {
   if (loading) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ActivityIndicator size="large" />
       </View>
@@ -320,16 +314,14 @@ export default function FriendsScreen() {
 
   return (
     <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: isDark
-            ? Colors.dark.background
-            : Colors.light.background,
-        },
-      ]}
+      className="flex-1"
+      style={{
+        backgroundColor: isDark
+          ? Colors.dark.background
+          : Colors.light.background,
+      }}
     >
-      <View style={styles.header}>
+      <View className="flex-row gap-3 px-5 py-4">
         <Button
           variant="secondary"
           onPress={handleAddFriend}
@@ -341,11 +333,11 @@ export default function FriendsScreen() {
       </View>
 
       {friends.length === 0 ? (
-        <View style={styles.emptyState}>
-          <ThemedText size="lg" style={{ opacity: 0.7 }}>
+        <View className="flex-1 justify-center items-center px-5">
+          <ThemedText size="lg" className="opacity-70">
             No friends yet
           </ThemedText>
-          <ThemedText size="sm" style={{ opacity: 0.5, marginTop: 8 }}>
+          <ThemedText size="sm" className="opacity-50 mt-2">
             Add friends manually. Device contacts are available when splitting
             receipts.
           </ThemedText>
@@ -355,7 +347,7 @@ export default function FriendsScreen() {
           data={friends}
           keyExtractor={(item) => item.id}
           renderItem={renderFriendItem}
-          contentContainerStyle={styles.listContent}
+          contentContainerClassName="px-5 pb-5"
         />
       )}
 
@@ -365,73 +357,5 @@ export default function FriendsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  friendItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  friendInfo: {
-    flex: 1,
-  },
-  friendActions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  actionButton: {
-    padding: 8,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0, 0, 0, 0.1)",
-  },
-  modalContent: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  modalFooter: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(0, 0, 0, 0.1)",
-  },
-});
+// Styles removed in favor of Tailwind CSS (NativeWind)
+

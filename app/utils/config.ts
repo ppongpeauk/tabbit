@@ -5,22 +5,7 @@
  */
 const DEFAULT_LOCAL_PORT = 3001;
 export const getApiBaseUrl = (): string => {
-  // Check for environment variable first
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-
-  // Default to localhost for development
-  // On iOS simulator, use localhost
-  // On Android emulator, use 10.0.2.2
-  // On physical device, use your computer's local IP
-  if (process.env.EXPO_OS === "ios") {
-    return `http://localhost:${DEFAULT_LOCAL_PORT}`;
-  } else if (process.env.EXPO_OS === "android") {
-    return `http://10.0.2.2:${DEFAULT_LOCAL_PORT}`;
-  }
-
-  // Fallback to localhost
+  if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
   return `http://localhost:${DEFAULT_LOCAL_PORT}`;
 };
 

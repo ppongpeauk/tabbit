@@ -7,10 +7,11 @@ import { Stack, router } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { SymbolView } from "expo-symbols";
-import { View, StyleSheet, Pressable } from "react-native";
+import { View } from "react-native";
 import ContextMenu from "react-native-context-menu-view";
 import * as Haptics from "expo-haptics";
 import { getHeaderScreenOptions } from "@/utils/navigation";
+import { PlatformPressable } from "@react-navigation/elements";
 
 /**
  * Header right component with plus button and context menu
@@ -52,18 +53,18 @@ function HeaderRight() {
   };
 
   return (
-    <View style={styles.headerRight}>
+    <View className="flex-row items-center">
       <ContextMenu
         actions={menuActions}
         onPress={handleMenuPress}
         dropdownMenuMode={true}
       >
-        <Pressable hitSlop={8} style={styles.headerButton}>
+        <PlatformPressable hitSlop={8} className="p-2 min-w-[44px] min-h-[44px] justify-center items-center">
           <SymbolView
             name="plus"
             tintColor={isDark ? Colors.dark.text : Colors.light.text}
           />
-        </Pressable>
+        </PlatformPressable>
       </ContextMenu>
     </View>
   );
@@ -128,17 +129,3 @@ export default function GroupsLayout() {
     </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  headerButton: {
-    padding: 8,
-    minWidth: 44,
-    minHeight: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});

@@ -53,7 +53,6 @@ export const syncModule = new Elysia({ prefix: "/sync" })
           t.Object({
             id: t.String(),
             data: t.Record(t.String(), t.Any()),
-            imageUri: t.Optional(t.String()),
             createdAt: t.String(),
             updatedAt: t.String(),
           })
@@ -62,8 +61,7 @@ export const syncModule = new Elysia({ prefix: "/sync" })
       detail: {
         tags: ["sync"],
         summary: "Push receipts to server",
-        description:
-          "Sync receipts from client to server. All users can sync, but only Pro users get receipt images saved.",
+        description: "Sync receipts from client to server.",
       },
     }
   )
@@ -104,8 +102,7 @@ export const syncModule = new Elysia({ prefix: "/sync" })
       detail: {
         tags: ["sync"],
         summary: "Pull receipts from server",
-        description:
-          "Sync receipts from server to client. All users can sync, but only Pro users get receipt images.",
+        description: "Sync receipts from server to client.",
       },
     }
   )

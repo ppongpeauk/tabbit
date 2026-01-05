@@ -107,7 +107,6 @@ model Receipt {
   id        String    @id @default(cuid())
   userId    String
   data      Json      @db.JsonB
-  imageKey  String? // S3 key for the receipt image
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   syncedAt  DateTime? // When the receipt was last synced from client

@@ -105,6 +105,7 @@ export function CheckboxButton({
     >
       <Pressable
         onPress={onPress}
+        cssInterop={false}
         style={({ pressed }) => [
           styles.pressableContent,
           noBorder && styles.pressableContentFullWidth,
@@ -114,10 +115,10 @@ export function CheckboxButton({
                 ? "rgba(255, 255, 255, 0.08)"
                 : "rgba(0, 0, 0, 0.04)"
               : isSelected
-              ? isDark
-                ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(0, 0, 0, 0.02)"
-              : "transparent",
+                ? isDark
+                  ? "rgba(255, 255, 255, 0.05)"
+                  : "rgba(0, 0, 0, 0.02)"
+                : "transparent",
           },
         ]}
       >
@@ -243,4 +244,3 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 });
-

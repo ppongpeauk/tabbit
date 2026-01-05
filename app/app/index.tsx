@@ -17,10 +17,8 @@ export default function RootIndex() {
   if (isLoading) {
     return (
       <View
+        className="flex-1 justify-center items-center"
         style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
           backgroundColor:
             colorScheme === "dark"
               ? Colors.dark.background

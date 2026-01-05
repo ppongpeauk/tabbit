@@ -7,12 +7,12 @@ import { useState, useLayoutEffect, useCallback, useRef } from "react";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import {
   ScrollView,
-  StyleSheet,
   View,
   Alert,
   ActivityIndicator,
   TouchableOpacity,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { SymbolView } from "expo-symbols";
@@ -29,12 +29,14 @@ import {
   ReturnInfoCard,
   ReceiptHeader,
   SplitSummaryCard,
+  NotesCard,
   useScannedBarcode,
   shouldShowReturnInfo,
   BarcodeModal,
 } from "@/components/receipt-detail";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import type { StoredReceipt, Friend } from "@/utils/storage";
+import { Toolbar, ToolbarButton } from "@/components/toolbar";
 
 // ============================================================================
 // Toolbar Setup Hook
@@ -93,7 +95,7 @@ function useReceiptToolbar({
 
 function ReceiptLoadingState() {
   return (
-    <View style={[styles.container, styles.centerContent]}>
+    <View className="flex-1 justify-center items-center">
       <ActivityIndicator size="large" />
     </View>
   );
@@ -101,7 +103,7 @@ function ReceiptLoadingState() {
 
 function ReceiptNotFoundState() {
   return (
-    <View style={[styles.container, styles.centerContent]}>
+    <View className="flex-1 justify-center items-center">
       <ThemedText>Receipt not found</ThemedText>
     </View>
   );
@@ -126,114 +128,41 @@ function ReceiptContent({
 }) {
   return (
     <ScrollView
-      style={[styles.scrollView]}
-      contentContainerStyle={[
-        styles.contentContainer,
-        { paddingTop: 32, paddingBottom: 140 },
-      ]}
+      className="flex-1"
+      contentContainerStyle={{
+        paddingHorizontal: 24,
+        gap: 16,
+        paddingTop: 24,
+        paddingBottom: 140,
+      }}
       automaticallyAdjustContentInsets
     >
       <MerchantInfoCard receipt={receipt} />
       <TransactionDetailsCard receipt={receipt} />
       <View
-        style={[
-          styles.itemsTotalsCard,
-          {
-            backgroundColor: isDark ? Colors.dark.surface : "#FFFFFF",
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.05)"
-              : "rgba(0, 0, 0, 0.05)",
-          },
-        ]}
+        className="rounded-[20px] p-6 border"
+        style={{
+          backgroundColor: isDark ? Colors.dark.surface : "#FFFFFF",
+          borderColor: isDark
+            ? "rgba(255, 255, 255, 0.05)"
+            : "rgba(0, 0, 0, 0.05)",
+        }}
       >
         <ItemsCard receipt={receipt} />
         <TotalsCard receipt={receipt} />
       </View>
-      {receipt.splitData && (
+      {receipt.splitData ? (
         <SplitSummaryCard receipt={receipt} friends={friends} />
-      )}
-      {shouldShowReturnInfo(receipt.returnInfo) && (
+      ) : null}
+      {shouldShowReturnInfo(receipt.returnInfo) ? (
         <ReturnInfoCard
           receipt={receipt}
           showRawReturnText={showRawReturnText}
           onToggleFormat={onToggleFormat}
         />
-      )}
+      ) : null}
+      <NotesCard receipt={receipt} />
     </ScrollView>
-  );
-}
-
-// ============================================================================
-// Footer Component
-// ============================================================================
-
-function ReceiptFooter({
-  isDark,
-  onShare,
-  onEdit,
-}: {
-  isDark: boolean;
-  onShare: () => void;
-  onEdit: () => void;
-}) {
-  return (
-    <View
-      style={[
-        styles.footer,
-        {
-          backgroundColor: isDark
-            ? "rgba(21, 23, 24, 0.9)"
-            : "rgba(255, 255, 255, 0.9)",
-          borderTopColor: isDark
-            ? "rgba(255, 255, 255, 0.05)"
-            : "rgba(0, 0, 0, 0.05)",
-        },
-      ]}
-    >
-      <TouchableOpacity
-        style={[
-          styles.footerButtonSecondary,
-          {
-            backgroundColor: isDark ? Colors.dark.surface : "#F5F5F5",
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(0, 0, 0, 0.1)",
-          },
-        ]}
-        onPress={onShare}
-      >
-        <SymbolView
-          name="square.and.arrow.up"
-          tintColor={isDark ? Colors.dark.text : Colors.light.text}
-          style={styles.footerIcon}
-        />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[
-          styles.footerButtonPrimary,
-          {
-            backgroundColor: isDark ? "#FFFFFF" : Colors.light.text,
-          },
-        ]}
-        onPress={onEdit}
-      >
-        <SymbolView
-          name="doc.text"
-          tintColor={isDark ? Colors.dark.background : "#FFFFFF"}
-          style={styles.footerIcon}
-        />
-        <ThemedText
-          size="base"
-          weight="bold"
-          style={{
-            color: isDark ? Colors.dark.background : "#FFFFFF",
-            marginLeft: 8,
-          }}
-        >
-          View Original Receipt
-        </ThemedText>
-      </TouchableOpacity>
-    </View>
   );
 }
 
@@ -248,7 +177,8 @@ export default function ReceiptDetailScreen() {
   }>();
   const [showRawReturnText, setShowRawReturnText] = useState(false);
   const colorScheme = useColorScheme();
-  const barcodeModalRef = useRef<BottomSheetModal>(null);
+  const barcodeModalRef = useRef<TrueSheet>(null);
+  const insets = useSafeAreaInsets();
 
   // React Query hooks
   const {
@@ -330,6 +260,7 @@ export default function ReceiptDetailScreen() {
     });
   }, [id]);
 
+
   const handleShare = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     // TODO: Implement share functionality
@@ -373,8 +304,8 @@ export default function ReceiptDetailScreen() {
   const isDark = colorScheme === "dark";
 
   return (
-    <View style={styles.container}>
-      <ThemedView style={styles.container}>
+    <View className="flex-1">
+      <ThemedView className="flex-1">
         <ReceiptContent
           receipt={receipt}
           friends={friends}
@@ -383,11 +314,14 @@ export default function ReceiptDetailScreen() {
           isDark={isDark}
         />
       </ThemedView>
-      <ReceiptFooter
-        isDark={isDark}
-        onShare={handleShare}
-        onEdit={handleEdit}
-      />
+      <Toolbar bottom={Math.max(insets.bottom, 20)}>
+        <ToolbarButton
+          onPress={handleShare}
+          icon="square.and.arrow.up"
+          variant="secondary"
+        />
+        <ToolbarButton onPress={handleEdit} icon="pencil" variant="secondary" />
+      </Toolbar>
       {receipt.returnInfo?.returnBarcode && (
         <BarcodeModal
           bottomSheetRef={barcodeModalRef}
@@ -398,73 +332,3 @@ export default function ReceiptDetailScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: 24,
-    gap: 16,
-  },
-  itemsTotalsCard: {
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingBottom: 40,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    flexDirection: "row",
-    gap: 16,
-  },
-  footerButtonSecondary: {
-    width: 56,
-    height: 56,
-    borderRadius: 9999,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  footerButtonPrimary: {
-    flex: 1,
-    height: 56,
-    borderRadius: 9999,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  footerIcon: {
-    width: 24,
-    height: 24,
-  },
-});

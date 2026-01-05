@@ -12,6 +12,9 @@ import {
   TransactionsGetRequest,
   ItemGetRequest,
   ItemRemoveRequest,
+  TransactionsEnrichRequest,
+  ClientProvidedTransaction,
+  EnrichTransactionDirection,
 } from "plaid";
 import { plaidClient } from "../../lib/plaid";
 import type {
@@ -210,6 +213,126 @@ export class PlaidService {
       return {
         success: false,
         message: "Failed to remove item",
+        error:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      };
+    }
+  }
+
+  /**
+   * Enrich transaction data with merchant information using Plaid Enrich
+   * @param transaction - Transaction data from receipt
+   * @returns Enriched merchant data (name, logo, address, etc.)
+   */
+  async enrichTransaction(transaction: {
+    description: string;
+    amount: number;
+    currency?: string;
+    date?: string;
+    location?: {
+      address?: string;
+      city?: string;
+      region?: string;
+      postalCode?: string;
+      country?: string;
+    };
+  }): Promise<
+    PlaidResponse<{
+      merchantName?: string;
+      merchantLogo?: string;
+      merchantAddress?: {
+        line1?: string;
+        city?: string;
+        state?: string;
+        postalCode?: string;
+        country?: string;
+      };
+      category?: string[];
+      website?: string;
+    }>
+  > {
+    try {
+      const clientTransaction: ClientProvidedTransaction = {
+        id: `receipt-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+        description: transaction.description,
+        amount: transaction.amount,
+        direction: EnrichTransactionDirection.Outflow,
+        iso_currency_code: transaction.currency || "USD",
+        date_posted: transaction.date || new Date().toISOString().split("T")[0],
+      };
+
+      // Add location if available
+      if (transaction.location) {
+        clientTransaction.location = {
+          address: transaction.location.address,
+          city: transaction.location.city,
+          region: transaction.location.region,
+          postal_code: transaction.location.postalCode,
+          country: transaction.location.country || "US",
+        };
+      }
+
+      const request: TransactionsEnrichRequest = {
+        account_type: "depository",
+        transactions: [clientTransaction],
+      };
+
+      const response = await plaidClient.transactionsEnrich(request);
+
+      if (
+        response.data.enriched_transactions &&
+        response.data.enriched_transactions.length > 0
+      ) {
+        const enriched = response.data.enriched_transactions[0];
+        // Type assertion needed as Plaid types may be incomplete
+        const enrichedData = enriched as {
+          merchant?: {
+            name?: string;
+            logo_url?: string;
+            website?: string;
+            address?: {
+              address?: string;
+              city?: string;
+              region?: string;
+              postal_code?: string;
+              country?: string;
+            };
+          };
+          category?: string[];
+        };
+        const merchant = enrichedData.merchant;
+
+        return {
+          success: true,
+          data: {
+            merchantName: merchant?.name,
+            merchantLogo: merchant?.logo_url,
+            merchantAddress: merchant?.address
+              ? {
+                  line1: merchant.address.address,
+                  city: merchant.address.city,
+                  state: merchant.address.region,
+                  postalCode: merchant.address.postal_code,
+                  country: merchant.address.country,
+                }
+              : undefined,
+            category: enrichedData.category,
+            website: merchant?.website,
+          },
+        };
+      }
+
+      // No enrichment available
+      return {
+        success: true,
+        data: {},
+      };
+    } catch (error) {
+      // Don't fail the sync if enrichment fails - just log and continue
+      console.error("Failed to enrich transaction:", error);
+      return {
+        success: false,
+        message: "Failed to enrich transaction",
         error:
           error instanceof Error ? error.message : "Unknown error occurred",
       };

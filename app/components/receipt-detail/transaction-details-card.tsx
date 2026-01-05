@@ -2,7 +2,10 @@ import { View, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { SymbolView } from "expo-symbols";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { formatDate } from "@/utils/format";
+import {
+  formatReceiptDate,
+  formatReceiptTime,
+} from "@/utils/format";
 import { Colors } from "@/constants/theme";
 import type { StoredReceipt } from "@/utils/storage";
 
@@ -16,85 +19,12 @@ export function TransactionDetailsCard({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  // Format date and time separately
-  const date = new Date(receipt.transaction.datetime);
-  const dateStr = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-  const timeStr = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-
-  // Get category (default to "DINING" if not available)
-  const category = receipt.merchant.category?.toUpperCase() || "DINING";
+  // Format date and time separately using safe formatters
+  const dateStr = formatReceiptDate(receipt.transaction.datetime);
+  const timeStr = formatReceiptTime(receipt.transaction.datetime);
 
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.pill,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.surface
-              : "rgba(0, 0, 0, 0.02)",
-            borderWidth: 1,
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.05)"
-              : "rgba(0, 0, 0, 0.05)",
-          },
-        ]}
-      >
-        <SymbolView
-          name="tag.fill"
-          tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
-          style={styles.icon}
-        />
-        <ThemedText
-          size="xs"
-          weight="medium"
-          style={{
-            color: isDark ? Colors.dark.subtle : Colors.light.icon,
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-          }}
-        >
-          {category}
-        </ThemedText>
-      </View>
-      <View
-        style={[
-          styles.pill,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.surface
-              : "rgba(0, 0, 0, 0.02)",
-            borderWidth: 1,
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.05)"
-              : "rgba(0, 0, 0, 0.05)",
-          },
-        ]}
-      >
-        <SymbolView
-          name="checkmark.seal.fill"
-          tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
-          style={styles.icon}
-        />
-        <ThemedText
-          size="xs"
-          weight="medium"
-          style={{
-            color: isDark ? Colors.dark.subtle : Colors.light.icon,
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-          }}
-        >
-          Verified
-        </ThemedText>
-      </View>
       <View
         style={[
           styles.pill,
@@ -163,7 +93,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "center",
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 8,
   },
   pill: {
     flexDirection: "row",

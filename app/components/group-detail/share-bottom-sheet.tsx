@@ -5,12 +5,7 @@
 
 import { useCallback, useMemo } from "react";
 import { View, StyleSheet, TouchableOpacity, Share } from "react-native";
-import {
-  BottomSheetModal,
-  BottomSheetBackdrop,
-  BottomSheetView,
-  type BottomSheetBackdropProps,
-} from "@gorhom/bottom-sheet";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import {
   BarcodeCreatorView,
   BarcodeFormat,
@@ -25,9 +20,7 @@ import type React from "react";
 
 interface ShareBottomSheetProps {
   group: Group | null;
-  bottomSheetRef: React.RefObject<React.ComponentRef<
-    typeof BottomSheetModal
-  > | null>;
+  bottomSheetRef: React.RefObject<TrueSheet | null>;
 }
 
 export function ShareBottomSheet({
@@ -36,8 +29,6 @@ export function ShareBottomSheet({
 }: ShareBottomSheetProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-
-  const snapPoints = useMemo(() => ["75%"], []);
 
   const inviteLink = useMemo(() => {
     if (!group) return "";
@@ -73,40 +64,17 @@ export function ShareBottomSheet({
     });
   }, [group, inviteMessage]);
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        animatedIndex={props.animatedIndex}
-        animatedPosition={props.animatedPosition}
-        style={props.style}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    []
-  );
-
   if (!group) return null;
 
   return (
-    <BottomSheetModal
+    <TrueSheet
       ref={bottomSheetRef}
-      index={0}
-      snapPoints={snapPoints}
-      backgroundStyle={{
-        backgroundColor: isDark
-          ? Colors.dark.background
-          : Colors.light.background,
-      }}
-      handleIndicatorStyle={{
-        backgroundColor: isDark
-          ? "rgba(255, 255, 255, 0.3)"
-          : "rgba(0, 0, 0, 0.3)",
-      }}
-      backdropComponent={renderBackdrop}
+      backgroundColor={
+        isDark ? Colors.dark.background : Colors.light.background
+      }
+      cornerRadius={24}
     >
-      <BottomSheetView style={styles.contentContainer}>
+      <View style={styles.contentContainer}>
         <View style={styles.qrContainer}>
           <View
             style={[
@@ -192,8 +160,8 @@ export function ShareBottomSheet({
             </ThemedText>
           </TouchableOpacity>
         </View>
-      </BottomSheetView>
-    </BottomSheetModal>
+      </View>
+    </TrueSheet>
   );
 }
 

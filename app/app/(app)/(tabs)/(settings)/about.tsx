@@ -1,5 +1,5 @@
 import { ThemedText } from "@/components/themed-text";
-import { ScrollView, View, StyleSheet } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 
@@ -8,40 +8,40 @@ export default function AboutScreen() {
 
   return (
     <View
+      className="flex-1"
       style={{
-        flex: 1,
         backgroundColor:
           colorScheme === "dark"
             ? Colors.dark.background
             : Colors.light.background,
       }}
     >
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.section}>
-          <ThemedText size="3xl" family="serif" style={styles.title}>
+      <ScrollView contentContainerClassName="flex-1 px-5 gap-4 justify-center">
+        <View className="gap-0">
+          <ThemedText size="3xl" family="serif" className="text-center">
             Tabbit
           </ThemedText>
           <ThemedText
             size="sm"
             weight="normal"
             family="mono"
-            style={styles.version}
+            className="text-center opacity-70"
           >
             Version 1.0.0
           </ThemedText>
         </View>
-        <View style={styles.section}>
-          <ThemedText size="base" family="sans" style={styles.description}>
+        <View className="gap-0">
+          <ThemedText size="base" family="sans" className="text-center">
             Tabbit is a receipt management app that helps you organize and track
             your receipts effortlessly.
           </ThemedText>
         </View>
-        <View style={styles.section}>
+        <View className="gap-0">
           <ThemedText
             size="sm"
             weight="normal"
             family="sans"
-            style={styles.copyright}
+            className="mt-1 text-center opacity-60"
           >
             Copyright © 2025 Tabbit. All rights reserved.
           </ThemedText>
@@ -50,31 +50,3 @@ export default function AboutScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    gap: 16,
-    alignContent: "center",
-    justifyContent: "center",
-  },
-  section: {
-    gap: 0,
-  },
-  title: {
-    textAlign: "center",
-  },
-  version: {
-    textAlign: "center",
-    opacity: 0.7,
-  },
-  description: {
-    textAlign: "center",
-  },
-  copyright: {
-    marginTop: 4,
-    textAlign: "center",
-    opacity: 0.6,
-  },
-});

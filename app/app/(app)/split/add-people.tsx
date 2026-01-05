@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useLayoutEffect } from "react";
-import { View, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import { View, Alert, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { useForm, FormProvider } from "react-hook-form";
 import { ThemedText } from "@/components/themed-text";
@@ -119,15 +119,12 @@ export default function AddPeopleScreen() {
   if (loading) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ActivityIndicator
           size="large"
@@ -140,17 +137,15 @@ export default function AddPeopleScreen() {
   return (
     <FormProvider {...methods}>
       <View
-        style={[
-          styles.container,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         {loading ? (
-          <View style={styles.centerContent}>
+          <View className="flex-1 justify-center items-center">
             <ActivityIndicator
               size="large"
               color={isDark ? Colors.dark.text : Colors.light.text}
@@ -158,8 +153,8 @@ export default function AddPeopleScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.content}>
-              <View style={styles.stepContainer}>
+            <View className="flex-1 pb-0">
+              <View className="flex-1 gap-4 px-5">
                 <AddPeopleSelector
                   name="selectedFriendIds"
                   searchQuery={searchQuery}
@@ -170,17 +165,15 @@ export default function AddPeopleScreen() {
 
             {/* Continue Button */}
             <View
-              style={[
-                styles.footer,
-                {
-                  backgroundColor: isDark
-                    ? Colors.dark.background
-                    : Colors.light.background,
-                  borderTopColor: isDark
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.1)",
-                },
-              ]}
+              className="absolute bottom-0 left-0 right-0 px-5 pt-4 pb-10 border-t"
+              style={{
+                backgroundColor: isDark
+                  ? Colors.dark.background
+                  : Colors.light.background,
+                borderTopColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.1)",
+              }}
             >
               <Button
                 variant="primary"
@@ -198,35 +191,4 @@ export default function AddPeopleScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  content: {
-    flex: 1,
-    paddingBottom: 0,
-  },
-  stepContainer: {
-    flex: 1,
-    gap: 16,
-    paddingHorizontal: 20,
-  },
-  stepTitle: {
-    marginBottom: 4,
-  },
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 40,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-});
+// Styles removed in favor of Tailwind CSS (NativeWind)

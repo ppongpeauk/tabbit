@@ -1,4 +1,4 @@
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { SymbolView } from "expo-symbols";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -18,6 +18,20 @@ interface ReturnInfoCardProps {
   onToggleFormat: () => void;
 }
 
+/**
+ * Check if return policy text has content
+ */
+function hasPolicyTextContent(
+  returnPolicyText?: string | string[],
+  returnPolicyRawText?: string
+): boolean {
+  if (returnPolicyRawText?.trim()) return true;
+  if (!returnPolicyText) return false;
+  return Array.isArray(returnPolicyText)
+    ? returnPolicyText.length > 0
+    : returnPolicyText.trim().length > 0;
+}
+
 export function ReturnInfoCard({
   receipt,
   showRawReturnText,
@@ -28,6 +42,17 @@ export function ReturnInfoCard({
   if (!receipt.returnInfo) return null;
 
   const canToggle = hasBulletPointData(receipt.returnInfo);
+  const hasPolicyText = hasPolicyTextContent(
+    receipt.returnInfo.returnPolicyText,
+    receipt.returnInfo.returnPolicyRawText
+  );
+
+  const policyTextContent = canToggle
+    ? showRawReturnText
+      ? getRawReturnText(receipt.returnInfo)
+      : formatReturnPolicyBullets(receipt.returnInfo.returnPolicyText)
+    : getRawReturnText(receipt.returnInfo);
+
   const CardWrapper = canToggle ? TouchableOpacity : View;
   const wrapperProps = canToggle
     ? { activeOpacity: 0.7, onPress: onToggleFormat }
@@ -36,42 +61,39 @@ export function ReturnInfoCard({
   return (
     <CardWrapper
       {...wrapperProps}
-      style={[
-        styles.card,
-        {
-          backgroundColor: isDark ? Colors.dark.surface : "#FFFFFF",
-          borderColor: isDark
-            ? "rgba(255, 255, 255, 0.05)"
-            : "rgba(0, 0, 0, 0.05)",
-          borderWidth: 1,
-        },
-      ]}
+      className={`rounded-[20px] p-4 gap-1 border ${
+        isDark ? "bg-[#1A1D1E] border-white/5" : "bg-white border-black/5"
+      }`}
+      style={{
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+      }}
     >
-      <View style={styles.returnInfoHeader}>
-        <ThemedText size="xl" weight="bold" style={{ marginBottom: 4 }}>
+      <View className="flex-row justify-between items-center">
+        <ThemedText size="xl" weight="bold" className="mb-1">
           Return Information
         </ThemedText>
         {canToggle && (
           <SymbolView
             name={showRawReturnText ? "text.alignleft" : "list.bullet"}
             tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
-            style={styles.toggleIcon}
+            style={{ width: 18, height: 18 }}
           />
         )}
       </View>
-      {(receipt.returnInfo.returnPolicyText ||
-        receipt.returnInfo.returnPolicyRawText) && (
-        <ThemedText size="sm" style={{ opacity: 0.8, marginBottom: 8 }}>
-          {canToggle
-            ? showRawReturnText
-              ? getRawReturnText(receipt.returnInfo)
-              : formatReturnPolicyBullets(receipt.returnInfo.returnPolicyText)
-            : getRawReturnText(receipt.returnInfo)}
+
+      {hasPolicyText && (
+        <ThemedText size="sm" className="opacity-80 mb-2">
+          {policyTextContent}
         </ThemedText>
       )}
+
       {receipt.returnInfo.returnByDate && (
-        <View style={styles.detailRow}>
-          <ThemedText size={15} style={{ opacity: 0.7 }}>
+        <View className="flex-row justify-between items-center py-2">
+          <ThemedText size={15} className="opacity-70">
             Return By
           </ThemedText>
           <ThemedText size={15} weight="semibold">
@@ -79,9 +101,10 @@ export function ReturnInfoCard({
           </ThemedText>
         </View>
       )}
+
       {receipt.returnInfo.exchangeByDate && (
-        <View style={styles.detailRow}>
-          <ThemedText size={15} style={{ opacity: 0.7 }}>
+        <View className="flex-row justify-between items-center py-2">
+          <ThemedText size={15} className="opacity-70">
             Exchange By
           </ThemedText>
           <ThemedText size={15} weight="semibold">
@@ -89,9 +112,10 @@ export function ReturnInfoCard({
           </ThemedText>
         </View>
       )}
-      {receipt.returnInfo.returnBarcode && (
-        <View style={styles.barcodeSection}>
-          <ThemedText size={15} style={{ opacity: 0.7, marginBottom: 8 }}>
+
+      {receipt.returnInfo.returnBarcode?.trim() && (
+        <View className="mt-2">
+          <ThemedText size={15} className="opacity-70 mb-2">
             Return Code
           </ThemedText>
           <BarcodeDisplay
@@ -103,37 +127,3 @@ export function ReturnInfoCard({
     </CardWrapper>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 20,
-    padding: 16,
-    gap: 4,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  returnInfoHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  toggleIcon: {
-    width: 18,
-    height: 18,
-  },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  barcodeSection: {
-    marginTop: 8,
-  },
-});

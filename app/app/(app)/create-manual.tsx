@@ -4,17 +4,19 @@
  */
 
 import { useState, useLayoutEffect, useCallback, useRef } from "react";
-import { View, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import { View, Alert, ActivityIndicator } from "react-native";
 import { router, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+import { PlatformPressable } from "@react-navigation/elements";
+import { SymbolView } from "expo-symbols";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedView } from "@/components/themed-view";
-import { ManualReceiptForm } from "@/components/manual-receipt-form";
+import { ManualReceiptForm, type ManualReceiptFormRef } from "@/components/manual-receipt-form";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { saveReceipt } from "@/utils/storage";
 import { useLimits } from "@/hooks/use-limits";
-import { useRevenueCat } from "@/contexts/revenuecat-context";
-import { presentPaywall } from "@/utils/paywall";
+import { Toolbar, ToolbarButton } from "@/components/toolbar";
 import type {
   Merchant,
   Transaction,
@@ -36,34 +38,27 @@ interface ManualReceiptFormData {
 export default function CreateManualReceiptScreen() {
   const navigation = useNavigation();
   const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
   const [saving, setSaving] = useState(false);
   const { checkSaveLimit, refresh: refreshLimits } = useLimits();
-  const { isPro } = useRevenueCat();
   const isSavingRef = useRef(false);
   const isCancellingRef = useRef(false);
+  const formRef = useRef<ManualReceiptFormRef | null>(null);
 
   const handleSave = useCallback(
     async (formData: ManualReceiptFormData) => {
-      // Check save limit for free users
-      if (!isPro) {
-        const limitCheck = await checkSaveLimit();
-        if (!limitCheck.allowed) {
-          Alert.alert(
-            "Receipt Storage Limit Reached",
-            limitCheck.reason ||
-              "You've reached your receipt storage limit. Upgrade to Pro for unlimited storage.",
-            [
-              { text: "Cancel", style: "cancel" },
-              {
-                text: "Upgrade to Pro",
-                onPress: async () => {
-                  await presentPaywall();
-                },
-              },
-            ]
-          );
-          return;
-        }
+      // Check save limit
+      const limitCheck = await checkSaveLimit();
+      if (!limitCheck.allowed) {
+        Alert.alert(
+          "Receipt Storage Limit Reached",
+          limitCheck.reason ||
+            "You've reached your receipt storage limit.",
+          [
+            { text: "OK", style: "cancel" },
+          ]
+        );
+        return;
       }
 
       setSaving(true);
@@ -96,7 +91,7 @@ export default function CreateManualReceiptScreen() {
         setSaving(false);
       }
     },
-    [isPro, checkSaveLimit, refreshLimits]
+    [checkSaveLimit, refreshLimits]
   );
 
   const [hasFormData, setHasFormData] = useState(false);
@@ -131,9 +126,34 @@ export default function CreateManualReceiptScreen() {
     setHasFormData(hasData);
   }, []);
 
+  const handleToolbarSave = useCallback(async () => {
+    if (formRef.current) {
+      await formRef.current.save();
+    }
+  }, []);
+
   useLayoutEffect(() => {
     navigation.setOptions({
       title: "Manual Entry",
+      headerLeft: () => (
+        <PlatformPressable
+          onPress={handleCancel}
+          hitSlop={8}
+          style={{
+            minWidth: 44,
+            minHeight: 44,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <SymbolView
+            name="xmark"
+            tintColor={
+              colorScheme === "dark" ? Colors.dark.text : Colors.light.text
+            }
+          />
+        </PlatformPressable>
+      ),
     });
   }, [navigation, colorScheme, handleCancel]);
 
@@ -192,10 +212,10 @@ export default function CreateManualReceiptScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <ThemedView style={styles.container}>
+    <View className="flex-1">
+      <ThemedView className="flex-1">
         {saving ? (
-          <View style={styles.loadingContainer}>
+          <View className="flex-1 items-center justify-center">
             <ActivityIndicator
               size="large"
               color={
@@ -204,24 +224,29 @@ export default function CreateManualReceiptScreen() {
             />
           </View>
         ) : (
-          <ManualReceiptForm
-            onSave={handleSave}
-            onCancel={handleCancel}
-            onFormDataChange={handleFormDataChange}
-          />
+          <>
+            <ManualReceiptForm
+              ref={formRef}
+              onSave={handleSave}
+              onFormDataChange={handleFormDataChange}
+            />
+            <Toolbar bottom={Math.max(insets.bottom, 20)}>
+              <ToolbarButton
+                onPress={handleCancel}
+                icon="xmark"
+                label="Cancel"
+                variant="glass"
+              />
+              <ToolbarButton
+                onPress={handleToolbarSave}
+                icon="checkmark"
+                label="Save Receipt"
+                variant="glass"
+              />
+            </Toolbar>
+          </>
         )}
       </ThemedView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

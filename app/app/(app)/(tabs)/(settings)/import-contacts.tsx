@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   View,
-  StyleSheet,
   FlatList,
   Image,
   Alert,
@@ -148,55 +147,47 @@ export default function ImportContactsScreen() {
       return (
         <Pressable
           onPress={() => toggleContactSelection(item.name)}
-          style={[
-            styles.contactItem,
-            {
-              backgroundColor: isDark
-                ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(0, 0, 0, 0.02)",
-              borderColor: isSelected
-                ? isDark
-                  ? Colors.dark.tint
-                  : Colors.light.tint
-                : isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.1)",
-              borderWidth: isSelected ? 2 : 1,
-            },
-          ]}
+          className="flex-row items-center py-3 px-4 my-1 rounded-xl border"
+          style={{
+            backgroundColor: isDark
+              ? "rgba(255, 255, 255, 0.05)"
+              : "rgba(0, 0, 0, 0.02)",
+            borderColor: isSelected
+              ? isDark
+                ? Colors.dark.tint
+                : Colors.light.tint
+              : isDark
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(0, 0, 0, 0.1)",
+            borderWidth: isSelected ? 2 : 1,
+          }}
         >
           {item.imageUri ? (
             <Image
               source={{ uri: item.imageUri }}
-              style={styles.avatar}
+              className="w-12 h-12 rounded-full mr-3"
             />
           ) : (
             <View
-              style={[
-                styles.avatar,
-                styles.avatarPlaceholder,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255, 255, 255, 0.1)"
-                    : "rgba(0, 0, 0, 0.1)",
-                },
-              ]}
+              className="w-12 h-12 rounded-full mr-3 items-center justify-center"
+              style={{
+                backgroundColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.1)",
+              }}
             >
               <ThemedText
                 size="lg"
                 weight="semibold"
-                style={[
-                  styles.avatarText,
-                  {
-                    color: isDark ? Colors.dark.text : Colors.light.text,
-                  },
-                ]}
+                style={{
+                  color: isDark ? Colors.dark.text : Colors.light.text,
+                }}
               >
                 {item.name.charAt(0).toUpperCase()}
               </ThemedText>
             </View>
           )}
-          <View style={styles.contactInfo}>
+          <View className="flex-1">
             <ThemedText size="base" weight="semibold">
               {item.name}
             </ThemedText>
@@ -213,23 +204,21 @@ export default function ImportContactsScreen() {
             )}
           </View>
           <View
-            style={[
-              styles.checkbox,
-              {
-                backgroundColor: isSelected
-                  ? isDark
-                    ? Colors.dark.tint
-                    : Colors.light.tint
-                  : "transparent",
-                borderColor: isSelected
-                  ? isDark
-                    ? Colors.dark.tint
-                    : Colors.light.tint
-                  : isDark
-                    ? "rgba(255, 255, 255, 0.3)"
-                    : "rgba(0, 0, 0, 0.3)",
-              },
-            ]}
+            className="w-6 h-6 rounded-full border-2 items-center justify-center"
+            style={{
+              backgroundColor: isSelected
+                ? isDark
+                  ? Colors.dark.tint
+                  : Colors.light.tint
+                : "transparent",
+              borderColor: isSelected
+                ? isDark
+                  ? Colors.dark.tint
+                  : Colors.light.tint
+                : isDark
+                  ? "rgba(255, 255, 255, 0.3)"
+                  : "rgba(0, 0, 0, 0.3)",
+            }}
           >
             {isSelected && (
               <ThemedText style={{ color: "white", fontSize: 12 }}>✓</ThemedText>
@@ -244,14 +233,12 @@ export default function ImportContactsScreen() {
   if (loading) {
     return (
       <View
-        style={[
-          styles.container,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ActivityIndicator
           size="large"
@@ -263,8 +250,8 @@ export default function ImportContactsScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.header}>
+    <ThemedView className="flex-1">
+      <View className="flex-row justify-between items-center px-5 py-4 border-b border-black/10">
         <ThemedText size="sm" style={{ opacity: 0.7 }}>
           {selectedContacts.size} of {contacts.length} selected
         </ThemedText>
@@ -278,59 +265,9 @@ export default function ImportContactsScreen() {
         data={contacts}
         keyExtractor={(item, index) => `${item.name}-${index}`}
         renderItem={renderContactItem}
-        contentContainerStyle={styles.listContent}
+        contentContainerClassName="px-5 pb-5"
       />
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0, 0, 0, 0.1)",
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  contactItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
-  },
-  avatarPlaceholder: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {},
-  contactInfo: {
-    flex: 1,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
 

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import { View } from "react-native";
 import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -20,40 +20,23 @@ export default function SentScreen() {
 
   return (
     <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: isDark
-            ? Colors.dark.background
-            : Colors.light.background,
-        },
-      ]}
+      className="flex-1"
+      style={{
+        backgroundColor: isDark
+          ? Colors.dark.background
+          : Colors.light.background,
+      }}
     >
-      <View style={styles.centerContent}>
+      <View className="flex-1 justify-center items-center gap-4">
         <SymbolView
           name="checkmark.circle.fill"
           tintColor={Colors.light.tint}
           size={64}
         />
-        <ThemedText size="lg" weight="semibold" style={styles.sentText}>
+        <ThemedText size="lg" weight="semibold" className="mt-4">
           Requests Sent!
         </ThemedText>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 16,
-  },
-  sentText: {
-    marginTop: 16,
-  },
-});

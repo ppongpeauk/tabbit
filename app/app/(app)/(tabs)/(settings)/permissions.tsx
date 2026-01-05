@@ -7,7 +7,6 @@ import { useState, useEffect, useCallback } from "react";
 import {
   View,
   ScrollView,
-  StyleSheet,
   Pressable,
   Linking,
   Alert,
@@ -210,29 +209,26 @@ export default function PermissionsScreen() {
     return (
       <View
         key={permission.id}
-        style={[
-          styles.permissionItem,
-          {
-            backgroundColor:
-              colorScheme === "dark"
-                ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(255, 255, 255, 1)",
-            borderWidth: 1,
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(0, 0, 0, 0.1)",
-          },
-        ]}
+        className="rounded-xl p-4 gap-4 border"
+        style={{
+          backgroundColor:
+            colorScheme === "dark"
+              ? "rgba(255, 255, 255, 0.05)"
+              : "rgba(255, 255, 255, 1)",
+          borderColor: isDark
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.1)",
+        }}
       >
-        <View style={styles.permissionHeader}>
-          <View style={styles.permissionIconContainer}>
+        <View className="flex-row gap-3">
+          <View className="w-10 h-10 rounded-full items-center justify-center">
             <SymbolView
               name={permission.icon as unknown as SymbolViewProps["name"]}
               size={24}
               tintColor={getIconColor(status)}
             />
           </View>
-          <View style={styles.permissionContent}>
+          <View className="flex-1">
             <ThemedText size="base" weight="bold" family="sans">
               {permission.title}
             </ThemedText>
@@ -241,9 +237,9 @@ export default function PermissionsScreen() {
             </ThemedText>
           </View>
         </View>
-        <View style={styles.permissionActions}>
+        <View className="items-end">
           {isGranted ? (
-            <View style={styles.statusBadge}>
+            <View className="flex-row items-center gap-1.5">
               <SymbolView
                 name="checkmark.circle.fill"
                 size={20}
@@ -262,7 +258,11 @@ export default function PermissionsScreen() {
             <Pressable
               onPress={() => Linking.openSettings()}
               style={({ pressed }) => [
-                styles.actionButton,
+                {
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 8,
+                },
                 getActionButtonStyle(pressed),
               ]}
             >
@@ -275,9 +275,13 @@ export default function PermissionsScreen() {
               onPress={permission.onRequest}
               disabled={isLoading || !canRequest}
               style={({ pressed }) => [
-                styles.actionButton,
+                {
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 8,
+                  opacity: isLoading || !canRequest ? 0.5 : 1,
+                },
                 getActionButtonStyle(pressed),
-                { opacity: isLoading || !canRequest ? 0.5 : 1 },
               ]}
             >
               <ThemedText size="sm" weight="bold" family="sans">
@@ -291,12 +295,12 @@ export default function PermissionsScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView className="flex-1">
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerClassName="px-5 pt-5 pb-10"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
+        <View className="mb-4">
           <ThemedText size="lg" weight="bold" family="sans">
             App Permissions
           </ThemedText>
@@ -306,22 +310,28 @@ export default function PermissionsScreen() {
           </ThemedText>
         </View>
 
-        <View style={styles.permissionsList}>
+        <View className="gap-4 mb-8">
           {permissions.map(renderPermissionItem)}
         </View>
 
         <View
-          style={[
-            styles.footer,
-            {
-              borderTopColor:
-                colorScheme === "dark"
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.1)",
-            },
-          ]}
+          className="pt-4 border-t"
+          style={{
+            borderTopColor:
+              colorScheme === "dark"
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(0, 0, 0, 0.1)",
+          }}
         >
-          <ThemedText size="sm" style={styles.footerText}>
+          <ThemedText
+            size="sm"
+            style={{
+              fontFamily: Fonts.sans,
+              textAlign: "center",
+              opacity: 0.6,
+              lineHeight: 20,
+            }}
+          >
             If you&apos;ve denied a permission, you can enable it in your
             device&apos;s Settings app.
           </ThemedText>
@@ -330,63 +340,3 @@ export default function PermissionsScreen() {
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  header: {
-    marginBottom: 16,
-  },
-  permissionsList: {
-    gap: 16,
-    marginBottom: 32,
-  },
-  permissionItem: {
-    borderRadius: 12,
-    padding: 16,
-    gap: 16,
-  },
-  permissionHeader: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  permissionIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  permissionContent: {
-    flex: 1,
-  },
-  permissionActions: {
-    alignItems: "flex-end",
-  },
-  statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  actionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  footer: {
-    paddingTop: 16,
-    borderTopWidth: 1,
-  },
-  footerText: {
-    fontFamily: Fonts.sans,
-    textAlign: "center",
-    opacity: 0.6,
-    lineHeight: 20,
-  },
-});

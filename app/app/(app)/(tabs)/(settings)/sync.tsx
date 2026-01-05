@@ -6,7 +6,6 @@
 import { useState, useEffect } from "react";
 import {
   View,
-  StyleSheet,
   ScrollView,
   ActivityIndicator,
   Alert,
@@ -18,19 +17,16 @@ import { Button } from "@/components/button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
 import { useSync } from "@/hooks/use-sync";
-import { useRevenueCat } from "@/contexts/revenuecat-context";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
 import { syncService } from "@/lib/sync-service";
-import { presentPaywall } from "@/utils/paywall";
 
 export default function SyncScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const { status, enabled, isLoading, sync, push, pull, toggleEnabled } =
     useSync();
-  const { isPro } = useRevenueCat();
   const [isChecking, setIsChecking] = useState(false);
   const [syncAllowed, setSyncAllowed] = useState<{
     allowed: boolean;
@@ -129,7 +125,7 @@ export default function SyncScreen() {
 
   if (isLoading || isChecking) {
     return (
-      <ThemedView style={[styles.container, styles.centerContent]}>
+      <ThemedView className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" />
       </ThemedView>
     );
@@ -138,14 +134,14 @@ export default function SyncScreen() {
   const canSync = syncAllowed?.allowed ?? false;
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView className="flex-1">
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        className="flex-1"
+        contentContainerClassName="px-5 pt-5 pb-10"
       >
         <SettingsSection>
-          <View style={styles.switchRow}>
-            <ThemedText style={styles.switchLabel}>Enable Sync</ThemedText>
+          <View className="flex-row items-center justify-between py-4 px-4">
+            <ThemedText className="text-base">Enable Sync</ThemedText>
             <Switch
               value={enabled}
               onValueChange={handleSwitchChange}
@@ -170,67 +166,6 @@ export default function SyncScreen() {
           </View>
         </SettingsSection>
 
-        {!isPro && (
-          <View
-            style={[
-              styles.proBanner,
-              {
-                backgroundColor: isDark
-                  ? "rgba(0, 122, 255, 0.15)"
-                  : "rgba(0, 122, 255, 0.1)",
-              },
-            ]}
-          >
-            <SymbolView
-              name="info.circle.fill"
-              tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
-              size={20}
-            />
-            <ThemedText
-              size="sm"
-              style={[
-                styles.proBannerText,
-                {
-                  color: isDark ? Colors.dark.tint : Colors.light.tint,
-                },
-              ]}
-            >
-              Free users can sync unlimited receipts, but receipt images are not
-              saved. Upgrade to Pro to sync receipt images across devices.
-            </ThemedText>
-          </View>
-        )}
-
-        {isPro && (
-          <View
-            style={[
-              styles.proBanner,
-              {
-                backgroundColor: isDark
-                  ? "rgba(0, 122, 255, 0.15)"
-                  : "rgba(0, 122, 255, 0.1)",
-              },
-            ]}
-          >
-            <SymbolView
-              name="checkmark.circle.fill"
-              tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
-              size={20}
-            />
-            <ThemedText
-              size="sm"
-              style={[
-                styles.proBannerText,
-                {
-                  color: isDark ? Colors.dark.tint : Colors.light.tint,
-                },
-              ]}
-            >
-              Pro users can sync unlimited receipts with images saved to the
-              cloud.
-            </ThemedText>
-          </View>
-        )}
 
         {enabled && (
           <>
@@ -238,16 +173,14 @@ export default function SyncScreen() {
               <ThemedText
                 size="sm"
                 weight="semibold"
-                style={[
-                  styles.sectionTitle,
-                  {
-                    color: isDark ? Colors.dark.icon : Colors.light.icon,
-                  },
-                ]}
+                className="mb-3 uppercase tracking-widest text-[13px]"
+                style={{
+                  color: isDark ? Colors.dark.icon : Colors.light.icon,
+                }}
               >
                 Sync Status
               </ThemedText>
-              <View style={styles.statusRow}>
+              <View className="flex-row justify-between items-center py-3">
                 <ThemedText size="base">Last Sync</ThemedText>
                 <ThemedText
                   size="base"
@@ -258,7 +191,7 @@ export default function SyncScreen() {
                   {formatDate(status.lastSyncAt)}
                 </ThemedText>
               </View>
-              <View style={styles.statusRow}>
+              <View className="flex-row justify-between items-center py-3">
                 <ThemedText size="base">Pending</ThemedText>
                 <ThemedText
                   size="base"
@@ -279,25 +212,20 @@ export default function SyncScreen() {
               </View>
               {status.error && (
                 <View
-                  style={[
-                    styles.errorRow,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255, 59, 48, 0.15)"
-                        : "rgba(255, 59, 48, 0.1)",
-                    },
-                  ]}
+                  className="mt-2 p-3 rounded-lg"
+                  style={{
+                    backgroundColor: isDark
+                      ? "rgba(255, 59, 48, 0.15)"
+                      : "rgba(255, 59, 48, 0.1)",
+                  }}
                 >
                   <ThemedText
                     size="sm"
-                    style={[
-                      styles.errorText,
-                      {
-                        color: isDark
-                          ? "rgba(255, 59, 48, 0.9)"
-                          : "rgba(255, 59, 48, 1)",
-                      },
-                    ]}
+                    style={{
+                      color: isDark
+                        ? "rgba(255, 59, 48, 0.9)"
+                        : "rgba(255, 59, 48, 1)",
+                    }}
                   >
                     {status.error}
                   </ThemedText>
@@ -309,12 +237,10 @@ export default function SyncScreen() {
               <ThemedText
                 size="sm"
                 weight="semibold"
-                style={[
-                  styles.sectionTitle,
-                  {
-                    color: isDark ? Colors.dark.icon : Colors.light.icon,
-                  },
-                ]}
+                className="mb-3 uppercase tracking-widest text-[13px]"
+                style={{
+                  color: isDark ? Colors.dark.icon : Colors.light.icon,
+                }}
               >
                 Manual Sync
               </ThemedText>
@@ -323,16 +249,16 @@ export default function SyncScreen() {
                 onPress={handleSyncNow}
                 disabled={status.isSyncing}
                 loading={status.isSyncing}
-                style={styles.button}
+                className="mt-3"
               >
                 Sync Now
               </Button>
-              <View style={styles.buttonRow}>
+              <View className="flex-row gap-3 mt-3">
                 <Button
                   variant="secondary"
                   onPress={handlePushNow}
                   disabled={status.isSyncing}
-                  style={[styles.button, { flex: 1 }]}
+                  style={{ flex: 1 }}
                 >
                   Push
                 </Button>
@@ -340,7 +266,7 @@ export default function SyncScreen() {
                   variant="secondary"
                   onPress={handlePullNow}
                   disabled={status.isSyncing}
-                  style={[styles.button, { flex: 1 }]}
+                  style={{ flex: 1 }}
                 >
                   Pull
                 </Button>
@@ -353,75 +279,5 @@ export default function SyncScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  proBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 16,
-    marginTop: 16,
-    marginBottom: 8,
-    borderRadius: 12,
-  },
-  proBannerText: {
-    flex: 1,
-  },
-  sectionTitle: {
-    marginBottom: 12,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    fontSize: 13,
-  },
-  statusRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  errorRow: {
-    marginTop: 8,
-    padding: 12,
-    borderRadius: 8,
-  },
-  errorText: {},
-  button: {
-    marginTop: 12,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 12,
-  },
-  switchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
-  switchLabel: {
-    fontFamily: Fonts.sans,
-    fontSize: 16,
-  },
-  errorBanner: {
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
-  },
-  errorBannerText: {},
-});
+// Styles removed in favor of Tailwind CSS (NativeWind)
+

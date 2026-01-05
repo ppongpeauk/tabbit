@@ -7,7 +7,6 @@ import {
 } from "react";
 import {
   View,
-  StyleSheet,
   ScrollView,
   ActivityIndicator,
   Alert,
@@ -30,10 +29,7 @@ import {
   type Receipt as ReceiptData,
   type Barcode,
 } from "@/utils/api";
-import { hashImage } from "@/utils/hash";
 import { useLimits } from "@/hooks/use-limits";
-import { useRevenueCat } from "@/contexts/revenuecat-context";
-import { presentPaywall } from "@/utils/paywall";
 import * as SecureStore from "expo-secure-store";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -55,7 +51,6 @@ export default function CreateReceiptScreen() {
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { checkSaveLimit, refresh: refreshLimits } = useLimits();
-  const { isPro } = useRevenueCat();
   const { user, clearAuthState } = useAuth();
   const isDark = colorScheme === "dark";
   const isSavingRef = useRef(false);
@@ -88,42 +83,20 @@ export default function CreateReceiptScreen() {
         return;
       }
 
-      // Check save limit for free users
-      if (!isPro) {
-        const limitCheck = await checkSaveLimit();
-        if (!limitCheck.allowed) {
-          Alert.alert(
-            "Receipt Storage Limit Reached",
-            limitCheck.reason ||
-              "You've reached your receipt storage limit. Upgrade to Pro for unlimited storage.",
-            [
-              { text: "Cancel", style: "cancel" },
-              {
-                text: "Upgrade to Pro",
-                onPress: async () => {
-                  await presentPaywall();
-                },
-              },
-            ]
-          );
-          return;
-        }
+      // Check save limit
+      const limitCheck = await checkSaveLimit();
+      if (!limitCheck.allowed) {
+        Alert.alert(
+          "Receipt Storage Limit Reached",
+          limitCheck.reason || "You've reached your receipt storage limit.",
+          [{ text: "OK", style: "cancel" }]
+        );
+        return;
       }
 
       isSavingRef.current = true;
       const receiptName =
         formData.name || (!touchedFields.name ? receiptData.merchant.name : "");
-
-      // Hash the image if imageUri is provided
-      let imageHash: string | undefined;
-      if (params.imageUri) {
-        try {
-          imageHash = await hashImage(params.imageUri);
-        } catch (error) {
-          console.warn("Failed to hash image:", error);
-          // Continue saving without hash if hashing fails
-        }
-      }
 
       createReceiptMutation.mutate(
         {
@@ -135,14 +108,14 @@ export default function CreateReceiptScreen() {
           returnInfo: receiptData.returnInfo,
           appData: receiptData.appData,
           technical: receiptData.technical,
-          imageUri: params.imageUri,
-          imageHash,
         },
         {
-          onSuccess: async () => {
+          onSuccess: async (savedReceipt) => {
             // Refresh limits after saving
             await refreshLimits();
-            router.back();
+            // Dismiss all modals (camera and create) and navigate to receipt detail screen
+            router.dismissAll();
+            router.push(`/receipt/${savedReceipt.id}`);
           },
           onError: (error) => {
             isSavingRef.current = false;
@@ -155,25 +128,59 @@ export default function CreateReceiptScreen() {
     [
       receiptData,
       touchedFields.name,
-      params.imageUri,
-      isPro,
       checkSaveLimit,
       refreshLimits,
     ]
   );
 
+  const handleCancel = useCallback(() => {
+    // Use the same logic as the back button handler
+    if (!isDirty) {
+      router.back();
+      return;
+    }
+
+    Alert.alert(
+      "Discard changes?",
+      "You have unsaved changes. Are you sure you want to discard them?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Discard",
+          style: "destructive",
+          onPress: () => {
+            router.back();
+          },
+        },
+      ]
+    );
+  }, [isDirty]);
+
   useLayoutEffect(() => {
     navigation.setOptions({
+      headerLeft: () => (
+        <Pressable
+          onPress={handleCancel}
+          hitSlop={8}
+          className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
+        >
+          <SymbolView
+            name="xmark"
+            tintColor={
+              colorScheme === "dark" ? Colors.dark.text : Colors.light.text
+            }
+          />
+        </Pressable>
+      ),
       headerRight: () => (
         <Pressable
           onPress={handleSubmit(handleSave)}
           disabled={createReceiptMutation.isPending || !receiptData}
           hitSlop={8}
-          style={[
-            styles.headerButton,
-            (createReceiptMutation.isPending || !receiptData) &&
-              styles.headerButtonDisabled,
-          ]}
+          className={`p-2 ${createReceiptMutation.isPending || !receiptData ? "opacity-50" : ""}`}
         >
           {createReceiptMutation.isPending ? (
             <ActivityIndicator
@@ -200,6 +207,7 @@ export default function CreateReceiptScreen() {
     colorScheme,
     handleSave,
     handleSubmit,
+    handleCancel,
   ]);
 
   // Handle back button with confirmation if form is dirty
@@ -435,11 +443,8 @@ export default function CreateReceiptScreen() {
               [
                 { text: "OK", onPress: () => router.back() },
                 {
-                  text: "Upgrade to Pro",
-                  onPress: async () => {
-                    await presentPaywall();
-                    router.back();
-                  },
+                  text: "OK",
+                  style: "cancel",
                 },
               ]
             );
@@ -506,10 +511,10 @@ export default function CreateReceiptScreen() {
   }, [params.imageUri, params.barcodes, user, clearAuthState, refreshLimits]);
 
   return (
-    <View style={{ flex: 1 }}>
-      <ThemedView style={styles.container}>
+    <View className="flex-1">
+      <ThemedView className="flex-1">
         <ScrollView
-          style={styles.scrollView}
+          className="flex-1"
           contentContainerStyle={{
             paddingHorizontal: 20,
             paddingVertical: 20,
@@ -517,7 +522,7 @@ export default function CreateReceiptScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Name Input Section */}
-          <View style={styles.section}>
+          <View className="mb-2">
             <Controller
               control={control}
               name="name"
@@ -533,9 +538,9 @@ export default function CreateReceiptScreen() {
           </View>
 
           {/* Receipt Data Section */}
-          <View style={styles.section}>
+          <View className="mb-2">
             {loading ? (
-              <View style={styles.loadingContainer}>
+              <View className="p-10 items-center justify-center">
                 <ActivityIndicator
                   size="large"
                   color={
@@ -544,28 +549,26 @@ export default function CreateReceiptScreen() {
                       : Colors.light.text
                   }
                 />
-                <ThemedText style={styles.loadingText}>
+                <ThemedText className="mt-4 opacity-70">
                   Analyzing receipt...
                 </ThemedText>
               </View>
             ) : error ? (
               <View
-                style={[
-                  styles.errorContainer,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(255, 59, 48, 0.1)"
-                      : "rgba(255, 59, 48, 0.15)",
-                    borderColor: isDark
-                      ? "rgba(255, 59, 48, 0.3)"
-                      : "rgba(255, 59, 48, 0.4)",
-                  },
-                ]}
+                className="p-5 rounded-xl border"
+                style={{
+                  backgroundColor: isDark
+                    ? "rgba(255, 59, 48, 0.1)"
+                    : "rgba(255, 59, 48, 0.15)",
+                  borderColor: isDark
+                    ? "rgba(255, 59, 48, 0.3)"
+                    : "rgba(255, 59, 48, 0.4)",
+                }}
               >
-                <ThemedText style={styles.errorText}>{error}</ThemedText>
+                <ThemedText style={{ color: "#FF3B30" }}>{error}</ThemedText>
               </View>
             ) : receiptData ? (
-              <View style={styles.receiptWrapper}>
+              <View className="w-full">
                 <Receipt data={receiptData} />
               </View>
             ) : null}
@@ -575,49 +578,3 @@ export default function CreateReceiptScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  section: {
-    marginBottom: 8,
-  },
-  loadingContainer: {
-    padding: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loadingText: {
-    marginTop: 16,
-    opacity: 0.7,
-  },
-  errorContainer: {
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  errorText: {
-    color: "#FF3B30",
-  },
-  receiptWrapper: {
-    width: "100%",
-  },
-  headerButton: {
-    padding: 8,
-    minWidth: 44,
-    minHeight: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerButtonDisabled: {
-    opacity: 0.5,
-  },
-});

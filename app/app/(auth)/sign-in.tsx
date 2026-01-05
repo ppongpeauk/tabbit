@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, StyleSheet, Pressable, Alert, ScrollView } from "react-native";
+import { View, Pressable, Alert, ScrollView } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useForm, Controller } from "react-hook-form";
 import { ThemedText } from "@/components/themed-text";
@@ -53,23 +53,21 @@ export default function SignInScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[
-        styles.container,
-        {
-          backgroundColor: isDark
-            ? Colors.dark.background
-            : Colors.light.background,
-        },
-      ]}
+      className="flex-1"
+      style={{
+        backgroundColor: isDark
+          ? Colors.dark.background
+          : Colors.light.background,
+      }}
       behavior="padding"
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        className="flex-grow px-8 pt-10 pb-10 justify-center"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Form Section */}
-        <View style={styles.formSection}>
+        <View className="w-full">
           <Controller
             control={control}
             rules={{
@@ -102,7 +100,8 @@ export default function SignInScreen() {
           />
           {errors.email && (
             <ThemedText
-              style={[styles.errorText, { color: "#FF3B30" }]}
+              className="-mt-3 mb-4 ml-1"
+              style={{ color: "#FF3B30" }}
               size="sm"
             >
               {errors.email.message}
@@ -148,7 +147,8 @@ export default function SignInScreen() {
           />
           {errors.password && (
             <ThemedText
-              style={[styles.errorText, { color: "#FF3B30" }]}
+              className="-mt-3 mb-4 ml-1"
+              style={{ color: "#FF3B30" }}
               size="sm"
             >
               {errors.password.message}
@@ -169,39 +169,3 @@ export default function SignInScreen() {
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 32,
-    paddingTop: 40,
-    paddingBottom: 40,
-    justifyContent: "center",
-  },
-  headerSection: {
-    width: "100%",
-    alignItems: "center",
-    marginBottom: 48,
-  },
-  imagePlaceholder: {
-    width: "50%",
-    minWidth: 100,
-    aspectRatio: 1,
-    borderRadius: 16,
-    marginBottom: 24,
-  },
-  welcomeText: {
-    textAlign: "center",
-  },
-  formSection: {
-    width: "100%",
-  },
-  errorText: {
-    marginTop: -12,
-    marginBottom: 16,
-    marginLeft: 4,
-  },
-});

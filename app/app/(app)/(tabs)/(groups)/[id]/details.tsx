@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useLayoutEffect } from "react";
 import {
   View,
-  StyleSheet,
   ScrollView,
   RefreshControl,
   ActivityIndicator,
@@ -119,7 +118,7 @@ export default function GroupDetailsScreen() {
           <Pressable
             onPress={handleEdit}
             hitSlop={8}
-            style={styles.headerButton}
+            className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
           >
             <SymbolView
               name="gearshape.fill"
@@ -134,15 +133,12 @@ export default function GroupDetailsScreen() {
   if (loading) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ActivityIndicator
           size="large"
@@ -155,15 +151,12 @@ export default function GroupDetailsScreen() {
   if (!group) {
     return (
       <View
-        style={[
-          styles.container,
-          styles.centerContent,
-          {
-            backgroundColor: isDark
-              ? Colors.dark.background
-              : Colors.light.background,
-          },
-        ]}
+        className="flex-1 justify-center items-center"
+        style={{
+          backgroundColor: isDark
+            ? Colors.dark.background
+            : Colors.light.background,
+        }}
       >
         <ThemedText size="lg" weight="semibold">
           Group not found
@@ -174,18 +167,16 @@ export default function GroupDetailsScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[
-        styles.container,
-        {
-          backgroundColor: isDark
-            ? Colors.dark.background
-            : Colors.light.background,
-        },
-      ]}
+      className="flex-1"
+      style={{
+        backgroundColor: isDark
+          ? Colors.dark.background
+          : Colors.light.background,
+      }}
       behavior="padding"
     >
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerClassName="p-5"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -195,37 +186,33 @@ export default function GroupDetailsScreen() {
         }
       >
         {/* Group Header Section */}
-        <View style={styles.headerSection}>
+        <View className="items-center mb-8">
           <View
-            style={[
-              styles.iconContainer,
-              {
-                backgroundColor: isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.05)",
-              },
-            ]}
+            className="w-[120px] h-[120px] rounded-3xl items-center justify-center mb-4 overflow-hidden"
+            style={{
+              backgroundColor: isDark
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(0, 0, 0, 0.05)",
+            }}
           >
             {iconUrl ? (
-              <Image source={{ uri: iconUrl }} style={styles.icon} />
+              <Image source={{ uri: iconUrl }} className="w-[120px] h-[120px] rounded-3xl" />
             ) : (
               <ThemedText size="xl">👥</ThemedText>
             )}
           </View>
 
-          <View style={styles.infoSection}>
-            <ThemedText size="xl" weight="bold" style={styles.groupName}>
+          <View className="w-full items-center">
+            <ThemedText size="xl" weight="bold" className="text-center mb-2">
               {group.name}
             </ThemedText>
             {group.description && (
               <ThemedText
                 size="base"
-                style={[
-                  styles.description,
-                  {
-                    color: isDark ? Colors.dark.icon : Colors.light.icon,
-                  },
-                ]}
+                className="text-center opacity-70 mt-1"
+                style={{
+                  color: isDark ? Colors.dark.icon : Colors.light.icon,
+                }}
               >
                 {group.description}
               </ThemedText>
@@ -234,15 +221,13 @@ export default function GroupDetailsScreen() {
         </View>
 
         {/* Members Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+        <View className="mb-8">
+          <View className="flex-row justify-between items-center mb-2">
             <ThemedText
-              style={[
-                styles.sectionTitle,
-                {
-                  color: isDark ? Colors.dark.text : Colors.light.text,
-                },
-              ]}
+              className="flex-1"
+              style={{
+                color: isDark ? Colors.dark.text : Colors.light.text,
+              }}
               size="lg"
               weight="semibold"
             >
@@ -251,7 +236,7 @@ export default function GroupDetailsScreen() {
             {isAdmin && (
               <TouchableOpacity
                 onPress={handleAddMember}
-                style={styles.addButton}
+                className="p-1"
                 activeOpacity={0.7}
               >
                 <SymbolView
@@ -265,16 +250,14 @@ export default function GroupDetailsScreen() {
 
           {group.members && group.members.length > 0 ? (
             <View
-              style={[
-                styles.membersContainer,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255, 255, 255, 0.05)"
-                    : "rgba(255, 255, 255, 1)",
-                  borderWidth: isDark ? 0 : 1,
-                  borderColor: isDark ? "transparent" : "rgba(0, 0, 0, 0.1)",
-                },
-              ]}
+              className="rounded-xl overflow-hidden"
+              style={{
+                backgroundColor: isDark
+                  ? "rgba(255, 255, 255, 0.05)"
+                  : "rgba(255, 255, 255, 1)",
+                borderWidth: isDark ? 0 : 1,
+                borderColor: isDark ? "transparent" : "rgba(0, 0, 0, 0.1)",
+              }}
             >
               {group.members.map((member, index) => {
                 const isCreator = member.userId === group.creatorId;
@@ -300,38 +283,36 @@ export default function GroupDetailsScreen() {
                   <View key={member.id}>
                     {index > 0 && (
                       <View
-                        style={[
-                          styles.memberSeparator,
-                          { backgroundColor: separatorColor },
-                        ]}
+                        className="h-[1px] mx-4"
+                        style={{ backgroundColor: separatorColor }}
                       />
                     )}
                     <Pressable
-                      style={({ pressed }) => [
-                        styles.memberItem,
-                        {
-                          backgroundColor: pressed ? pressedBg : "transparent",
-                        },
-                      ]}
+                      style={({ pressed }) => ({
+                        flexDirection: "row",
+                        alignItems: "center",
+                        paddingVertical: 16,
+                        paddingHorizontal: 16,
+                        gap: 12,
+                        backgroundColor: pressed ? pressedBg : "transparent",
+                      })}
                     >
                       <View
-                        style={[
-                          styles.memberAvatar,
-                          {
-                            backgroundColor: isDark
-                              ? "rgba(255, 255, 255, 0.1)"
-                              : "rgba(0, 0, 0, 0.05)",
-                          },
-                        ]}
+                        className="w-12 h-12 rounded-full items-center justify-center"
+                        style={{
+                          backgroundColor: isDark
+                            ? "rgba(255, 255, 255, 0.1)"
+                            : "rgba(0, 0, 0, 0.05)",
+                        }}
                       >
                         <ThemedText size="base" weight="semibold">
                           {initials}
                         </ThemedText>
                       </View>
-                      <View style={styles.memberInfo}>
-                        <View style={styles.memberNameRow}>
+                      <View className="flex-1">
+                        <View className="flex-row items-center gap-2">
                           <ThemedText
-                            style={styles.memberName}
+                            className="text-base"
                             weight="semibold"
                           >
                             {displayName}
@@ -345,14 +326,12 @@ export default function GroupDetailsScreen() {
                           )}
                         </View>
                         <ThemedText
-                          style={[
-                            styles.memberRole,
-                            {
-                              color: isDark
-                                ? Colors.dark.icon
-                                : Colors.light.icon,
-                            },
-                          ]}
+                          className="text-sm opacity-70 mt-0.5"
+                          style={{
+                            color: isDark
+                              ? Colors.dark.icon
+                              : Colors.light.icon,
+                          }}
                           size="sm"
                         >
                           {member.role === "admin" ? "Admin" : "Member"}
@@ -365,12 +344,10 @@ export default function GroupDetailsScreen() {
             </View>
           ) : (
             <ThemedText
-              style={[
-                styles.emptyText,
-                {
-                  color: isDark ? Colors.dark.icon : Colors.light.icon,
-                },
-              ]}
+              className="opacity-60 italic"
+              style={{
+                color: isDark ? Colors.dark.icon : Colors.light.icon,
+              }}
               size="base"
             >
               No members yet
@@ -382,115 +359,5 @@ export default function GroupDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  content: {
-    padding: 20,
-  },
-  headerSection: {
-    alignItems: "center",
-    marginBottom: 32,
-  },
-  iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-    overflow: "hidden",
-  },
-  icon: {
-    width: 120,
-    height: 120,
-    borderRadius: 24,
-  },
-  infoSection: {
-    width: "100%",
-    alignItems: "center",
-  },
-  groupName: {
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  description: {
-    textAlign: "center",
-    opacity: 0.7,
-    marginTop: 4,
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    flex: 1,
-  },
-  addButton: {
-    padding: 4,
-  },
-  membersContainer: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  memberItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  memberSeparator: {
-    height: 1,
-    marginHorizontal: 16,
-  },
-  memberAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  memberInfo: {
-    flex: 1,
-  },
-  memberNameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  memberName: {
-    fontSize: 16,
-  },
-  memberRole: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginTop: 2,
-  },
-  emptyText: {
-    opacity: 0.6,
-    fontStyle: "italic",
-  },
-  errorText: {
-    marginTop: -12,
-    marginBottom: 16,
-    marginLeft: 4,
-  },
-  headerButton: {
-    padding: 8,
-    minWidth: 44,
-    minHeight: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});
+// Styles removed in favor of Tailwind CSS (NativeWind)
+

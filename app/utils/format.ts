@@ -45,6 +45,12 @@ export function formatDate(
 ): string {
   try {
     const date = new Date(timestamp);
+
+    // Validate date
+    if (isNaN(date.getTime())) {
+      return "Invalid date";
+    }
+
     return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
@@ -64,6 +70,12 @@ export function formatDate(
  */
 export function formatRelativeDate(timestamp: string): string {
   const date = new Date(timestamp);
+
+  // Validate date
+  if (isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
   const now = new Date();
   const diffTime = Math.abs(now.getTime() - date.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -75,11 +87,15 @@ export function formatRelativeDate(timestamp: string): string {
   } else if (diffDays <= 7) {
     return `${diffDays - 1} days ago`;
   } else {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-    }).format(date);
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+      }).format(date);
+    } catch {
+      return "Invalid date";
+    }
   }
 }
 
@@ -95,19 +111,94 @@ export function formatReceiptDateTime(
 ): string {
   const date = new Date(timestamp);
 
-  if (isToday) {
-    return new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(date);
-  } else {
-    const now = new Date();
-    return new Intl.DateTimeFormat("en-US", {
+  // Validate date
+  if (isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
+  try {
+    if (isToday) {
+      return new Intl.DateTimeFormat("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(date);
+    } else {
+      const now = new Date();
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+      }).format(date);
+    }
+  } catch {
+    return "Invalid date";
+  }
+}
+
+/**
+ * Safely create and validate a Date object from a timestamp
+ * @param timestamp - ISO timestamp string
+ * @returns Valid Date object or null if invalid
+ */
+function safeDate(timestamp: string): Date | null {
+  if (!timestamp) return null;
+  const date = new Date(timestamp);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Safely format a date using Intl.DateTimeFormat
+ * @param date - Date object (can be null)
+ * @param options - Intl.DateTimeFormatOptions
+ * @param fallback - Fallback string if date is invalid (default: "Invalid date")
+ * @returns Formatted date string
+ */
+function safeFormatDate(
+  date: Date | null,
+  options: Intl.DateTimeFormatOptions,
+  fallback: string = "Invalid date"
+): string {
+  if (!date) return fallback;
+  try {
+    return new Intl.DateTimeFormat("en-US", options).format(date);
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Format a receipt date (month, day, year)
+ * @param timestamp - ISO timestamp string
+ * @returns Formatted date string (e.g., "Jan 15, 2024")
+ */
+export function formatReceiptDate(timestamp: string): string {
+  const date = safeDate(timestamp);
+  return safeFormatDate(
+    date,
+    {
       month: "short",
       day: "numeric",
-      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-    }).format(date);
-  }
+      year: "numeric",
+    },
+    "Invalid date"
+  );
+}
+
+/**
+ * Format a receipt time (hour, minute)
+ * @param timestamp - ISO timestamp string
+ * @returns Formatted time string (e.g., "3:45 PM")
+ */
+export function formatReceiptTime(timestamp: string): string {
+  const date = safeDate(timestamp);
+  return safeFormatDate(
+    date,
+    {
+      hour: "numeric",
+      minute: "2-digit",
+    },
+    "Invalid time"
+  );
 }
 
 /**

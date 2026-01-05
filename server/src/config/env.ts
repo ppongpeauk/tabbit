@@ -21,9 +21,6 @@ export const env = {
   // Resend
   RESEND_API_KEY: process.env.RESEND_API_KEY || "",
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || "noreply@example.com",
-  // RevenueCat
-  REVENUECAT_SECRET_KEY: process.env.REVENUECAT_SECRET_KEY || "",
-  REVENUECAT_WEBHOOK_SECRET: process.env.REVENUECAT_WEBHOOK_SECRET || "",
   // S3 / Railway Buckets
   AWS_ENDPOINT_URL: process.env.AWS_ENDPOINT_URL || "",
   AWS_S3_BUCKET_NAME: process.env.AWS_S3_BUCKET_NAME || "",

@@ -15,6 +15,9 @@ export interface Merchant {
   address?: MerchantAddress;
   phone?: string;
   receiptNumber?: string;
+  logo?: string; // Merchant logo URL from Plaid Enrich
+  website?: string; // Merchant website from Plaid Enrich
+  category?: string[]; // Merchant categories from Plaid Enrich
 }
 
 export interface PaymentDetails {
