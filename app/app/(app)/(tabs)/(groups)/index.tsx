@@ -133,9 +133,7 @@ export default function GroupsScreen() {
               resizeMode="cover"
             />
           ) : (
-            <ThemedText size="xl">
-              👥
-            </ThemedText>
+            <ThemedText size="xl">👥</ThemedText>
           )}
         </View>
         <View className="flex-1">
@@ -240,7 +238,6 @@ export default function GroupsScreen() {
             <Button
               variant="primary"
               onPress={handleCreateGroup}
-              className="flex-1"
               fullWidth
               leftIcon={
                 <SymbolView
@@ -254,7 +251,6 @@ export default function GroupsScreen() {
             <Button
               variant="outline"
               onPress={handleJoinGroup}
-              className="flex-1"
               fullWidth
               leftIcon={
                 <SymbolView
@@ -301,4 +297,3 @@ export default function GroupsScreen() {
     </View>
   );
 }
-

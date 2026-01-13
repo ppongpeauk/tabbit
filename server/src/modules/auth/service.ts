@@ -7,7 +7,6 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { successResponse, errorResponse } from "@/utils/route-helpers";
 import { HTTP_STATUS } from "@/utils/constants";
-import { limitService } from "../limits/service";
 import type { User } from "better-auth";
 
 interface AuthError {
@@ -74,14 +73,6 @@ export class AuthService {
           "Authentication failed: could not create session token",
           HTTP_STATUS.INTERNAL_SERVER_ERROR
         ).response;
-      }
-
-      // Initialize limits for new user
-      try {
-        await limitService.initializeUserLimits(user.id);
-      } catch (error) {
-        console.error("Failed to initialize user limits:", error);
-        // Don't fail signup if limit initialization fails
       }
 
       return successResponse({
@@ -393,12 +384,6 @@ export class AuthService {
             emailVerified: true,
           },
         });
-
-        try {
-          await limitService.initializeUserLimits(user.id);
-        } catch (error) {
-          console.error("Failed to initialize user limits:", error);
-        }
       } else {
         if (!user.name && data.name) {
           user = await prisma.user.update({

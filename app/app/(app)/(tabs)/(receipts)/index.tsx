@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { ThemedText } from "@/components/themed-text";
 import {
   SectionList,
-  TouchableOpacity,
+  Pressable,
   View,
   RefreshControl,
   type SectionListRenderItemInfo,
@@ -13,13 +13,18 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useReceipts } from "@/hooks/use-receipts";
 import type { StoredReceipt } from "@/utils/storage";
 import { formatCurrency, formatReceiptDateTime } from "@/utils/format";
-import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
 import { Toolbar, ToolbarButton } from "@/components/toolbar";
+import moment from "moment";
 
 interface ReceiptSection {
   title: string;
   data: StoredReceipt[];
+}
+
+interface SectionItem {
+  type: "section";
+  section: ReceiptSection;
 }
 
 const SECTION_ORDER = [
@@ -69,11 +74,13 @@ function getSectionTitle(timestamp: string): string {
     return "Last Month";
   } else {
     try {
-      return new Intl.DateTimeFormat("en-US", {
-        month: "long",
-        year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-      }).format(date);
-    } catch (error) {
+      // If the current year is different, include the year
+      if (date.getFullYear() !== now.getFullYear()) {
+        return moment(date).format("MMMM YYYY");
+      } else {
+        return moment(date).format("MMMM");
+      }
+    } catch {
       // Fallback if formatting fails
       return "Unknown Date";
     }
@@ -145,65 +152,19 @@ export default function ReceiptsScreen() {
     return [...sortedSections, ...remainingSections];
   }, [receipts]);
 
+  const sectionListData = useMemo<
+    { title: string; data: SectionItem[] }[]
+  >(() => {
+    return sections.map((section) => ({
+      title: section.title,
+      data: [{ type: "section" as const, section }],
+    }));
+  }, [sections]);
+
   const getReceiptDisplayInfo = (item: StoredReceipt) => {
     const hasCustomTitle = item.name && item.name !== item.merchant.name;
     const displayTitle = hasCustomTitle ? item.name : item.merchant.name;
     return { hasCustomTitle, displayTitle };
-  };
-
-  const renderReceiptItem = ({
-    item,
-    section,
-  }: SectionListRenderItemInfo<StoredReceipt, ReceiptSection>) => {
-    const { hasCustomTitle, displayTitle } = getReceiptDisplayInfo(item);
-    const isToday = section.title === "Today";
-
-    const handlePress = () => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      router.push(`/(app)/receipt/${item.id}`);
-    };
-
-    return (
-      <TouchableOpacity
-        className="flex-row py-2 gap-3"
-        activeOpacity={0.7}
-        onPress={handlePress}
-      >
-        <View className="flex-1 justify-center gap-1">
-          <View className="flex-row justify-between items-center">
-            <ThemedText weight="semibold" size="base">
-              {displayTitle}
-            </ThemedText>
-            <ThemedText
-              weight="bold"
-              size="base"
-              lightColor={Colors.light.tint}
-              darkColor={Colors.dark.tint}
-            >
-              {formatCurrency(item.totals.total, item.totals.currency)}
-            </ThemedText>
-          </View>
-          <View className="flex-row justify-between items-center">
-            <ThemedText
-              size="sm"
-              lightColor={Colors.light.icon}
-              darkColor={Colors.dark.icon}
-            >
-              {formatReceiptDateTime(item.transaction.datetime, isToday)}
-            </ThemedText>
-            {hasCustomTitle && (
-              <ThemedText
-                size="sm"
-                lightColor={Colors.light.icon}
-                darkColor={Colors.dark.icon}
-              >
-                {item.merchant.name}
-              </ThemedText>
-            )}
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
   };
 
   const renderSectionHeader = ({
@@ -215,21 +176,126 @@ export default function ReceiptsScreen() {
     >["section"];
   }) => {
     return (
-      <View className="py-3 pt-5 pb-1">
-        <ThemedText
-          weight="semibold"
-          family="sans"
-          size="sm"
-          style={{
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-            opacity: 0.6,
-          }}
-        >
+      <View className="px-1 pt-0 mb-1">
+        <ThemedText className="text-[13px] font-semibold uppercase tracking-widest opacity-60">
           {section.title}
         </ThemedText>
       </View>
     );
+  };
+
+  const renderSectionContainer = (section: ReceiptSection) => {
+    return (
+      <View
+        className="rounded-xl overflow-hidden"
+        style={{
+          backgroundColor:
+            colorScheme === "dark"
+              ? "rgba(255, 255, 255, 0.05)"
+              : "rgba(255, 255, 255, 1)",
+          borderWidth: colorScheme === "light" ? 1 : 0,
+          borderColor:
+            colorScheme === "light" ? "rgba(0, 0, 0, 0.1)" : "transparent",
+        }}
+      >
+        {section.data.map((item, index) => {
+          const { hasCustomTitle, displayTitle } = getReceiptDisplayInfo(item);
+          const isToday = section.title === "Today";
+          const separatorColor =
+            colorScheme === "dark"
+              ? "rgba(255, 255, 255, 0.1)"
+              : "rgba(0, 0, 0, 0.1)";
+          const pressedBg =
+            colorScheme === "dark"
+              ? "rgba(255, 255, 255, 0.08)"
+              : "rgba(0, 0, 0, 0.03)";
+
+          const handlePress = () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push(`/(app)/receipt/${item.id}`);
+          };
+
+          return (
+            <View key={item.id}>
+              {index > 0 && (
+                <View
+                  className="h-[1px] mx-4"
+                  style={{ backgroundColor: separatorColor }}
+                />
+              )}
+              <Pressable
+                cssInterop={false}
+                onPress={handlePress}
+                style={({ pressed }) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingVertical: 16,
+                  paddingHorizontal: 16,
+                  backgroundColor: pressed ? pressedBg : "transparent",
+                })}
+              >
+                <View className="flex-1 justify-center gap-1">
+                  <View className="flex-row justify-between items-center">
+                    <ThemedText weight="semibold" size="base">
+                      {displayTitle}
+                    </ThemedText>
+                    <ThemedText
+                      weight="bold"
+                      size="base"
+                      lightColor={Colors.light.tint}
+                      darkColor={Colors.dark.tint}
+                    >
+                      {formatCurrency(item.totals.total, item.totals.currency)}
+                    </ThemedText>
+                  </View>
+                  <View className="flex-row justify-between items-center">
+                    <ThemedText
+                      size="sm"
+                      lightColor={Colors.light.icon}
+                      darkColor={Colors.dark.icon}
+                    >
+                      {formatReceiptDateTime(
+                        item.transaction.datetime,
+                        isToday
+                      )}
+                    </ThemedText>
+                    {hasCustomTitle && (
+                      <ThemedText
+                        size="sm"
+                        lightColor={Colors.light.icon}
+                        darkColor={Colors.dark.icon}
+                      >
+                        {item.merchant.name}
+                      </ThemedText>
+                    )}
+                  </View>
+                </View>
+              </Pressable>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
+  const renderSectionFooter = () => <View className="h-8" />;
+
+  const renderSectionItem = ({
+    item,
+  }: {
+    item: SectionItem;
+    index: number;
+    section: { title: string; data: SectionItem[] };
+  }) => {
+    if (item.type === "section") {
+      return (
+        <View key={item.section.title || "default"}>
+          {renderSectionContainer(item.section)}
+        </View>
+      );
+    }
+    return null;
   };
 
   return (
@@ -237,11 +303,28 @@ export default function ReceiptsScreen() {
       <SectionList
         contentInsetAdjustmentBehavior="automatic"
         automaticallyAdjustContentInsets
-        sections={sections}
-        renderItem={renderReceiptItem}
-        renderSectionHeader={renderSectionHeader}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 20 }}
+        sections={sectionListData}
+        renderItem={renderSectionItem}
+        renderSectionHeader={({ section }) => {
+          const originalSection =
+            section.data[0]?.type === "section"
+              ? section.data[0].section
+              : null;
+          return (
+            <View className="mb-1">
+              {originalSection &&
+                renderSectionHeader({ section: originalSection })}
+            </View>
+          );
+        }}
+        renderSectionFooter={renderSectionFooter}
+        keyExtractor={(item, index) => {
+          if (item.type === "section") {
+            return `section-${item.section.title || index}`;
+          }
+          return `item-${index}`;
+        }}
+        contentContainerClassName="px-5 pt-5 pb-[100px]"
         className="flex-1"
         style={{
           backgroundColor: isDark
@@ -265,8 +348,9 @@ export default function ReceiptsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         stickySectionHeadersEnabled={false}
+        ItemSeparatorComponent={null}
       />
-      <Toolbar bottom={8}>
+      <Toolbar bottom={16}>
         <ToolbarButton
           onPress={handleScanReceipt}
           icon="camera.fill"
@@ -275,7 +359,7 @@ export default function ReceiptsScreen() {
         />
         <ToolbarButton
           onPress={handleManualEntry}
-          icon="pencil.and.list.clipboard"
+          icon="text.cursor"
           variant="glass"
         />
       </Toolbar>

@@ -41,12 +41,83 @@ export function SplitSummary({
     const friend = friends.find((f) => f.id === personId);
     if (friend) return friend.name;
 
-    // Check if it's a contact
+    // Check if it's a unified ID (from add-people selector)
+    if (personId.startsWith("unified:")) {
+      // Try to match by phone number
+      if (personId.startsWith("unified:phone:")) {
+        const phoneNormalized = personId.replace("unified:phone:", "");
+        const contact = deviceContacts.find((c) => {
+          const contactPhone = c.phoneNumber?.replace(/\D/g, "");
+          return contactPhone === phoneNormalized;
+        });
+        if (contact) return contact.name;
+
+        // Also check friends
+        const friendMatch = friends.find((f) => {
+          const friendPhone = f.phoneNumber?.replace(/\D/g, "");
+          return friendPhone === phoneNormalized;
+        });
+        if (friendMatch) return friendMatch.name;
+      }
+
+      // Try to match by email
+      if (personId.startsWith("unified:email:")) {
+        const email = personId.replace("unified:email:", "");
+        const contact = deviceContacts.find(
+          (c) => c.email?.toLowerCase() === email.toLowerCase()
+        );
+        if (contact) return contact.name;
+
+        // Also check friends
+        const friendMatch = friends.find(
+          (f) => f.email?.toLowerCase() === email.toLowerCase()
+        );
+        if (friendMatch) return friendMatch.name;
+      }
+
+      // Try to match by name
+      if (personId.startsWith("unified:name:")) {
+        const name = personId.replace("unified:name:", "");
+        const contact = deviceContacts.find(
+          (c) => c.name.toLowerCase().trim() === name.toLowerCase().trim()
+        );
+        if (contact) return contact.name;
+
+        // Also check friends
+        const friendMatch = friends.find(
+          (f) => f.name.toLowerCase().trim() === name.toLowerCase().trim()
+        );
+        if (friendMatch) return friendMatch.name;
+      }
+    }
+
+    // Check if it's a contact ID
     if (personId.startsWith("contact:")) {
-      const contact = deviceContacts.find(
+      // Try exact match first
+      const exactMatch = deviceContacts.find(
         (c) => getContactId(c) === personId
       );
-      if (contact) return contact.name;
+      if (exactMatch) return exactMatch.name;
+
+      // Parse the contact ID format: contact:name:phoneOrEmail
+      const parts = personId.split(":");
+      if (parts.length >= 3) {
+        const contactName = parts[1];
+        const phoneOrEmail = parts.slice(2).join(":"); // Handle colons in email addresses
+
+        // Try matching by name and phone/email with normalization
+        const contact = deviceContacts.find((c) => {
+          if (c.name !== contactName) return false;
+          const contactPhone = c.phoneNumber?.replace(/\D/g, "");
+          const searchPhone = phoneOrEmail.replace(/\D/g, "");
+          if (contactPhone && searchPhone && contactPhone === searchPhone)
+            return true;
+          if (c.email && phoneOrEmail && c.email.toLowerCase() === phoneOrEmail.toLowerCase())
+            return true;
+          return false;
+        });
+        if (contact) return contact.name;
+      }
     }
 
     return "Unknown";

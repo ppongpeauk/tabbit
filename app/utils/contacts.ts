@@ -1,4 +1,8 @@
 import * as Contacts from "expo-contacts";
+import {
+  hasContactsPermission,
+  requestContactsPermission,
+} from "./permissions";
 
 export interface ContactInfo {
   name: string;
@@ -7,35 +11,6 @@ export interface ContactInfo {
   imageUri?: string;
 }
 
-/**
- * Request contacts permission
- */
-export async function requestContactsPermission(): Promise<boolean> {
-  try {
-    const { status } = await Contacts.requestPermissionsAsync();
-    return status === "granted";
-  } catch (error) {
-    console.error("Error requesting contacts permission:", error);
-    return false;
-  }
-}
-
-/**
- * Check if contacts permission is granted
- */
-export async function hasContactsPermission(): Promise<boolean> {
-  try {
-    const { status } = await Contacts.getPermissionsAsync();
-    return status === "granted";
-  } catch (error) {
-    console.error("Error checking contacts permission:", error);
-    return false;
-  }
-}
-
-/**
- * Fetch contacts from device
- */
 export async function fetchContacts(): Promise<ContactInfo[]> {
   const hasPermission = await hasContactsPermission();
   if (!hasPermission) {
@@ -64,7 +39,8 @@ export async function fetchContacts(): Promise<ContactInfo[]> {
         contact.emails && contact.emails.length > 0
           ? contact.emails[0].email
           : undefined;
-      const imageUri = contact.imageUri || undefined;
+      const imageUri =
+        contact.image && "uri" in contact.image ? contact.image.uri : undefined;
 
       return {
         name: contact.name || "Unknown",
@@ -83,22 +59,13 @@ export async function fetchContacts(): Promise<ContactInfo[]> {
   }
 }
 
-/**
- * Import selected contacts as friends
- */
 export async function importContactsAsFriends(
   contacts: ContactInfo[]
 ): Promise<ContactInfo[]> {
-  // This function just returns the contacts - the actual import
-  // will be handled by the friends screen component
   return contacts;
 }
 
-/**
- * Get recent contacts (fake data for now)
- */
 export async function getRecentContacts(): Promise<ContactInfo[]> {
-  // TODO: Connect to actual recent contacts data
   return [
     {
       name: "John Doe",
@@ -117,11 +84,7 @@ export async function getRecentContacts(): Promise<ContactInfo[]> {
   ];
 }
 
-/**
- * Get friends list (fake data for now)
- */
 export async function getFriendsList(): Promise<ContactInfo[]> {
-  // TODO: Connect to actual friends data
   return [
     {
       name: "Alice Williams",

@@ -3,7 +3,6 @@
  * @description Settings screen with sectioned list layout
  */
 
-import { LimitIndicator } from "@/components/settings/limit-indicator";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/button";
@@ -357,7 +356,6 @@ export default function SettingsScreen() {
             );
           }}
           renderSectionFooter={renderSectionFooter}
-          ListHeaderComponent={<LimitIndicator />}
           contentContainerClassName="px-5 pt-5 pb-[100px]"
           stickySectionHeadersEnabled={false}
           ItemSeparatorComponent={null}

@@ -2,10 +2,7 @@ import { View, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { SymbolView } from "expo-symbols";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import {
-  formatReceiptDate,
-  formatReceiptTime,
-} from "@/utils/format";
+import { formatReceiptDate, formatReceiptTime } from "@/utils/format";
 import { Colors } from "@/constants/theme";
 import type { StoredReceipt } from "@/utils/storage";
 
@@ -46,9 +43,9 @@ export function TransactionDetailsCard({
         />
         <ThemedText
           size="xs"
-          weight="medium"
+          weight="semibold"
           style={{
-            color: isDark ? Colors.dark.subtle : Colors.light.icon,
+            color: isDark ? Colors.dark.text : Colors.light.text,
           }}
         >
           {dateStr}
@@ -75,9 +72,9 @@ export function TransactionDetailsCard({
         />
         <ThemedText
           size="xs"
-          weight="medium"
+          weight="semibold"
           style={{
-            color: isDark ? Colors.dark.subtle : Colors.light.icon,
+            color: isDark ? Colors.dark.text : Colors.light.text,
           }}
         >
           {timeStr}

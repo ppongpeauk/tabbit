@@ -10,7 +10,6 @@ import { detectBarcodes } from "../../utils/barcode-detector";
 import { HTTP_STATUS } from "../../utils/constants";
 import { errorResponse } from "../../utils/route-helpers";
 import { auth } from "../../lib/auth";
-import { limitService } from "../limits/service";
 import { prisma } from "../../lib/prisma";
 
 /**
@@ -138,25 +137,9 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
         };
       }
 
-      const canScan = await limitService.canScan(user.id);
-      if (!canScan.allowed) {
-        set.status = HTTP_STATUS.FORBIDDEN;
-        return {
-          success: false,
-          message: canScan.reason || "Scan limit reached",
-          limitExceeded: true,
-        };
-      }
-
       const processed = await processImage(image, undefined, async (buffer) =>
         handleReceiptScan(buffer, model, skipPreprocessing)
       );
-
-      if (processed.response.success) {
-        await limitService.incrementScanCount(user.id).catch((error) => {
-          console.error("Failed to increment scan count:", error);
-        });
-      }
 
       set.status = processed.status;
       return processed.response;
@@ -192,27 +175,11 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
         };
       }
 
-      const canScan = await limitService.canScan(user.id);
-      if (!canScan.allowed) {
-        set.status = HTTP_STATUS.FORBIDDEN;
-        return {
-          success: false,
-          message: canScan.reason || "Scan limit reached",
-          limitExceeded: true,
-        };
-      }
-
       const processed = await processImage(
         undefined,
         image_base64,
         async (buffer) => handleReceiptScan(buffer, model, skipPreprocessing)
       );
-
-      if (processed.response.success) {
-        await limitService.incrementScanCount(user.id).catch((error) => {
-          console.error("Failed to increment scan count:", error);
-        });
-      }
 
       set.status = processed.status;
       return processed.response;
@@ -291,17 +258,6 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
         };
       }
 
-      // Check receipt save limit
-      const canSave = await limitService.canSaveReceipt(user.id);
-      if (!canSave.allowed) {
-        set.status = HTTP_STATUS.FORBIDDEN;
-        return {
-          success: false,
-          message: canSave.reason || "Receipt storage limit reached",
-          limitExceeded: true,
-        };
-      }
-
       try {
         // Save receipt to database
         const receipt = await prisma.receipt.create({
@@ -310,9 +266,6 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
             data: body.receipt,
           },
         });
-
-        // Increment receipt count
-        await limitService.incrementReceiptCount(user.id);
 
         set.status = HTTP_STATUS.CREATED;
         return {
@@ -339,7 +292,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
       detail: {
         tags: ["receipts"],
         summary: "Save receipt",
-        description: "Save a receipt to the database (counts against limit)",
+        description: "Save a receipt to the database",
       },
     }
   );

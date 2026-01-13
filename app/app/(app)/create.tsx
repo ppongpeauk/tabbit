@@ -29,7 +29,6 @@ import {
   type Receipt as ReceiptData,
   type Barcode,
 } from "@/utils/api";
-import { useLimits } from "@/hooks/use-limits";
 import * as SecureStore from "expo-secure-store";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -50,7 +49,6 @@ export default function CreateReceiptScreen() {
   const [loading, setLoading] = useState(true);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { checkSaveLimit, refresh: refreshLimits } = useLimits();
   const { user, clearAuthState } = useAuth();
   const isDark = colorScheme === "dark";
   const isSavingRef = useRef(false);
@@ -83,17 +81,6 @@ export default function CreateReceiptScreen() {
         return;
       }
 
-      // Check save limit
-      const limitCheck = await checkSaveLimit();
-      if (!limitCheck.allowed) {
-        Alert.alert(
-          "Receipt Storage Limit Reached",
-          limitCheck.reason || "You've reached your receipt storage limit.",
-          [{ text: "OK", style: "cancel" }]
-        );
-        return;
-      }
-
       isSavingRef.current = true;
       const receiptName =
         formData.name || (!touchedFields.name ? receiptData.merchant.name : "");
@@ -111,8 +98,6 @@ export default function CreateReceiptScreen() {
         },
         {
           onSuccess: async (savedReceipt) => {
-            // Refresh limits after saving
-            await refreshLimits();
             // Dismiss all modals (camera and create) and navigate to receipt detail screen
             router.dismissAll();
             router.push(`/receipt/${savedReceipt.id}`);
@@ -125,12 +110,7 @@ export default function CreateReceiptScreen() {
         }
       );
     },
-    [
-      receiptData,
-      touchedFields.name,
-      checkSaveLimit,
-      refreshLimits,
-    ]
+    [receiptData, touchedFields.name]
   );
 
   const handleCancel = useCallback(() => {
@@ -433,25 +413,6 @@ export default function CreateReceiptScreen() {
         });
 
         if (!response.success) {
-          // Check if limit was exceeded
-          if (response.limitExceeded) {
-            await refreshLimits();
-            Alert.alert(
-              "Scan Limit Reached",
-              response.message ||
-                "You've reached your monthly scan limit. Upgrade to Pro for unlimited scans.",
-              [
-                { text: "OK", onPress: () => router.back() },
-                {
-                  text: "OK",
-                  style: "cancel",
-                },
-              ]
-            );
-            setLoading(false);
-            return;
-          }
-
           if (response.authError) {
             await clearAuthState();
             Alert.alert(
@@ -508,7 +469,7 @@ export default function CreateReceiptScreen() {
     };
 
     loadReceiptData();
-  }, [params.imageUri, params.barcodes, user, clearAuthState, refreshLimits]);
+  }, [params.imageUri, params.barcodes, user, clearAuthState]);
 
   return (
     <View className="flex-1">

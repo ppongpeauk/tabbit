@@ -4,7 +4,7 @@
     "slug": "tabbit",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon-ai.png",
+    "icon": "./assets/images/icon-ai2.png",
     "scheme": "tabbit",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

@@ -19,13 +19,20 @@ import {
 } from "@react-native-google-signin/google-signin";
 import { API_BASE_URL } from "@/utils/config";
 
+// Storage keys
 const AUTH_STORAGE_KEY = "tabbit.auth";
 const TOKEN_STORAGE_KEY = "tabbit.token";
 
+// Google OAuth configuration
 const GOOGLE_IOS_CLIENT_ID =
   "1007672962218-o67io1st4gnevkinaqo4cdeo38ergoh4.apps.googleusercontent.com";
 const GOOGLE_WEB_CLIENT_ID =
   "1007672962218-fv05df92ij6i74bahnfg3gkmgril1ol1.apps.googleusercontent.com";
+
+// HTTP headers
+const JSON_HEADERS = {
+  "Content-Type": "application/json",
+} as const;
 
 export interface User {
   id: string;
@@ -50,45 +57,61 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * Type guard to check if error has a code property matching Google Sign-In status codes
+ */
+const isGoogleError = (error: unknown): error is { code: string } => {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof (error as { code: unknown }).code === "string"
+  );
+};
+
+/**
+ * Maps Google Sign-In error codes to user-friendly error messages
+ */
+const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
+  [statusCodes.SIGN_IN_CANCELLED]: "Sign in was cancelled",
+  [statusCodes.IN_PROGRESS]: "Sign in is already in progress",
+  [statusCodes.PLAY_SERVICES_NOT_AVAILABLE]:
+    "Google Play Services not available",
+};
+
+/**
+ * Handles Google Sign-In errors and throws appropriate error messages
+ */
 const handleGoogleError = (error: unknown): never => {
-  if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    error.code === statusCodes.SIGN_IN_CANCELLED
-  ) {
-    throw new Error("Sign in was cancelled");
-  }
-  if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    error.code === statusCodes.IN_PROGRESS
-  ) {
-    throw new Error("Sign in is already in progress");
-  }
-  if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE
-  ) {
-    throw new Error("Google Play Services not available");
+  if (isGoogleError(error) && error.code in GOOGLE_ERROR_MESSAGES) {
+    throw new Error(GOOGLE_ERROR_MESSAGES[error.code]);
   }
   throw error;
 };
+
+/**
+ * Normalizes user data from API response, ensuring name field is always present
+ */
+const normalizeUserData = (user: User, fallbackName = ""): User => ({
+  ...user,
+  name: user.name || fallbackName,
+});
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  /**
+   * Verifies the validity of an authentication token with the backend
+   * @returns true if token is valid, false if invalid, true on network errors (optimistic)
+   */
   const verifyToken = useCallback(async (token: string): Promise<boolean> => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/me`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          ...JSON_HEADERS,
         },
       });
 
@@ -101,24 +124,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return data.success === true && !!data.user;
       }
 
+      // Optimistic: assume valid on unknown errors
       return true;
     } catch (error) {
       console.warn("Token verification network error:", error);
+      // Optimistic: assume valid on network errors
       return true;
     }
   }, []);
 
+  /**
+   * Clears all authentication data from storage and state
+   */
   const clearAuthStorage = useCallback(async (): Promise<void> => {
     await AsyncStorage.removeItem(AUTH_STORAGE_KEY).catch(() => {});
     await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY).catch(() => {});
     setUser(null);
   }, []);
 
+  /**
+   * Loads authentication state from storage and verifies token validity
+   * Migrates token from AsyncStorage to SecureStore if needed
+   */
   const loadAuthState = useCallback(async (): Promise<void> => {
     try {
       const stored = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
       let token = await SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
 
+      // Migrate token from AsyncStorage to SecureStore if needed
       if (!token) {
         const oldToken = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
         if (oldToken) {
@@ -129,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (stored && token) {
-        const userData = JSON.parse(stored);
+        const userData = JSON.parse(stored) as User;
         setUser(userData);
 
         const isValid = await verifyToken(token);
@@ -145,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [verifyToken, clearAuthStorage]);
 
+  // Initialize Google Sign-In configuration
   useEffect(() => {
     GoogleSignin.configure({
       iosClientId: GOOGLE_IOS_CLIENT_ID,
@@ -153,10 +187,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // Load auth state on mount
   useEffect(() => {
     loadAuthState();
   }, [loadAuthState]);
 
+  /**
+   * Stores authentication token and user data securely
+   */
   const storeAuthData = useCallback(
     async (token: string, userData: User): Promise<void> => {
       await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userData));
@@ -166,6 +204,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  /**
+   * Handles authentication API response and extracts token and user data
+   * @throws Error if response is invalid or missing required data
+   */
   const handleAuthResponse = useCallback(
     async (
       response: Response,
@@ -193,15 +235,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  /**
+   * Signs in user with email and password
+   */
   const signInWithEmail = async (
     email: string,
     password: string
   ): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: JSON_HEADERS,
       body: JSON.stringify({ email, password }),
     });
 
@@ -212,6 +255,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await storeAuthData(token, user);
   };
 
+  /**
+   * Signs up new user with email, password, and name
+   */
   const signUpWithEmail = async (
     email: string,
     password: string,
@@ -219,9 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: JSON_HEADERS,
       body: JSON.stringify({ email, password, name }),
     });
 
@@ -230,18 +274,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       "Sign up failed"
     );
 
-    const userData: User = {
-      ...baseUser,
-      name: baseUser.name || name,
-    };
-
-    await storeAuthData(token, userData);
+    await storeAuthData(token, normalizeUserData(baseUser, name));
   };
 
+  /**
+   * Signs out the current user and clears all auth data
+   */
   const signOut = async (): Promise<void> => {
     await clearAuthStorage();
   };
 
+  /**
+   * Signs in user with Google OAuth
+   */
   const signInWithGoogle = async (): Promise<void> => {
     try {
       await GoogleSignin.hasPlayServices({
@@ -250,7 +295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const userInfo = await GoogleSignin.signIn();
 
-      if (!userInfo.data || !userInfo.data.user) {
+      if (!userInfo.data?.user) {
         throw new Error("No user data received from Google Sign-In");
       }
 
@@ -267,14 +312,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         `${API_BASE_URL}/auth/google/callback`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: JSON_HEADERS,
           body: JSON.stringify({
             email: user.email,
             name: user.name || user.email.split("@")[0],
             googleId: user.id,
-            accessToken: accessToken,
+            accessToken,
             idToken: idToken || undefined,
             serverAuthCode: serverAuthCode || undefined,
           }),
@@ -286,23 +329,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "Google sign in failed"
       );
 
-      const userData: User = {
-        ...baseUser,
-        name: baseUser.name || user.name || "",
-      };
-
-      await storeAuthData(token, userData);
+      await storeAuthData(token, normalizeUserData(baseUser, user.name || ""));
     } catch (error: unknown) {
       console.error("Error signing in with Google:", error);
       handleGoogleError(error);
     }
   };
 
+  /**
+   * Signs in user with Apple (not yet implemented)
+   */
   const signInWithApple = async (): Promise<void> => {
-    // TODO: Implement Sign in with Apple
     throw new Error("Sign in with Apple is not yet implemented");
   };
 
+  /**
+   * Clears authentication state (alias for clearAuthStorage)
+   */
   const clearAuthState = async (): Promise<void> => {
     await clearAuthStorage();
   };
@@ -325,6 +368,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Hook to access authentication context
+ * @throws Error if used outside of AuthProvider
+ */
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

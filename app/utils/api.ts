@@ -221,7 +221,7 @@ export async function scanReceipt(
     token?: string;
   }
 ): Promise<
-  ReceiptScanResponse & { limitExceeded?: boolean; authError?: boolean }
+  ReceiptScanResponse & { authError?: boolean }
 > {
   try {
     // Convert image URI to base64
@@ -271,14 +271,12 @@ export async function scanReceipt(
         message:
           errorData.message ||
           `HTTP ${response.status}: ${response.statusText}`,
-        limitExceeded: errorData.limitExceeded || false,
         authError: isAuthError,
       };
     }
 
     const data = await response.json();
     return data as ReceiptScanResponse & {
-      limitExceeded?: boolean;
       authError?: boolean;
     };
   } catch (error) {

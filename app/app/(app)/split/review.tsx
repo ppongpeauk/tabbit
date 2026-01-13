@@ -1,20 +1,18 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Review split summary screen before sending
+ */
+
 import { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { View, ScrollView, Alert, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
-import { useReceipt } from "@/hooks/use-receipts";
+import { useReceipt, useUpdateReceipt } from "@/hooks/use-receipts";
 import { useFriends } from "@/hooks/use-friends";
-import { useUpdateReceipt } from "@/hooks/use-receipts";
-import type { StoredReceipt, Friend } from "@/utils/storage";
 import { fetchContacts, type ContactInfo } from "@/utils/contacts";
 import {
   SplitStrategy,
@@ -25,12 +23,14 @@ import {
 } from "@/utils/split";
 import { SplitSummary } from "@/components/split/split-summary";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
 
 export default function ReviewScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
 
   const [deviceContacts, setDeviceContacts] = useState<ContactInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,35 +92,6 @@ export default function ReviewScreen() {
           totals: tempData.calculatedSplit.totals,
         };
         setCalculatedSplitData(completeSplit);
-      } else if (
-        foundReceipt &&
-        tempData.selectedFriendIds &&
-        tempData.selectedFriendIds.length > 0
-      ) {
-        // Calculate split automatically for EQUAL strategy if not already calculated
-        if (strategy === SplitStrategy.EQUAL) {
-          const calculatedSplit = calculateSplit(
-            foundReceipt,
-            strategy,
-            tempData.assignments || [],
-            tempData.selectedFriendIds
-          );
-          setCalculatedSplitData(calculatedSplit);
-
-          // Save the calculated split back to AsyncStorage for consistency
-          await AsyncStorage.setItem(
-            SPLIT_DATA_KEY,
-            JSON.stringify({
-              ...tempData,
-              calculatedSplit: {
-                friendShares: calculatedSplit.friendShares,
-                taxDistribution: calculatedSplit.taxDistribution,
-                tipDistribution: calculatedSplit.tipDistribution,
-                totals: calculatedSplit.totals,
-              },
-            })
-          );
-        }
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -133,6 +104,50 @@ export default function ReviewScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Calculate split for EQUAL strategy if not already calculated
+  useEffect(() => {
+    const calculateEqualSplit = async () => {
+      if (
+        receipt &&
+        splitData &&
+        !calculatedSplitData &&
+        splitData.selectedFriendIds &&
+        splitData.selectedFriendIds.length > 0
+      ) {
+        const strategy =
+          typeof splitData.strategy === "string"
+            ? (splitData.strategy as SplitStrategy)
+            : splitData.strategy;
+
+        if (strategy === SplitStrategy.EQUAL) {
+          const calculatedSplit = calculateSplit(
+            receipt,
+            strategy,
+            splitData.assignments || [],
+            splitData.selectedFriendIds
+          );
+          setCalculatedSplitData(calculatedSplit);
+
+          // Save the calculated split back to AsyncStorage for consistency
+          await AsyncStorage.setItem(
+            SPLIT_DATA_KEY,
+            JSON.stringify({
+              ...splitData,
+              calculatedSplit: {
+                friendShares: calculatedSplit.friendShares,
+                taxDistribution: calculatedSplit.taxDistribution,
+                tipDistribution: calculatedSplit.tipDistribution,
+                totals: calculatedSplit.totals,
+              },
+            })
+          );
+        }
+      }
+    };
+
+    calculateEqualSplit();
+  }, [receipt, splitData, calculatedSplitData]);
 
   const handleSend = useCallback(async () => {
     if (!receipt || !calculatedSplitData || !splitData) {
@@ -238,7 +253,8 @@ export default function ReviewScreen() {
       }}
     >
       <ScrollView
-        contentContainerClassName="px-5 py-4 gap-6 pb-[100px]"
+        contentContainerClassName="px-5 py-4 gap-4"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
       >
         <View className="gap-4">
@@ -257,8 +273,9 @@ export default function ReviewScreen() {
 
       {/* Send Button */}
       <View
-        className="absolute bottom-0 left-0 right-0 px-5 pt-4 pb-10 border-t"
+        className="absolute bottom-0 left-0 right-0 px-5 pt-4 border-t"
         style={{
+          bottom: insets.bottom,
           backgroundColor: isDark
             ? Colors.dark.background
             : Colors.light.background,

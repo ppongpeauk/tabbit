@@ -3,7 +3,6 @@
  * @description Settings components exports
  */
 
-export { LimitIndicator } from "./limit-indicator";
 export { SettingsSection } from "./settings-section";
 export { SettingsItem } from "./settings-item";
 export { SettingsSeparator } from "./settings-separator";

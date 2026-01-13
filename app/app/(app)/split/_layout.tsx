@@ -74,6 +74,25 @@ export default function SplitLayout() {
         }}
       />
       <Stack.Screen
+        name="percentage-inputs"
+        options={{
+          title: "Percentage Split",
+          presentation: "card",
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={8}
+              className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
+            >
+              <SymbolView
+                name="xmark"
+                tintColor={isDark ? Colors.dark.text : Colors.light.text}
+              />
+            </Pressable>
+          ),
+        }}
+      />
+      <Stack.Screen
         name="itemized-assign"
         options={{
           title: "Assign Items",

@@ -31,7 +31,7 @@ export function ItemsCard({ receipt }: ItemsCardProps) {
             >
               <ThemedText
                 size="xs"
-                weight="semibold"
+                weight="bold"
                 style={{
                   color: isDark ? Colors.dark.icon : Colors.light.icon,
                 }}
@@ -41,7 +41,7 @@ export function ItemsCard({ receipt }: ItemsCardProps) {
             </View>
             <View className="flex-1 flex-col gap-1">
               <ThemedText
-                size="sm"
+                size="base"
                 weight="semibold"
                 style={{ lineHeight: 20 }}
               >
@@ -49,7 +49,7 @@ export function ItemsCard({ receipt }: ItemsCardProps) {
               </ThemedText>
               {Boolean(item.category?.trim()) || item.quantity > 1 ? (
                 <ThemedText
-                  size="xs"
+                  size="sm"
                   style={{
                     color: isDark ? Colors.dark.subtle : Colors.light.icon,
                   }}
@@ -69,7 +69,7 @@ export function ItemsCard({ receipt }: ItemsCardProps) {
             </View>
           </View>
           <ThemedText
-            size="sm"
+            size="base"
             weight="semibold"
             style={{ lineHeight: 20, textAlign: "right" }}
           >

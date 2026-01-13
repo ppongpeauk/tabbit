@@ -1,3 +1,8 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Choose split mode screen for receipt splitting
+ */
+
 import { useState, useEffect, useCallback } from "react";
 import { View, ScrollView, Alert, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
@@ -8,11 +13,11 @@ import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import { useReceipt } from "@/hooks/use-receipts";
 import { getSplitData, getDefaultSplitMode } from "@/utils/storage";
-import type { StoredReceipt } from "@/utils/storage";
 import { SplitStrategy } from "@/utils/split";
 import { formatCurrency } from "@/utils/format";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SplitModeChoices } from "@/components/split/split-mode-choices";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
 
@@ -23,6 +28,7 @@ export default function ChooseSplitModeScreen() {
   }>();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
 
   const [selectedStrategy, setSelectedStrategy] =
     useState<SplitStrategy | null>(null);
@@ -182,40 +188,14 @@ export default function ChooseSplitModeScreen() {
       }}
     >
       <ScrollView
-        contentContainerClassName="px-5 py-4 gap-4 pb-[100px]"
+        contentContainerClassName="px-5 py-4 gap-4"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Receipt summary */}
-        <View
-          className="rounded-xl p-4 border"
-          style={{
-            backgroundColor: isDark
-              ? "rgba(255, 255, 255, 0.05)"
-              : "rgba(0, 0, 0, 0.02)",
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(0, 0, 0, 0.1)",
-          }}
-        >
-          <ThemedText size="lg" weight="bold">
-            {receipt.merchant.name}
-          </ThemedText>
-          <ThemedText
-            size="base"
-            className="mt-1"
-            style={{
-              color: isDark ? Colors.dark.icon : Colors.light.icon,
-            }}
-          >
-            Total:{" "}
-            {formatCurrency(receipt.totals.total, receipt.totals.currency)}
-          </ThemedText>
-        </View>
-
         {/* Choose Split Mode */}
         <View className="gap-1">
-          <ThemedText size="lg" weight="bold" className="mb-2">
-            Choose Split Mode
+          <ThemedText size="xl" weight="bold" className="mb-2">
+            How do you want to split the bill?
           </ThemedText>
           <SplitModeChoices
             selectedStrategy={selectedStrategy}
@@ -227,8 +207,9 @@ export default function ChooseSplitModeScreen() {
 
       {/* Continue Button */}
       <View
-        className="absolute bottom-0 left-0 right-0 px-5 pt-4 pb-10 border-t"
+        className="absolute bottom-0 left-0 right-0 px-5 pt-4 border-t"
         style={{
+          bottom: insets.bottom,
           backgroundColor: isDark
             ? Colors.dark.background
             : Colors.light.background,
@@ -249,5 +230,3 @@ export default function ChooseSplitModeScreen() {
     </View>
   );
 }
-
-// Styles removed in favor of Tailwind CSS (NativeWind)

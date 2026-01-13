@@ -9,7 +9,6 @@ export const env = {
   OPENAI_MODEL: process.env.OPENAI_MODEL || "gpt-4o-2024-08-06",
   REDIS_URL: process.env.REDIS_URL,
   DISABLE_IMAGE_CACHE: process.env.DISABLE_IMAGE_CACHE === "true",
-  DISABLE_LIMITS: process.env.DISABLE_LIMITS === "true",
   // Better Auth - base URL should point to the server (port 3001), not the web frontend
   BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET || "",
   BETTER_AUTH_BASE_URL:

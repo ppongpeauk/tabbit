@@ -11,6 +11,7 @@ import ContextMenu from "react-native-context-menu-view";
 import { Colors } from "@/constants/theme";
 import { PlatformPressable } from "@react-navigation/elements";
 import * as Haptics from "expo-haptics";
+import { View } from "react-native";
 
 interface ReceiptHeaderProps {
   receipt: StoredReceipt | null;
@@ -41,7 +42,7 @@ export function ReceiptHeader({
   const menuActions = [
     {
       title: "Edit Receipt",
-      systemIcon: "pencil",
+      systemIcon: "square.and.pencil",
       handler: onEdit,
     },
     {
@@ -97,11 +98,35 @@ export function ReceiptHeader({
 
   return {
     title: "Receipt Details",
-    headerTitle: () => (
-      <ThemedText size="lg" weight="semibold" family="sans">
-        Receipt Details
-      </ThemedText>
-    ),
+    headerTitle: () => {
+      if (
+        receipt?.name &&
+        receipt?.name.trim() !== receipt?.merchant?.name?.trim()
+      ) {
+        return (
+          <View className="flex-col items-center">
+            <ThemedText size="xs" weight="semibold" family="sans">
+              {receipt?.name}
+            </ThemedText>
+            <ThemedText size="xs" family="sans">
+              {receipt?.merchant?.name}
+            </ThemedText>
+          </View>
+        );
+      } else if (receipt?.merchant?.name) {
+        return (
+          <ThemedText size="base" weight="semibold" family="sans">
+            {receipt?.merchant?.name}
+          </ThemedText>
+        );
+      } else {
+        return (
+          <ThemedText size="base" weight="semibold" family="sans">
+            Receipt Details
+          </ThemedText>
+        );
+      }
+    },
     headerTitleAlign: "center" as const,
     headerRight: () => (
       <ContextMenu

@@ -15,7 +15,6 @@ import { ManualReceiptForm, type ManualReceiptFormRef } from "@/components/manua
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { saveReceipt } from "@/utils/storage";
-import { useLimits } from "@/hooks/use-limits";
 import { Toolbar, ToolbarButton } from "@/components/toolbar";
 import type {
   Merchant,
@@ -40,27 +39,12 @@ export default function CreateManualReceiptScreen() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const [saving, setSaving] = useState(false);
-  const { checkSaveLimit, refresh: refreshLimits } = useLimits();
   const isSavingRef = useRef(false);
   const isCancellingRef = useRef(false);
   const formRef = useRef<ManualReceiptFormRef | null>(null);
 
   const handleSave = useCallback(
     async (formData: ManualReceiptFormData) => {
-      // Check save limit
-      const limitCheck = await checkSaveLimit();
-      if (!limitCheck.allowed) {
-        Alert.alert(
-          "Receipt Storage Limit Reached",
-          limitCheck.reason ||
-            "You've reached your receipt storage limit.",
-          [
-            { text: "OK", style: "cancel" },
-          ]
-        );
-        return;
-      }
-
       setSaving(true);
       isSavingRef.current = true;
       try {
@@ -79,9 +63,6 @@ export default function CreateManualReceiptScreen() {
           },
         });
 
-        // Refresh limits after saving
-        await refreshLimits();
-
         router.back();
       } catch (error) {
         isSavingRef.current = false;
@@ -91,7 +72,7 @@ export default function CreateManualReceiptScreen() {
         setSaving(false);
       }
     },
-    [checkSaveLimit, refreshLimits]
+    []
   );
 
   const [hasFormData, setHasFormData] = useState(false);

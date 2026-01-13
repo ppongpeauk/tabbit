@@ -1,6 +1,6 @@
 /**
  * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Custom amount split input screen
+ * @description Percentage-based split input screen
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -28,7 +28,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
 
-export default function CustomInputsScreen() {
+export default function PercentageInputsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
@@ -36,9 +36,7 @@ export default function CustomInputsScreen() {
   const [deviceContacts, setDeviceContacts] = useState<ContactInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
-  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>(
-    {}
-  );
+  const [percentages, setPercentages] = useState<Record<string, string>>({});
   const [splitData, setSplitData] = useState<{
     receiptId: string;
     groupId?: string;
@@ -73,12 +71,15 @@ export default function CustomInputsScreen() {
         console.error("Error loading contacts:", error);
       }
 
-      // Initialize custom amounts
-      const amounts: Record<string, string> = {};
+      // Initialize percentages - default to equal split
+      const defaultPercentage = (
+        100 / (tempData.selectedFriendIds?.length || 1)
+      ).toFixed(1);
+      const initialPercentages: Record<string, string> = {};
       tempData.selectedFriendIds?.forEach((friendId: string) => {
-        amounts[friendId] = "";
+        initialPercentages[friendId] = defaultPercentage;
       });
-      setCustomAmounts(amounts);
+      setPercentages(initialPercentages);
     } catch (error) {
       console.error("Error loading data:", error);
       Alert.alert("Error", "Failed to load data");
@@ -192,16 +193,16 @@ export default function CustomInputsScreen() {
     return "Unknown";
   };
 
-  const validateAmounts = (): boolean => {
-    if (!receipt) return false;
-    let totalBase = 0;
-    selectedFriendIds.forEach((friendId) => {
-      const amount = parseFloat(customAmounts[friendId] || "0") || 0;
-      totalBase += amount;
-    });
-    const subtotal = Math.round(receipt.totals.subtotal * 100) / 100;
-    const difference = Math.abs(totalBase - subtotal);
-    return difference <= 0.02;
+  const getTotalPercentage = (): number => {
+    return selectedFriendIds.reduce((sum, friendId) => {
+      const pct = parseFloat(percentages[friendId] || "0") || 0;
+      return sum + pct;
+    }, 0);
+  };
+
+  const validatePercentages = (): boolean => {
+    const total = getTotalPercentage();
+    return Math.abs(total - 100) <= 0.1; // Allow 0.1% tolerance
   };
 
   const handleContinue = useCallback(async () => {
@@ -210,23 +211,18 @@ export default function CustomInputsScreen() {
       return;
     }
 
-    if (!validateAmounts()) {
-      Alert.alert(
-        "Invalid Amounts",
-        `Amounts must sum to ${formatCurrency(
-          receipt.totals.subtotal,
-          receipt.totals.currency
-        )}`
-      );
+    if (!validatePercentages()) {
+      Alert.alert("Invalid Percentages", "Percentages must sum to 100%");
       return;
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
+    // Calculate base shares from percentages
     const friendShares: Record<string, number> = {};
     selectedFriendIds.forEach((friendId) => {
-      const amount = parseFloat(customAmounts[friendId] || "0") || 0;
-      friendShares[friendId] = amount;
+      const percentage = parseFloat(percentages[friendId] || "0") || 0;
+      friendShares[friendId] = (receipt.totals.subtotal * percentage) / 100;
     });
 
     const tip =
@@ -265,7 +261,7 @@ export default function CustomInputsScreen() {
     receipt,
     splitData,
     selectedFriendIds,
-    customAmounts,
+    percentages,
     friends,
     deviceContacts,
   ]);
@@ -303,17 +299,8 @@ export default function CustomInputsScreen() {
     );
   }
 
-  const isValid = validateAmounts();
-
-  const getTotalAmount = (): number => {
-    return selectedFriendIds.reduce((sum, friendId) => {
-      const amount = parseFloat(customAmounts[friendId] || "0") || 0;
-      return sum + amount;
-    }, 0);
-  };
-
-  const totalAmount = getTotalAmount();
-  const remainingAmount = receipt ? receipt.totals.subtotal - totalAmount : 0;
+  const isValid = validatePercentages();
+  const totalPercentage = getTotalPercentage();
 
   return (
     <View
@@ -329,22 +316,20 @@ export default function CustomInputsScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="gap-3">
-          <ThemedText size="xl" weight="bold" className="mb-2">
-            Custom Amounts
+        <View>
+          <ThemedText size="xl" weight="bold">
+            Percentage Split
           </ThemedText>
           <ThemedText
             size="sm"
             style={{
               color: isDark ? Colors.dark.icon : Colors.light.icon,
-              marginBottom: 12,
             }}
           >
-            Enter amounts for each person (must sum to{" "}
-            {formatCurrency(receipt.totals.subtotal, receipt.totals.currency)})
+            Enter the percentage each person should pay (must sum to 100%)
           </ThemedText>
 
-          {/* Remaining Amount Indicator */}
+          {/* Total Percentage Indicator */}
           <View
             className="p-4 rounded-lg mb-2"
             style={{
@@ -361,7 +346,7 @@ export default function CustomInputsScreen() {
           >
             <View className="flex-row items-center justify-between">
               <ThemedText size="base" weight="semibold">
-                Remaining
+                Total
               </ThemedText>
               <ThemedText
                 size="lg"
@@ -370,24 +355,18 @@ export default function CustomInputsScreen() {
                   color: isValid ? Colors.light.tint : "#ff4444",
                 }}
               >
-                {formatCurrency(remainingAmount, receipt.totals.currency)}
+                {totalPercentage.toFixed(1)}%
               </ThemedText>
             </View>
-            <ThemedText
-              size="xs"
-              style={{
-                color: isDark ? Colors.dark.icon : Colors.light.icon,
-                marginTop: 4,
-              }}
-            >
-              Total: {formatCurrency(totalAmount, receipt.totals.currency)} /{" "}
-              {formatCurrency(receipt.totals.subtotal, receipt.totals.currency)}
-            </ThemedText>
           </View>
 
           {/* Person Input Fields */}
           {selectedFriendIds.map((friendId) => {
             const personName = getPersonName(friendId);
+            const percentage = percentages[friendId] || "0";
+            const amount =
+              (receipt.totals.subtotal * (parseFloat(percentage) || 0)) / 100;
+
             return (
               <View
                 key={friendId}
@@ -401,42 +380,52 @@ export default function CustomInputsScreen() {
                     : "rgba(0, 0, 0, 0.1)",
                 }}
               >
-                <View className="flex-row items-center justify-between">
-                  <ThemedText className="font-sans text-base flex-1">
+                <View className="flex-row items-center justify-between mb-2">
+                  <ThemedText size="base" weight="semibold" className="flex-1">
                     {personName}
                   </ThemedText>
-                  <TextInput
-                    style={{
-                      width: 100,
-                      borderRadius: 6,
-                      borderWidth: 1,
-                      paddingVertical: 8,
-                      paddingHorizontal: 12,
-                      fontSize: 16,
-                      fontFamily: Fonts.sans,
-                      textAlign: "right",
-                      backgroundColor: isDark
-                        ? "rgba(255, 255, 255, 0.05)"
-                        : "rgba(0, 0, 0, 0.02)",
-                      borderColor: isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(0, 0, 0, 0.1)",
-                      color: isDark ? Colors.dark.text : Colors.light.text,
-                    }}
-                    value={customAmounts[friendId] || ""}
-                    onChangeText={(text) =>
-                      setCustomAmounts({
-                        ...customAmounts,
-                        [friendId]: text,
-                      })
-                    }
-                    placeholder="0.00"
-                    placeholderTextColor={
-                      isDark ? Colors.dark.icon : Colors.light.icon
-                    }
-                    keyboardType="decimal-pad"
-                  />
+                  <View className="flex-row items-center gap-2">
+                    <TextInput
+                      style={{
+                        width: 100,
+                        borderRadius: 6,
+                        borderWidth: 1,
+                        paddingVertical: 8,
+                        paddingHorizontal: 12,
+                        fontSize: 16,
+                        textAlign: "right",
+                        backgroundColor: isDark
+                          ? "rgba(255, 255, 255, 0.05)"
+                          : "rgba(0, 0, 0, 0.02)",
+                        borderColor: isDark
+                          ? "rgba(255, 255, 255, 0.1)"
+                          : "rgba(0, 0, 0, 0.1)",
+                        color: isDark ? Colors.dark.text : Colors.light.text,
+                      }}
+                      value={percentages[friendId] || ""}
+                      onChangeText={(text) =>
+                        setPercentages({
+                          ...percentages,
+                          [friendId]: text,
+                        })
+                      }
+                      placeholder="0"
+                      placeholderTextColor={
+                        isDark ? Colors.dark.icon : Colors.light.icon
+                      }
+                      keyboardType="decimal-pad"
+                    />
+                    <ThemedText size="base">%</ThemedText>
+                  </View>
                 </View>
+                <ThemedText
+                  size="sm"
+                  style={{
+                    color: isDark ? Colors.dark.icon : Colors.light.icon,
+                  }}
+                >
+                  ≈ {formatCurrency(amount, receipt.totals.currency)}
+                </ThemedText>
               </View>
             );
           })}

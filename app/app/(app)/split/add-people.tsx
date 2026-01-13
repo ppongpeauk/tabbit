@@ -2,21 +2,46 @@ import { useState, useEffect, useCallback, useLayoutEffect } from "react";
 import { View, Alert, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { useForm, FormProvider } from "react-hook-form";
-import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import { SplitStrategy } from "@/utils/split";
-import { AddPeopleSelector } from "@/components/add-people-selector";
-import { EmptyState } from "@/components/empty-state";
+import {
+  AddPeopleSelector,
+  type PersonItem,
+} from "@/components/add-people-selector";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
+import { useFriends } from "@/hooks/use-friends";
+import { fetchContacts, type ContactInfo } from "@/utils/contacts";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
 
 interface AddPeopleFormData {
   selectedFriendIds: string[];
+}
+
+// Helper to convert unified ID back to original friend/contact ID
+function getOriginalId(
+  unifiedId: string,
+  personItemsMap: Map<string, PersonItem>
+): string {
+  const item = personItemsMap.get(unifiedId);
+  if (!item) return unifiedId;
+
+  // If it's a friend with originalId, use that
+  if (item.originalId) {
+    return item.originalId;
+  }
+
+  // If it's a contact, reconstruct the contact ID
+  if (item.type === "contact" || item.type === "recent") {
+    return `contact:${item.name}:${item.phoneNumber || item.email || ""}`;
+  }
+
+  // Fallback to unified ID
+  return unifiedId;
 }
 
 export default function AddPeopleScreen() {
@@ -31,6 +56,11 @@ export default function AddPeopleScreen() {
     groupId?: string;
     strategy: string;
   } | null>(null);
+  const [personItemsMap, setPersonItemsMap] = useState<Map<string, PersonItem>>(
+    new Map()
+  );
+
+  const { data: storedFriends = [] } = useFriends();
 
   const methods = useForm<AddPeopleFormData>({
     defaultValues: {
@@ -60,6 +90,56 @@ export default function AddPeopleScreen() {
       const tempData = JSON.parse(tempDataStr);
       setSplitData(tempData);
 
+      // Build person items map for ID conversion
+      try {
+        const contacts = await fetchContacts().catch(() => [] as ContactInfo[]);
+        const itemsMap = new Map<string, PersonItem>();
+
+        // Add friends to map
+        storedFriends.forEach((friend) => {
+          const phoneNormalized = friend.phoneNumber?.replace(/\D/g, "");
+          const unifiedId = phoneNormalized
+            ? `unified:phone:${phoneNormalized}`
+            : friend.email
+              ? `unified:email:${friend.email.toLowerCase()}`
+              : `unified:name:${friend.name.toLowerCase().trim()}`;
+
+          itemsMap.set(unifiedId, {
+            id: unifiedId,
+            name: friend.name,
+            phoneNumber: friend.phoneNumber,
+            email: friend.email,
+            type: "friend",
+            originalId: friend.id,
+          });
+        });
+
+        // Add contacts to map
+        contacts.forEach((contact) => {
+          const phoneNormalized = contact.phoneNumber?.replace(/\D/g, "");
+          const unifiedId = phoneNormalized
+            ? `unified:phone:${phoneNormalized}`
+            : contact.email
+              ? `unified:email:${contact.email.toLowerCase()}`
+              : `unified:name:${contact.name.toLowerCase().trim()}`;
+
+          if (!itemsMap.has(unifiedId)) {
+            itemsMap.set(unifiedId, {
+              id: unifiedId,
+              name: contact.name,
+              phoneNumber: contact.phoneNumber,
+              email: contact.email,
+              imageUri: contact.imageUri,
+              type: "contact",
+            });
+          }
+        });
+
+        setPersonItemsMap(itemsMap);
+      } catch (error) {
+        console.error("Error building person items map:", error);
+      }
+
       if (tempData.selectedFriendIds) {
         setValue("selectedFriendIds", tempData.selectedFriendIds);
       }
@@ -69,7 +149,7 @@ export default function AddPeopleScreen() {
     } finally {
       setLoading(false);
     }
-  }, [setValue]);
+  }, [setValue, storedFriends]);
 
   useEffect(() => {
     loadData();
@@ -88,11 +168,16 @@ export default function AddPeopleScreen() {
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
+    // Convert unified IDs back to original friend/contact IDs
+    const convertedFriendIds = selectedFriendIds.map((unifiedId) =>
+      getOriginalId(unifiedId, personItemsMap)
+    );
+
     await AsyncStorage.setItem(
       SPLIT_DATA_KEY,
       JSON.stringify({
         ...splitData,
-        selectedFriendIds,
+        selectedFriendIds: convertedFriendIds,
       })
     );
 
@@ -105,7 +190,7 @@ export default function AddPeopleScreen() {
       splitData.strategy === SplitStrategy.PERCENTAGE ||
       splitData.strategy === "percentage"
     ) {
-      router.push("/split/custom-inputs");
+      router.push("/split/percentage-inputs");
     } else if (
       splitData.strategy === SplitStrategy.ITEMIZED ||
       splitData.strategy === "itemized"
@@ -114,7 +199,7 @@ export default function AddPeopleScreen() {
     } else {
       router.push("/split/review");
     }
-  }, [selectedFriendIds, splitData]);
+  }, [selectedFriendIds, splitData, personItemsMap]);
 
   if (loading) {
     return (

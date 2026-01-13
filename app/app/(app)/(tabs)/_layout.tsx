@@ -1,6 +1,5 @@
 import { Tabs } from "expo-router";
 import { Colors, Fonts } from "@/constants/theme";
-import { SymbolView } from "expo-symbols";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 

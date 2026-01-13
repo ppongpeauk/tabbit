@@ -163,15 +163,23 @@ export function AddPeopleSelector({
   }, [storedFriends]);
 
   // Create unified items with shared IDs across sections
+  // Also store the originalId for friends so we can convert back
   const unifiedItemsMap = useMemo(() => {
     const unified = new Map<string, PersonItem>();
     const allItems = [...recentItems, ...friendItems, ...contactItems];
 
     // Create unified items - same person gets same ID
+    // Prioritize friends to keep their originalId
     allItems.forEach((item) => {
       const unifiedId = getUnifiedId(item);
       if (!unified.has(unifiedId)) {
         unified.set(unifiedId, { ...item, id: unifiedId });
+      } else {
+        // If already exists and current item is a friend with originalId, preserve it
+        const existing = unified.get(unifiedId)!;
+        if (item.originalId && !existing.originalId) {
+          unified.set(unifiedId, { ...existing, originalId: item.originalId });
+        }
       }
     });
 

@@ -45,14 +45,13 @@ export function BarcodeModal({
   return (
     <TrueSheet
       ref={bottomSheetRef}
-      sizes={["50%"]}
       backgroundColor={
         isDark ? Colors.dark.background : Colors.light.background
       }
       cornerRadius={24}
     >
       <View style={styles.contentContainer}>
-        <View style={styles.header}>
+        <View style={styles.header} className="mt-8">
           <ThemedText size="xl" weight="bold">
             Return Barcode
           </ThemedText>

@@ -92,9 +92,7 @@ export default function WelcomeScreen() {
         <ThemedText
           className="text-center leading-6 px-4 max-w-[320px]"
           style={{
-            color: isDark
-              ? Colors.dark.text + "CC"
-              : Colors.light.text + "CC",
+            color: isDark ? Colors.dark.text + "CC" : Colors.light.text + "CC",
           }}
           size="base"
         >
@@ -145,8 +143,8 @@ export default function WelcomeScreen() {
           leftIcon={
             <Image
               source={AppleIcon}
-              className={`w-5 h-5 ${!isDark ? "tint-white" : ""}`}
-              style={!isDark ? { tintColor: "#FFFFFF" } : undefined}
+              className={`w-5 h-5`}
+              tintColor={isDark ? Colors.dark.text : Colors.light.text}
               resizeMode="contain"
             />
           }
@@ -157,9 +155,7 @@ export default function WelcomeScreen() {
         <ThemedText
           className="text-center px-4"
           style={{
-            color: isDark
-              ? Colors.dark.text + "80"
-              : Colors.light.text + "80",
+            color: isDark ? Colors.dark.text + "80" : Colors.light.text + "80",
           }}
           size="sm"
         >

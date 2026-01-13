@@ -1,3 +1,8 @@
+/**
+ * @author Pete Pongpeauk <ppongpeauk@gmail.com>
+ * @description Itemized split assignment screen
+ */
+
 import { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -13,7 +18,7 @@ import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import { useReceipt } from "@/hooks/use-receipts";
 import { useFriends } from "@/hooks/use-friends";
-import type { StoredReceipt, Friend } from "@/utils/storage";
+import type { Friend } from "@/utils/storage";
 import { fetchContacts, type ContactInfo } from "@/utils/contacts";
 import {
   SplitStrategy,
@@ -22,12 +27,14 @@ import {
 } from "@/utils/split";
 import { ItemAssignment as ItemAssignmentComponent } from "@/components/split/item-assignment";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
 
 export default function ItemizedAssignScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
 
   const [deviceContacts, setDeviceContacts] = useState<ContactInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,17 +206,22 @@ export default function ItemizedAssignScreen() {
       }}
     >
       <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: 20,
-          paddingVertical: 16,
-          gap: 24,
-          paddingBottom: 100,
-        }}
+        contentContainerClassName="px-5 py-4 gap-4"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
       >
         <View className="gap-3">
           <ThemedText size="xl" weight="bold" className="mb-2">
             Assign Items
+          </ThemedText>
+          <ThemedText
+            size="sm"
+            style={{
+              color: isDark ? Colors.dark.icon : Colors.light.icon,
+              marginBottom: 12,
+            }}
+          >
+            Tap each item to assign it to specific people
           </ThemedText>
           {receipt.items.map((item, index) => {
             const itemId = item.id || index.toString();
@@ -246,8 +258,9 @@ export default function ItemizedAssignScreen() {
 
       {/* Continue Button */}
       <View
-        className="absolute bottom-0 left-0 right-0 px-5 pt-4 pb-10 border-t"
+        className="absolute bottom-0 left-0 right-0 px-5 pt-4 border-t"
         style={{
+          bottom: insets.bottom,
           backgroundColor: isDark
             ? Colors.dark.background
             : Colors.light.background,

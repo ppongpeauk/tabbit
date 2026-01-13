@@ -19,12 +19,6 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Free plan limits tracking
-  monthlyScansUsed      Int      @default(0)
-  monthlyScansResetDate DateTime @default(now())
-  totalReceiptsSaved    Int      @default(0)
-  receiptsResetDate     DateTime @default(now())
-
   // Subscription status
   isPro                 Boolean   @default(false)
   subscriptionExpiresAt DateTime?

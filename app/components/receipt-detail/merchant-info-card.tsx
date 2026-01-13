@@ -55,8 +55,8 @@ export function MerchantInfoCard({ receipt }: MerchantInfoCardProps) {
       ) : null}
       <ThemedText
         size="3xl"
-        weight="semibold"
-        family="serif"
+        weight="bold"
+        family="sans"
         className="text-center"
       >
         {receiptTitle}
@@ -76,14 +76,8 @@ export function MerchantInfoCard({ receipt }: MerchantInfoCardProps) {
           activeOpacity={0.7}
           className="flex-row items-center gap-1"
         >
-          <SymbolView
-            name="location.fill"
-            tintColor={subtleColor}
-            style={{ width: 14, height: 14 }}
-          />
-          <ThemedText size="sm" style={{ color: subtleColor }}>
-            {merchantAddress}
-          </ThemedText>
+          <SymbolView name="location.fill" style={{ width: 14, height: 14 }} />
+          <ThemedText size="sm">{merchantAddress}</ThemedText>
         </TouchableOpacity>
       ) : null}
     </View>

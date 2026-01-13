@@ -31,7 +31,6 @@ import {
   CameraPermissionPrompt,
   CameraButton,
 } from "@/components/camera";
-import { useLimits } from "@/hooks/use-limits";
 import * as SecureStore from "expo-secure-store";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -59,7 +58,6 @@ export function CameraScreen({ mode: propMode }: CameraScreenProps = {}) {
   const [frozenFrame, setFrozenFrame] = useState<string | null>(null);
   const [scanned, setScanned] = useState(false);
   const cameraRef = useRef<CameraView>(null);
-  const { checkScanLimit, refresh: refreshLimits } = useLimits();
   const { user, clearAuthState } = useAuth();
 
   if (!permission) {
@@ -85,18 +83,6 @@ export function CameraScreen({ mode: propMode }: CameraScreenProps = {}) {
   };
 
   const processReceiptImage = async (imageUri: string) => {
-    // Check scan limit
-    const limitCheck = await checkScanLimit();
-    if (!limitCheck.allowed) {
-      setProcessing(false);
-      Alert.alert(
-        "Scan Limit Reached",
-        limitCheck.reason || "You've reached your monthly scan limit.",
-        [{ text: "OK", style: "cancel" }]
-      );
-      return;
-    }
-
     // Get auth token
     const token = user
       ? await SecureStore.getItemAsync(TOKEN_STORAGE_KEY)
@@ -106,24 +92,6 @@ export function CameraScreen({ mode: propMode }: CameraScreenProps = {}) {
     const response = await scanReceipt(imageUri, {
       token: token ?? undefined,
     });
-
-    // Check if limit was exceeded during scan
-    if (!response.success && response.limitExceeded) {
-      setProcessing(false);
-      await refreshLimits();
-      Alert.alert(
-        "Scan Limit Reached",
-        response.message ||
-          "You've reached your monthly scan limit. Upgrade to Pro for unlimited scans.",
-        [{ text: "OK", style: "cancel" }]
-      );
-      return;
-    }
-
-    // Refresh limits after successful scan
-    if (response.success && user) {
-      await refreshLimits();
-    }
 
     await handleReceiptScanResponse(response, imageUri);
   };
