@@ -11,7 +11,6 @@ import { logger } from "./middleware/logger";
 import { userModule } from "./modules/user";
 import { receiptModule } from "./modules/receipt";
 import { groupModule } from "./modules/group";
-import { syncModule } from "./modules/sync";
 import { plaidModule } from "./modules/plaid";
 import { cacheService } from "./utils/cache";
 import { env } from "./config/env";
@@ -69,10 +68,6 @@ const app = new Elysia()
             description: "Group management endpoints",
           },
           {
-            name: "sync",
-            description: "Receipt sync endpoints (Pro feature)",
-          },
-          {
             name: "plaid",
             description: "Plaid bank account integration endpoints",
           },
@@ -82,6 +77,7 @@ const app = new Elysia()
   )
   .use(betterAuth)
   .onAfterHandle(({ request, response }) => {
+    console.log("onAfterHandle", request.url, response);
     // Intercept Better Auth callback responses to handle redirects
     const url = new URL(request.url);
     if (url.pathname === "/api/auth/callback/google") {
@@ -144,7 +140,6 @@ const app = new Elysia()
   .use(userModule)
   .use(receiptModule)
   .use(groupModule)
-  .use(syncModule)
   .use(plaidModule)
   .get("/user", ({ user }) => user, {
     auth: true,

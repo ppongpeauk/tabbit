@@ -385,6 +385,13 @@ function ReceiptContent({
         </View>
       </View>
 
+      {/* Split Summary */}
+      {receipt.splitData ? (
+        <View className="px-6 mb-4">
+          <SplitSummaryCard receipt={receipt} friends={friends} />
+        </View>
+      ) : null}
+
       {/* Items and Totals Card */}
       <View className="px-6 mb-4">
         <View
@@ -400,13 +407,6 @@ function ReceiptContent({
           <TotalsCard receipt={receipt} />
         </View>
       </View>
-
-      {/* Split Summary */}
-      {receipt.splitData ? (
-        <View className="px-6 mb-4">
-          <SplitSummaryCard receipt={receipt} friends={friends} />
-        </View>
-      ) : null}
 
       {/* Return Info */}
       {shouldShowReturnInfo(receipt.returnInfo) ? (
@@ -432,10 +432,12 @@ function ReceiptContent({
 // ============================================================================
 
 export default function ReceiptDetailScreen() {
-  const { id } = useLocalSearchParams<{
-    id: string;
+  const params = useLocalSearchParams<{
+    id: string | string[];
     scannedBarcode?: string;
   }>();
+  // Handle case where id might be an array from route params
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [showRawReturnText, setShowRawReturnText] = useState(false);
   const colorScheme = useColorScheme();
   const barcodeModalRef = useRef<TrueSheet>(null);

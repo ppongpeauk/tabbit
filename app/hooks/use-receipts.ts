@@ -4,6 +4,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "@/utils/api";
 import {
   getReceipts,
   saveReceipt,
@@ -11,6 +12,7 @@ import {
   deleteReceipt,
   type StoredReceipt,
 } from "@/utils/storage";
+import type { AxiosError } from "axios";
 
 // Query keys
 export const receiptKeys = {
@@ -22,10 +24,30 @@ export const receiptKeys = {
   detail: (id: string) => [...receiptKeys.details(), id] as const,
 };
 
-// Helper function to get receipt by ID
+/**
+ * Helper function to get receipt by ID from server
+ */
 async function getReceiptById(id: string): Promise<StoredReceipt | null> {
-  const receipts = await getReceipts();
-  return receipts.find((r) => r.id === id) || null;
+  try {
+    const response = await apiClient.get(`/receipts/${id}`);
+    const data = response.data;
+    if (!data.success || !data.receipt) {
+      return null;
+    }
+    return data.receipt as StoredReceipt;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    // Return null for 404 errors (receipt not found)
+    if (axiosError.response?.status === 404) {
+      return null;
+    }
+    // Throw error for other cases
+    throw new Error(
+      axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to fetch receipt"
+    );
+  }
 }
 
 /**
@@ -41,11 +63,26 @@ export function useReceipts() {
 /**
  * Hook to fetch a single receipt by ID
  */
-export function useReceipt(id: string | undefined) {
+export function useReceipt(id: string | string[] | undefined) {
+  // Handle case where id might be an array from route params
+  const receiptId = Array.isArray(id) ? id[0] : id;
+
   return useQuery({
-    queryKey: receiptKeys.detail(id || ""),
-    queryFn: () => getReceiptById(id || ""),
-    enabled: !!id,
+    queryKey: receiptKeys.detail(receiptId || ""),
+    queryFn: () => {
+      if (!receiptId) {
+        throw new Error("Receipt ID is required");
+      }
+      return getReceiptById(receiptId);
+    },
+    enabled: !!receiptId,
+    retry: (failureCount, error) => {
+      // Don't retry on 404 errors (receipt not found)
+      if (error instanceof Error && error.message.includes("404")) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 }
 
@@ -104,6 +141,3 @@ export function useDeleteReceipt() {
     },
   });
 }
-
-
-

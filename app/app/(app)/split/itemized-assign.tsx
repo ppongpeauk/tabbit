@@ -4,12 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { View, ScrollView, Alert, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/button";
@@ -276,4 +271,3 @@ export default function ItemizedAssignScreen() {
     </View>
   );
 }
-

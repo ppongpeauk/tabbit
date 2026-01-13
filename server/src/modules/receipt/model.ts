@@ -14,6 +14,9 @@ export const merchantSchema = t.Object({
   address: t.Optional(merchantAddressSchema),
   phone: t.Optional(t.String()),
   receiptNumber: t.Optional(t.String()),
+  logo: t.Optional(t.String()),
+  website: t.Optional(t.String()),
+  category: t.Optional(t.Array(t.String())),
 });
 
 export const paymentDetailsSchema = t.Object({
@@ -64,6 +67,7 @@ export const returnInfoSchema = t.Object({
   returnByDate: t.Optional(t.String()),
   exchangeByDate: t.Optional(t.String()),
   returnBarcode: t.Optional(t.String()),
+  returnBarcodeFormat: t.Optional(t.String()),
   hasReturnBarcode: t.Optional(t.Boolean()),
 });
 
@@ -104,6 +108,24 @@ export const receiptSchema = t.Object({
 
 export type ReceiptItem = typeof receiptItemSchema.static;
 export type Receipt = typeof receiptSchema.static;
+
+/**
+ * Schema for stored receipt data (what gets saved in receipt.data JsonB field)
+ * This includes all fields from Receipt plus name and optional splitData
+ */
+export const storedReceiptDataSchema = t.Object({
+  name: t.String(),
+  merchant: merchantSchema,
+  transaction: transactionSchema,
+  items: t.Array(receiptItemSchema),
+  totals: totalsSchema,
+  returnInfo: t.Optional(returnInfoSchema),
+  appData: t.Optional(appDataSchema),
+  technical: t.Optional(technicalSchema),
+  splitData: t.Optional(t.Unknown()), // SplitData is complex, use Unknown to avoid any
+});
+
+export type StoredReceiptData = typeof storedReceiptDataSchema.static;
 
 export interface Barcode {
   type: string;

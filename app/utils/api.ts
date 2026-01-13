@@ -1,5 +1,50 @@
 import { File } from "expo-file-system";
+import axios, { type AxiosInstance, type AxiosError } from "axios";
 import { API_BASE_URL } from "./config";
+import * as SecureStore from "expo-secure-store";
+
+const TOKEN_STORAGE_KEY = "tabbit.token";
+
+/**
+ * Get auth token from secure storage
+ */
+async function getAuthToken(): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Create axios instance with interceptors for auth token
+ */
+const createAxiosInstance = (): AxiosInstance => {
+  const instance = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  // Request interceptor to add auth token
+  instance.interceptors.request.use(
+    async (config) => {
+      const token = await getAuthToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
+
+  return instance;
+};
+
+export const apiClient = createAxiosInstance();
 
 export interface MerchantAddress {
   line1?: string;
@@ -168,41 +213,20 @@ export async function scanBarcodeImage(imageUri: string): Promise<{
     const imageBase64 = await imageUriToBase64(imageUri);
 
     // Make API request
-    const response = await fetch(
-      `${API_BASE_URL}/receipts/barcodes/scan-base64`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          image_base64: imageBase64,
-        }),
-      }
-    );
+    const response = await apiClient.post("/receipts/barcodes/scan-base64", {
+      image_base64: imageBase64,
+    });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      return {
-        success: false,
-        message:
-          errorData.message ||
-          `HTTP ${response.status}: ${response.statusText}`,
-      };
-    }
-
-    const data = await response.json();
-    return data;
+    return response.data;
   } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to scan barcode. Please check your connection and try again.",
-      error: error instanceof Error ? error.stack : undefined,
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to scan barcode. Please check your connection and try again.",
+      error: axiosError.stack,
     };
   }
 }
@@ -220,9 +244,7 @@ export async function scanReceipt(
     skipPreprocessing?: boolean;
     token?: string;
   }
-): Promise<
-  ReceiptScanResponse & { authError?: boolean }
-> {
+): Promise<ReceiptScanResponse & { authError?: boolean }> {
   try {
     // Convert image URI to base64
     const imageBase64 = await imageUriToBase64(imageUri);
@@ -240,53 +262,39 @@ export async function scanReceipt(
       body.skip_preprocessing = options.skipPreprocessing;
     }
 
-    // Prepare headers
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
-    // Add auth token if provided
-    if (options?.token) {
-      headers.Authorization = `Bearer ${options.token}`;
-    }
+    // Create a custom axios instance if token is provided
+    const client = options?.token
+      ? axios.create({
+          baseURL: API_BASE_URL,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${options.token}`,
+          },
+        })
+      : apiClient;
 
     // Make API request
-    const response = await fetch(`${API_BASE_URL}/receipts/scan-base64`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
+    const response = await client.post("/receipts/scan-base64", body);
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-
-      const isAuthError =
-        response.status === 401 ||
-        errorData.message?.toLowerCase().includes("session expired");
-
-      return {
-        success: false,
-        message:
-          errorData.message ||
-          `HTTP ${response.status}: ${response.statusText}`,
-        authError: isAuthError,
-      };
-    }
-
-    const data = await response.json();
-    return data as ReceiptScanResponse & {
+    return response.data as ReceiptScanResponse & {
       authError?: boolean;
     };
   } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    const isAuthError =
+      axiosError.response?.status === 401 ||
+      axiosError.response?.data?.message
+        ?.toLowerCase()
+        .includes("session expired");
+
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to scan receipt. Please check your connection and try again.",
-      error: error instanceof Error ? error.stack : undefined,
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to scan receipt. Please check your connection and try again.",
+      error: axiosError.stack,
+      authError: isAuthError,
     };
   }
 }
@@ -339,53 +347,20 @@ export interface PresignedUrlResponse {
 }
 
 /**
- * Get auth token from secure storage
- */
-async function getAuthToken(): Promise<string | null> {
-  try {
-    const { getItemAsync } = await import("expo-secure-store");
-    return await getItemAsync("tabbit.token");
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Get all groups for the authenticated user
  */
 export async function getGroups(): Promise<GroupResponse> {
   try {
-    const token = await getAuthToken();
-    if (!token) {
-      return { success: false, message: "Not authenticated" };
-    }
-
-    const response = await fetch(`${API_BASE_URL}/groups`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      return {
-        success: false,
-        message: errorData.message || `HTTP ${response.status}`,
-      };
-    }
-
-    return await response.json();
+    const response = await apiClient.get("/groups");
+    return response.data;
   } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch groups. Please check your connection and try again.",
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to fetch groups. Please check your connection and try again.",
     };
   }
 }
@@ -395,37 +370,16 @@ export async function getGroups(): Promise<GroupResponse> {
  */
 export async function getGroup(groupId: string): Promise<GroupResponse> {
   try {
-    const token = await getAuthToken();
-    if (!token) {
-      return { success: false, message: "Not authenticated" };
-    }
-
-    const response = await fetch(`${API_BASE_URL}/groups/${groupId}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      return {
-        success: false,
-        message: errorData.message || `HTTP ${response.status}`,
-      };
-    }
-
-    return await response.json();
+    const response = await apiClient.get(`/groups/${groupId}`);
+    return response.data;
   } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch group. Please check your connection and try again.",
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to fetch group. Please check your connection and try again.",
     };
   }
 }
@@ -438,38 +392,16 @@ export async function createGroup(data: {
   description?: string;
 }): Promise<GroupResponse> {
   try {
-    const token = await getAuthToken();
-    if (!token) {
-      return { success: false, message: "Not authenticated" };
-    }
-
-    const response = await fetch(`${API_BASE_URL}/groups`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      return {
-        success: false,
-        message: errorData.message || `HTTP ${response.status}`,
-      };
-    }
-
-    return await response.json();
+    const response = await apiClient.post("/groups", data);
+    return response.data;
   } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to create group. Please check your connection and try again.",
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to create group. Please check your connection and try again.",
     };
   }
 }
@@ -479,38 +411,16 @@ export async function createGroup(data: {
  */
 export async function joinGroup(code: string): Promise<GroupResponse> {
   try {
-    const token = await getAuthToken();
-    if (!token) {
-      return { success: false, message: "Not authenticated" };
-    }
-
-    const response = await fetch(`${API_BASE_URL}/groups/join`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ code }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      return {
-        success: false,
-        message: errorData.message || `HTTP ${response.status}`,
-      };
-    }
-
-    return await response.json();
+    const response = await apiClient.post("/groups/join", { code });
+    return response.data;
   } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to join group. Please check your connection and try again.",
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to join group. Please check your connection and try again.",
     };
   }
 }
@@ -523,38 +433,16 @@ export async function updateGroup(
   data: { name?: string; description?: string }
 ): Promise<GroupResponse> {
   try {
-    const token = await getAuthToken();
-    if (!token) {
-      return { success: false, message: "Not authenticated" };
-    }
-
-    const response = await fetch(`${API_BASE_URL}/groups/${groupId}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      return {
-        success: false,
-        message: errorData.message || `HTTP ${response.status}`,
-      };
-    }
-
-    return await response.json();
+    const response = await apiClient.put(`/groups/${groupId}`, data);
+    return response.data;
   } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to update group. Please check your connection and try again.",
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to update group. Please check your connection and try again.",
     };
   }
 }
@@ -564,37 +452,16 @@ export async function updateGroup(
  */
 export async function leaveGroup(groupId: string): Promise<GroupResponse> {
   try {
-    const token = await getAuthToken();
-    if (!token) {
-      return { success: false, message: "Not authenticated" };
-    }
-
-    const response = await fetch(`${API_BASE_URL}/groups/${groupId}/leave`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      return {
-        success: false,
-        message: errorData.message || `HTTP ${response.status}`,
-      };
-    }
-
-    return await response.json();
+    const response = await apiClient.post(`/groups/${groupId}/leave`);
+    return response.data;
   } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to leave group. Please check your connection and try again.",
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to leave group. Please check your connection and try again.",
     };
   }
 }
@@ -604,37 +471,16 @@ export async function leaveGroup(groupId: string): Promise<GroupResponse> {
  */
 export async function deleteGroup(groupId: string): Promise<GroupResponse> {
   try {
-    const token = await getAuthToken();
-    if (!token) {
-      return { success: false, message: "Not authenticated" };
-    }
-
-    const response = await fetch(`${API_BASE_URL}/groups/${groupId}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      return {
-        success: false,
-        message: errorData.message || `HTTP ${response.status}`,
-      };
-    }
-
-    return await response.json();
+    const response = await apiClient.delete(`/groups/${groupId}`);
+    return response.data;
   } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to delete group. Please check your connection and try again.",
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to delete group. Please check your connection and try again.",
     };
   }
 }
@@ -647,41 +493,18 @@ export async function getGroupIconUploadUrl(
   extension: string = "jpg"
 ): Promise<PresignedUploadResponse> {
   try {
-    const token = await getAuthToken();
-    if (!token) {
-      return { success: false, message: "Not authenticated" };
-    }
-
-    const response = await fetch(
-      `${API_BASE_URL}/groups/${groupId}/icon/presigned`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ extension }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      return {
-        success: false,
-        message: errorData.message || `HTTP ${response.status}`,
-      };
-    }
-
-    return await response.json();
+    const response = await apiClient.post(`/groups/${groupId}/icon/presigned`, {
+      extension,
+    });
+    return response.data;
   } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to get upload URL. Please check your connection and try again.",
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to get upload URL. Please check your connection and try again.",
     };
   }
 }
@@ -694,41 +517,18 @@ export async function confirmGroupIconUpload(
   key: string
 ): Promise<GroupResponse> {
   try {
-    const token = await getAuthToken();
-    if (!token) {
-      return { success: false, message: "Not authenticated" };
-    }
-
-    const response = await fetch(
-      `${API_BASE_URL}/groups/${groupId}/icon/confirm`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ key }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      return {
-        success: false,
-        message: errorData.message || `HTTP ${response.status}`,
-      };
-    }
-
-    return await response.json();
+    const response = await apiClient.post(`/groups/${groupId}/icon/confirm`, {
+      key,
+    });
+    return response.data;
   } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to confirm icon upload. Please check your connection and try again.",
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to confirm icon upload. Please check your connection and try again.",
     };
   }
 }
@@ -796,43 +596,18 @@ export async function getPresignedUrl(
   key: string
 ): Promise<PresignedUrlResponse> {
   try {
-    const token = await getAuthToken();
-    if (!token) {
-      return { success: false, message: "Not authenticated" };
-    }
-
     // URL-encode the key to handle special characters
     const encodedKey = encodeURIComponent(key);
-
-    const response = await fetch(
-      `${API_BASE_URL}/groups/presigned/${encodedKey}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      return {
-        success: false,
-        message: errorData.message || `HTTP ${response.status}`,
-      };
-    }
-
-    return await response.json();
+    const response = await apiClient.get(`/groups/presigned/${encodedKey}`);
+    return response.data;
   } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to get image URL. Please check your connection and try again.",
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to get image URL. Please check your connection and try again.",
     };
   }
 }

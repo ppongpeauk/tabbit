@@ -1,17 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  getSyncReceipts,
-  saveSyncReceipt,
-  updateSyncReceipt as updateSyncReceiptDb,
-  deleteSyncReceipt,
-  isSyncEnabled,
-  type SyncReceipt,
-} from "@/lib/sync-db";
-
-const RECEIPTS_KEY = "@tabbit:receipts";
-const FRIENDS_KEY = "@tabbit:friends";
-const DEFAULT_SPLIT_MODE_KEY = "@tabbit:default_split_mode";
-
+import type { AxiosError } from "axios";
+import { apiClient } from "./api";
 import type {
   ReceiptItem,
   Merchant,
@@ -23,6 +12,9 @@ import type {
 } from "./api";
 import type { SplitData } from "./split";
 import { SplitStrategy } from "./split";
+
+const FRIENDS_KEY = "@tabbit:friends";
+const DEFAULT_SPLIT_MODE_KEY = "@tabbit:default_split_mode";
 
 export interface Friend {
   id: string;
@@ -49,102 +41,92 @@ export interface StoredReceipt {
 // Re-export types for convenience
 export type { ReceiptItem } from "./api";
 
+/**
+ * Save a new receipt to the server
+ */
 export async function saveReceipt(
   receipt: Omit<StoredReceipt, "id" | "createdAt">
 ): Promise<StoredReceipt> {
-  const syncEnabled = await isSyncEnabled();
-
-  if (syncEnabled) {
-    // Use sync database
-    const newReceipt = await saveSyncReceipt({
-      ...receipt,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      syncStatus: "pending",
-    });
-    return newReceipt as StoredReceipt;
-  } else {
-    // Use regular AsyncStorage
-    const receipts = await getReceipts();
-    const newReceipt: StoredReceipt = {
-      ...receipt,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    receipts.unshift(newReceipt);
-    await AsyncStorage.setItem(RECEIPTS_KEY, JSON.stringify(receipts));
-    return newReceipt;
-  }
-}
-
-export async function getReceipts(): Promise<StoredReceipt[]> {
-  const syncEnabled = await isSyncEnabled();
-
-  if (syncEnabled) {
-    // Use sync database
-    const syncReceipts = await getSyncReceipts();
-    // Convert SyncReceipt to StoredReceipt (remove sync-specific fields)
-    return syncReceipts.map((r) => {
-      const { syncStatus, syncError, lastSyncedAt, serverId, ...receipt } = r;
-      return receipt as StoredReceipt;
-    });
-  } else {
-    // Use regular AsyncStorage
-    try {
-      const data = await AsyncStorage.getItem(RECEIPTS_KEY);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error("Error loading receipts:", error);
-      return [];
+  try {
+    const response = await apiClient.post("/receipts/save", { receipt });
+    const data = response.data;
+    if (!data.success || !data.receipt) {
+      throw new Error(data.message || "Failed to save receipt");
     }
+    return data.receipt as StoredReceipt;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    throw new Error(
+      axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to save receipt"
+    );
   }
 }
 
+/**
+ * Get all receipts from the server
+ */
+export async function getReceipts(): Promise<StoredReceipt[]> {
+  try {
+    const response = await apiClient.get("/receipts");
+    const data = response.data;
+    if (!data.success || !Array.isArray(data.receipts)) {
+      throw new Error(data.message || "Failed to fetch receipts");
+    }
+    return data.receipts as StoredReceipt[];
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    throw new Error(
+      axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to fetch receipts"
+    );
+  }
+}
+
+/**
+ * Delete a receipt from the server
+ */
 export async function deleteReceipt(id: string): Promise<void> {
-  const syncEnabled = await isSyncEnabled();
-
-  if (syncEnabled) {
-    // Use sync database
-    await deleteSyncReceipt(id);
-  } else {
-    // Use regular AsyncStorage
-    const receipts = await getReceipts();
-    const filtered = receipts.filter((r) => r.id !== id);
-    await AsyncStorage.setItem(RECEIPTS_KEY, JSON.stringify(filtered));
+  try {
+    const response = await apiClient.delete(`/receipts/${id}`);
+    const data = response.data;
+    if (!data.success) {
+      throw new Error(data.message || "Failed to delete receipt");
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    throw new Error(
+      axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to delete receipt"
+    );
   }
 }
 
+/**
+ * Update a receipt on the server
+ */
 export async function updateReceipt(
   id: string,
   updates: Partial<StoredReceipt>
 ): Promise<void> {
-  const syncEnabled = await isSyncEnabled();
-
-  if (syncEnabled) {
-    // Use sync database - mark as pending if synced before
-    const syncReceipts = await getSyncReceipts();
-    const existing = syncReceipts.find((r) => r.id === id);
-    if (existing) {
-      await updateSyncReceiptDb(id, {
-        ...updates,
-        updatedAt: new Date().toISOString(), // Always update timestamp
-        syncStatus:
-          existing.syncStatus === "synced" ? "pending" : existing.syncStatus,
-      });
-    } else {
-      console.warn(`Receipt ${id} not found for update`);
+  try {
+    const response = await apiClient.put(`/receipts/${id}`, { updates });
+    const data = response.data;
+    if (!data.success) {
+      throw new Error(data.message || "Failed to update receipt");
     }
-  } else {
-    // Use regular AsyncStorage
-    const receipts = await getReceipts();
-    const index = receipts.findIndex((r) => r.id === id);
-    if (index !== -1) {
-      receipts[index] = { ...receipts[index], ...updates };
-      await AsyncStorage.setItem(RECEIPTS_KEY, JSON.stringify(receipts));
-    }
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    throw new Error(
+      axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to update receipt"
+    );
   }
 }
-
 
 /**
  * Save a new friend
@@ -248,4 +230,3 @@ export async function setDefaultSplitMode(mode: SplitStrategy): Promise<void> {
     throw error;
   }
 }
-

@@ -5,7 +5,7 @@
 
 import { Elysia, t } from "elysia";
 import { receiptService } from "./service";
-import { defaultReceiptSchema } from "./model";
+import { defaultReceiptSchema, storedReceiptDataSchema } from "./model";
 import { detectBarcodes } from "../../utils/barcode-detector";
 import { HTTP_STATUS } from "../../utils/constants";
 import { errorResponse } from "../../utils/route-helpers";
@@ -247,6 +247,223 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
       },
     }
   )
+  .get(
+    "",
+    async ({ set, user }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return {
+          success: false,
+          message: "Session expired. Please sign in again.",
+        };
+      }
+
+      try {
+        const receipts = await prisma.receipt.findMany({
+          where: { userId: user.id },
+          orderBy: { createdAt: "desc" },
+        });
+
+        const mappedReceipts = receipts.map((receipt) => ({
+          ...(receipt.data as Record<string, unknown>),
+          id: receipt.id, // Database ID always takes precedence
+          createdAt: receipt.createdAt.toISOString(),
+        }));
+
+        set.status = HTTP_STATUS.OK;
+        return {
+          success: true,
+          receipts: mappedReceipts,
+        };
+      } catch (error) {
+        set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+        return {
+          success: false,
+          message:
+            error instanceof Error ? error.message : "Failed to fetch receipts",
+        };
+      }
+    },
+    {
+      detail: {
+        tags: ["receipts"],
+        summary: "Get all receipts",
+        description: "Get all receipts for the authenticated user",
+      },
+    }
+  )
+  .get(
+    "/:id",
+    async ({ params, set, user }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return {
+          success: false,
+          message: "Session expired. Please sign in again.",
+        };
+      }
+
+      try {
+        const receipt = await prisma.receipt.findFirst({
+          where: {
+            id: params.id,
+            userId: user.id,
+          },
+        });
+
+        if (!receipt) {
+          set.status = HTTP_STATUS.NOT_FOUND;
+          return {
+            success: false,
+            message: "Receipt not found",
+          };
+        }
+
+        set.status = HTTP_STATUS.OK;
+        return {
+          success: true,
+          receipt: {
+            ...(receipt.data as Record<string, unknown>),
+            id: receipt.id, // Database ID always takes precedence
+            createdAt: receipt.createdAt.toISOString(),
+          },
+        };
+      } catch (error) {
+        set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+        return {
+          success: false,
+          message:
+            error instanceof Error ? error.message : "Failed to fetch receipt",
+        };
+      }
+    },
+    {
+      detail: {
+        tags: ["receipts"],
+        summary: "Get receipt by ID",
+        description: "Get a specific receipt by ID for the authenticated user",
+      },
+    }
+  )
+  .put(
+    "/:id",
+    async ({ params, body, set, user }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return {
+          success: false,
+          message: "Session expired. Please sign in again.",
+        };
+      }
+
+      try {
+        const existing = await prisma.receipt.findFirst({
+          where: {
+            id: params.id,
+            userId: user.id,
+          },
+        });
+
+        if (!existing) {
+          set.status = HTTP_STATUS.NOT_FOUND;
+          return {
+            success: false,
+            message: "Receipt not found",
+          };
+        }
+
+        // Merge updates with existing data
+        const nextData = {
+          ...(existing.data as Record<string, unknown>),
+          ...body.updates,
+        };
+
+        const updated = await prisma.receipt.update({
+          where: { id: params.id },
+          data: { data: nextData },
+        });
+
+        set.status = HTTP_STATUS.OK;
+        return {
+          success: true,
+          receipt: {
+            id: updated.id,
+            createdAt: updated.createdAt.toISOString(),
+            ...(updated.data as Record<string, unknown>),
+          },
+        };
+      } catch (error) {
+        set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+        return {
+          success: false,
+          message:
+            error instanceof Error ? error.message : "Failed to update receipt",
+        };
+      }
+    },
+    {
+      body: t.Object({
+        updates: t.Partial(storedReceiptDataSchema),
+      }),
+      detail: {
+        tags: ["receipts"],
+        summary: "Update receipt",
+        description: "Update a receipt by ID for the authenticated user",
+      },
+    }
+  )
+  .delete(
+    "/:id",
+    async ({ params, set, user }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return {
+          success: false,
+          message: "Session expired. Please sign in again.",
+        };
+      }
+
+      try {
+        const existing = await prisma.receipt.findFirst({
+          where: {
+            id: params.id,
+            userId: user.id,
+          },
+        });
+
+        if (!existing) {
+          set.status = HTTP_STATUS.NOT_FOUND;
+          return {
+            success: false,
+            message: "Receipt not found",
+          };
+        }
+
+        await prisma.receipt.delete({
+          where: { id: params.id },
+        });
+
+        set.status = HTTP_STATUS.OK;
+        return {
+          success: true,
+        };
+      } catch (error) {
+        set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+        return {
+          success: false,
+          message:
+            error instanceof Error ? error.message : "Failed to delete receipt",
+        };
+      }
+    },
+    {
+      detail: {
+        tags: ["receipts"],
+        summary: "Delete receipt",
+        description: "Delete a receipt by ID for the authenticated user",
+      },
+    }
+  )
   .post(
     "/save",
     async ({ body, set, user }) => {
@@ -271,9 +488,9 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
         return {
           success: true,
           receipt: {
-            id: receipt.id,
             ...(receipt.data as Record<string, unknown>),
-            createdAt: receipt.createdAt,
+            id: receipt.id, // Database ID always takes precedence
+            createdAt: receipt.createdAt.toISOString(),
           },
         };
       } catch (error) {
@@ -287,7 +504,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     },
     {
       body: t.Object({
-        receipt: t.Record(t.String(), t.Any()),
+        receipt: storedReceiptDataSchema,
       }),
       detail: {
         tags: ["receipts"],
