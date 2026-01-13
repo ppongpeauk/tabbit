@@ -12,30 +12,18 @@ import { errorResponse } from "../../utils/route-helpers";
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
 
-/**
- * Convert skip_preprocessing parameter to boolean
- */
 function parseSkipPreprocessing(value: string | boolean | undefined): boolean {
   return value === true || (typeof value === "string" && value === "true");
 }
 
-/**
- * Convert File to Buffer
- */
 async function fileToBuffer(file: File): Promise<Buffer> {
   return Buffer.from(await file.arrayBuffer());
 }
 
-/**
- * Convert base64 string to Buffer
- */
 function base64ToBuffer(base64: string): Buffer {
   return Buffer.from(base64, "base64");
 }
 
-/**
- * Handle receipt scan request
- */
 async function handleReceiptScan(
   imageBuffer: Buffer,
   model: string | undefined,
@@ -56,32 +44,16 @@ async function handleReceiptScan(
   return { ...result, status };
 }
 
-/**
- * Handle barcode scan request
- */
 async function handleBarcodeScan(imageBuffer: Buffer) {
-  try {
-    const barcodes = await detectBarcodes(imageBuffer);
-    return {
-      success: true,
-      barcodes,
-      count: barcodes.length,
-      status: HTTP_STATUS.OK,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message:
-        error instanceof Error ? error.message : "Failed to detect barcodes",
-      error: error instanceof Error ? error.stack : undefined,
-      status: HTTP_STATUS.INTERNAL_SERVER_ERROR,
-    };
-  }
+  const barcodes = await detectBarcodes(imageBuffer);
+  return {
+    success: true,
+    barcodes,
+    count: barcodes.length,
+    status: HTTP_STATUS.OK,
+  };
 }
 
-/**
- * Process image from file or base64 and execute handler
- */
 async function processImage<T extends { status?: number }>(
   image: File | undefined,
   imageBase64: string | undefined,
@@ -97,9 +69,7 @@ async function processImage<T extends { status?: number }>(
   } else if (imageBase64) {
     imageBuffer = base64ToBuffer(imageBase64);
   } else {
-    const message = imageBase64
-      ? "Image file is required"
-      : "image_base64 is required";
+    const message = "Image file or image_base64 is required";
     const { status } = errorResponse(message);
     return {
       response: { success: false as const, message },
@@ -202,10 +172,24 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     "/barcodes/scan",
     async ({ body, set }) => {
       const { image } = body;
-      const processed = await processImage(image, undefined, handleBarcodeScan);
-
-      set.status = processed.status;
-      return processed.response;
+      try {
+        const processed = await processImage(
+          image,
+          undefined,
+          handleBarcodeScan
+        );
+        set.status = processed.status;
+        return processed.response;
+      } catch (error) {
+        set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+        return {
+          success: false,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to detect barcodes",
+        };
+      }
     },
     {
       body: t.Object({
@@ -226,14 +210,24 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     "/barcodes/scan-base64",
     async ({ body, set }) => {
       const { image_base64 } = body;
-      const processed = await processImage(
-        undefined,
-        image_base64,
-        handleBarcodeScan
-      );
-
-      set.status = processed.status;
-      return processed.response;
+      try {
+        const processed = await processImage(
+          undefined,
+          image_base64,
+          handleBarcodeScan
+        );
+        set.status = processed.status;
+        return processed.response;
+      } catch (error) {
+        set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+        return {
+          success: false,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to detect barcodes",
+        };
+      }
     },
     {
       body: t.Object({
@@ -266,7 +260,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
 
         const mappedReceipts = receipts.map((receipt) => ({
           ...(receipt.data as Record<string, unknown>),
-          id: receipt.id, // Database ID always takes precedence
+          id: receipt.id,
           createdAt: receipt.createdAt.toISOString(),
         }));
 
@@ -324,7 +318,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
           success: true,
           receipt: {
             ...(receipt.data as Record<string, unknown>),
-            id: receipt.id, // Database ID always takes precedence
+            id: receipt.id,
             createdAt: receipt.createdAt.toISOString(),
           },
         };
@@ -372,7 +366,6 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
           };
         }
 
-        // Merge updates with existing data
         const nextData = {
           ...(existing.data as Record<string, unknown>),
           ...body.updates,
@@ -476,7 +469,6 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
       }
 
       try {
-        // Save receipt to database
         const receipt = await prisma.receipt.create({
           data: {
             userId: user.id,
@@ -489,7 +481,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
           success: true,
           receipt: {
             ...(receipt.data as Record<string, unknown>),
-            id: receipt.id, // Database ID always takes precedence
+            id: receipt.id,
             createdAt: receipt.createdAt.toISOString(),
           },
         };
