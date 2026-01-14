@@ -14,6 +14,7 @@ import {
   removeItemSchema,
 } from "./model";
 import { HTTP_STATUS } from "../../utils/constants";
+import { unauthorizedResponse } from "../../utils/route-helpers";
 import { auth } from "../../lib/auth";
 
 export const plaidModule = new Elysia({ prefix: "/plaid" })
@@ -32,10 +33,7 @@ export const plaidModule = new Elysia({ prefix: "/plaid" })
     async ({ body, set, user }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return {
-          success: false,
-          message: "Session expired. Please sign in again.",
-        };
+        return unauthorizedResponse();
       }
 
       const result = await plaidService.createLinkToken({
@@ -67,10 +65,7 @@ export const plaidModule = new Elysia({ prefix: "/plaid" })
     async ({ body, set, user }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return {
-          success: false,
-          message: "Session expired. Please sign in again.",
-        };
+        return unauthorizedResponse();
       }
 
       const result = await plaidService.exchangePublicToken({
@@ -98,10 +93,7 @@ export const plaidModule = new Elysia({ prefix: "/plaid" })
     async ({ body, set, user }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return {
-          success: false,
-          message: "Session expired. Please sign in again.",
-        };
+        return unauthorizedResponse();
       }
 
       const result = await plaidService.getAccounts({
@@ -129,10 +121,7 @@ export const plaidModule = new Elysia({ prefix: "/plaid" })
     async ({ body, set, user }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return {
-          success: false,
-          message: "Session expired. Please sign in again.",
-        };
+        return unauthorizedResponse();
       }
 
       const result = await plaidService.getTransactions({
@@ -164,10 +153,7 @@ export const plaidModule = new Elysia({ prefix: "/plaid" })
     async ({ body, set, user }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return {
-          success: false,
-          message: "Session expired. Please sign in again.",
-        };
+        return unauthorizedResponse();
       }
 
       const result = await plaidService.getItem({
@@ -194,10 +180,7 @@ export const plaidModule = new Elysia({ prefix: "/plaid" })
     async ({ body, set, user }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return {
-          success: false,
-          message: "Session expired. Please sign in again.",
-        };
+        return unauthorizedResponse();
       }
 
       const result = await plaidService.removeItem({

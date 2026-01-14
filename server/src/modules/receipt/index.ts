@@ -4,11 +4,12 @@
  */
 
 import { Elysia, t } from "elysia";
+import { Prisma } from "@prisma/client";
 import { receiptService } from "./service";
 import { defaultReceiptSchema, storedReceiptDataSchema } from "./model";
 import { detectBarcodes } from "../../utils/barcode-detector";
 import { HTTP_STATUS } from "../../utils/constants";
-import { errorResponse } from "../../utils/route-helpers";
+import { errorResponse, unauthorizedResponse } from "../../utils/route-helpers";
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
 
@@ -82,6 +83,52 @@ async function processImage<T extends { status?: number }>(
   return { response: result, status };
 }
 
+/**
+ * Maps receipt database record to API response format
+ */
+function mapReceiptToResponse(receipt: {
+  id: string;
+  data: Prisma.JsonValue;
+  createdAt: Date;
+}) {
+  return {
+    ...(receipt.data as Record<string, unknown>),
+    id: receipt.id,
+    createdAt: receipt.createdAt.toISOString(),
+  };
+}
+
+/**
+ * Finds a receipt by ID and user ID, returns null if not found
+ */
+async function findReceiptByIdAndUser(
+  receiptId: string,
+  userId: string
+): Promise<{
+  id: string;
+  data: Prisma.JsonValue;
+  createdAt: Date;
+  updatedAt: Date;
+  syncedAt: Date | null;
+  userId: string;
+} | null> {
+  return prisma.receipt.findFirst({
+    where: {
+      id: receiptId,
+      userId,
+    },
+  });
+}
+
+/**
+ * Converts receipt data to Prisma-compatible JSON value
+ */
+function toPrismaJsonValue(
+  data: Record<string, unknown>
+): Prisma.InputJsonValue {
+  return data as Prisma.InputJsonValue;
+}
+
 export const receiptModule = new Elysia({ prefix: "/receipts" })
   .derive(async ({ request }) => {
     try {
@@ -101,10 +148,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
 
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return {
-          success: false,
-          message: "Session expired. Please sign in again.",
-        };
+        return unauthorizedResponse();
       }
 
       const processed = await processImage(image, undefined, async (buffer) =>
@@ -139,10 +183,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
 
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return {
-          success: false,
-          message: "Session expired. Please sign in again.",
-        };
+        return unauthorizedResponse();
       }
 
       const processed = await processImage(
@@ -246,10 +287,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     async ({ set, user }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return {
-          success: false,
-          message: "Session expired. Please sign in again.",
-        };
+        return unauthorizedResponse();
       }
 
       try {
@@ -258,11 +296,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
           orderBy: { createdAt: "desc" },
         });
 
-        const mappedReceipts = receipts.map((receipt) => ({
-          ...(receipt.data as Record<string, unknown>),
-          id: receipt.id,
-          createdAt: receipt.createdAt.toISOString(),
-        }));
+        const mappedReceipts = receipts.map(mapReceiptToResponse);
 
         set.status = HTTP_STATUS.OK;
         return {
@@ -291,19 +325,11 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     async ({ params, set, user }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return {
-          success: false,
-          message: "Session expired. Please sign in again.",
-        };
+        return unauthorizedResponse();
       }
 
       try {
-        const receipt = await prisma.receipt.findFirst({
-          where: {
-            id: params.id,
-            userId: user.id,
-          },
-        });
+        const receipt = await findReceiptByIdAndUser(params.id, user.id);
 
         if (!receipt) {
           set.status = HTTP_STATUS.NOT_FOUND;
@@ -316,11 +342,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
         set.status = HTTP_STATUS.OK;
         return {
           success: true,
-          receipt: {
-            ...(receipt.data as Record<string, unknown>),
-            id: receipt.id,
-            createdAt: receipt.createdAt.toISOString(),
-          },
+          receipt: mapReceiptToResponse(receipt),
         };
       } catch (error) {
         set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
@@ -344,19 +366,11 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     async ({ params, body, set, user }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return {
-          success: false,
-          message: "Session expired. Please sign in again.",
-        };
+        return unauthorizedResponse();
       }
 
       try {
-        const existing = await prisma.receipt.findFirst({
-          where: {
-            id: params.id,
-            userId: user.id,
-          },
-        });
+        const existing = await findReceiptByIdAndUser(params.id, user.id);
 
         if (!existing) {
           set.status = HTTP_STATUS.NOT_FOUND;
@@ -366,10 +380,13 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
           };
         }
 
-        const nextData = {
-          ...(existing.data as Record<string, unknown>),
+        // Merge existing data with updates, ensuring type safety for Prisma JSON field
+        const existingData = existing.data as Record<string, unknown>;
+        const mergedData = {
+          ...existingData,
           ...body.updates,
         };
+        const nextData = toPrismaJsonValue(mergedData);
 
         const updated = await prisma.receipt.update({
           where: { id: params.id },
@@ -379,11 +396,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
         set.status = HTTP_STATUS.OK;
         return {
           success: true,
-          receipt: {
-            id: updated.id,
-            createdAt: updated.createdAt.toISOString(),
-            ...(updated.data as Record<string, unknown>),
-          },
+          receipt: mapReceiptToResponse(updated),
         };
       } catch (error) {
         set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
@@ -410,19 +423,11 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     async ({ params, set, user }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return {
-          success: false,
-          message: "Session expired. Please sign in again.",
-        };
+        return unauthorizedResponse();
       }
 
       try {
-        const existing = await prisma.receipt.findFirst({
-          where: {
-            id: params.id,
-            userId: user.id,
-          },
-        });
+        const existing = await findReceiptByIdAndUser(params.id, user.id);
 
         if (!existing) {
           set.status = HTTP_STATUS.NOT_FOUND;
@@ -462,28 +467,21 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     async ({ body, set, user }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return {
-          success: false,
-          message: "Session expired. Please sign in again.",
-        };
+        return unauthorizedResponse();
       }
 
       try {
         const receipt = await prisma.receipt.create({
           data: {
             userId: user.id,
-            data: body.receipt,
+            data: toPrismaJsonValue(body.receipt as Record<string, unknown>),
           },
         });
 
         set.status = HTTP_STATUS.CREATED;
         return {
           success: true,
-          receipt: {
-            ...(receipt.data as Record<string, unknown>),
-            id: receipt.id,
-            createdAt: receipt.createdAt.toISOString(),
-          },
+          receipt: mapReceiptToResponse(receipt),
         };
       } catch (error) {
         set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;

@@ -78,3 +78,14 @@ export function handleServiceResult<T extends { success: boolean }>(
     status: result.success ? successStatus : errorStatus,
   };
 }
+
+/**
+ * Returns a standardized unauthorized response
+ * Used when user authentication is required but not present
+ */
+export function unauthorizedResponse(): ApiResponse {
+  return {
+    success: false,
+    message: "Session expired. Please sign in again.",
+  };
+}

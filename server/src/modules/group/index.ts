@@ -12,7 +12,7 @@ import {
   type GroupResponse,
 } from "./model";
 import { HTTP_STATUS } from "../../utils/constants";
-import { handleServiceResult } from "../../utils/route-helpers";
+import { handleServiceResult, unauthorizedResponse } from "../../utils/route-helpers";
 import { auth } from "../../lib/auth";
 import {
   getPresignedUrl,
@@ -35,7 +35,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
     async ({ user, set }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return { success: false, message: "Unauthorized" };
+        return unauthorizedResponse();
       }
 
       const result = await groupService.getUserGroups(user.id);
@@ -60,7 +60,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
     async ({ params: { id }, user, set }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return { success: false, message: "Unauthorized" };
+        return unauthorizedResponse();
       }
 
       const result = await groupService.getGroupById(id, user.id);
@@ -88,7 +88,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
     async ({ body, user, set }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return { success: false, message: "Unauthorized" };
+        return unauthorizedResponse();
       }
 
       const result = await groupService.createGroup(user.id, body);
@@ -113,7 +113,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
     async ({ params: { id }, body, user, set }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return { success: false, message: "Unauthorized" };
+        return unauthorizedResponse();
       }
 
       const result = await groupService.updateGroup(id, user.id, body);
@@ -142,7 +142,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
     async ({ body, user, set }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return { success: false, message: "Unauthorized" };
+        return unauthorizedResponse();
       }
 
       const result = await groupService.joinGroup(user.id, body.code);
@@ -167,7 +167,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
     async ({ params: { id }, user, set }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return { success: false, message: "Unauthorized" };
+        return unauthorizedResponse();
       }
 
       const result = await groupService.leaveGroup(id, user.id);
@@ -194,7 +194,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
     async ({ params: { id }, user, set }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return { success: false, message: "Unauthorized" };
+        return unauthorizedResponse();
       }
 
       const result = await groupService.deleteGroup(id, user.id);
@@ -222,7 +222,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
     async ({ params: { id }, body, user, set }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return { success: false, message: "Unauthorized" };
+        return unauthorizedResponse();
       }
 
       try {
@@ -294,7 +294,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
     async ({ params: { id }, body, user, set }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return { success: false, message: "Unauthorized" };
+        return unauthorizedResponse();
       }
 
       try {
@@ -356,7 +356,7 @@ export const groupModule = new Elysia({ prefix: "/groups" })
     async ({ params: { key }, user, set }) => {
       if (!user) {
         set.status = HTTP_STATUS.UNAUTHORIZED;
-        return { success: false, message: "Unauthorized" };
+        return unauthorizedResponse();
       }
 
       try {
