@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { TouchableOpacity, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet, View } from "react-native";
 import { SymbolView, SymbolViewProps } from "expo-symbols";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -110,36 +110,41 @@ export function ToolbarButton({
 
   if (variant === "danger") {
     return (
-      <TouchableOpacity
-        onPress={handlePress}
-        activeOpacity={0.7}
+      <View
         style={[
           label ? styles.dangerButton : styles.dangerIconButton,
           {
-            backgroundColor: isDark
-              ? "rgba(239, 68, 68, 0.15)"
-              : "rgba(239, 68, 68, 0.1)",
+            backgroundColor: isDark ? Colors.dark.surface : "#F5F5F5",
             borderColor: isDark
               ? "rgba(239, 68, 68, 0.4)"
               : "rgba(239, 68, 68, 0.3)",
           },
         ]}
       >
-        {icon && (
-          <SymbolView name={icon} tintColor="#EF4444" style={styles.icon} />
-        )}
-        {label && (
-          <ThemedText
-            size="base"
-            weight="semibold"
-            style={{
-              color: "#EF4444",
-            }}
-          >
-            {label}
-          </ThemedText>
-        )}
-      </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handlePress}
+          activeOpacity={0.7}
+          style={[
+            styles.dangerButtonInner,
+            label && { paddingHorizontal: 20 },
+          ]}
+        >
+          {icon && (
+            <SymbolView name={icon} tintColor="#EF4444" style={styles.icon} />
+          )}
+          {label && (
+            <ThemedText
+              size="base"
+              weight="semibold"
+              style={{
+                color: "#EF4444",
+              }}
+            >
+              {label}
+            </ThemedText>
+          )}
+        </TouchableOpacity>
+      </View>
     );
   }
 
@@ -230,14 +235,10 @@ const styles = StyleSheet.create({
   },
   dangerButton: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
     height: 56,
     borderRadius: 28,
     borderWidth: 1,
-    paddingHorizontal: 20,
+    overflow: "hidden",
   },
   dangerIconButton: {
     width: 56,
@@ -246,5 +247,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 28,
     borderWidth: 1,
+    overflow: "hidden",
+  },
+  dangerButtonInner: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    width: "100%",
+    height: "100%",
   },
 });

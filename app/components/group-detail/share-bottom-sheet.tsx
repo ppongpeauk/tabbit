@@ -1,8 +1,3 @@
-/**
- * @author Composer
- * @description Bottom sheet for sharing group with QR code and invite link
- */
-
 import { useCallback, useMemo } from "react";
 import { View, StyleSheet, TouchableOpacity, Share } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";

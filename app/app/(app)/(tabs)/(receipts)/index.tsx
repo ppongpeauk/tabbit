@@ -5,17 +5,19 @@ import {
   Pressable,
   View,
   RefreshControl,
+  Alert,
   type SectionListRenderItemInfo,
 } from "react-native";
 import { router } from "expo-router";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useReceipts } from "@/hooks/use-receipts";
+import { useDeleteReceipt, useReceipts } from "@/hooks/use-receipts";
 import type { StoredReceipt } from "@/utils/storage";
 import { formatCurrency, formatReceiptDateTime } from "@/utils/format";
 import * as Haptics from "expo-haptics";
 import { Toolbar, ToolbarButton } from "@/components/toolbar";
 import moment from "moment";
+import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 
 interface ReceiptSection {
   title: string;
@@ -96,6 +98,7 @@ export default function ReceiptsScreen() {
 
   // Use React Query hook
   const { data: receipts = [], refetch, isRefetching } = useReceipts();
+  const deleteReceipt = useDeleteReceipt();
 
   const onRefresh = useCallback(() => {
     refetch();
@@ -112,6 +115,28 @@ export default function ReceiptsScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push("/create-manual");
   }, []);
+
+  const handleDeleteReceipt = useCallback(
+    (id: string, closeSwipeable: () => void) => {
+      Alert.alert("Delete receipt?", "This cannot be undone.", [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: closeSwipeable,
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            closeSwipeable();
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            deleteReceipt.mutate(id);
+          },
+        },
+      ]);
+    },
+    [deleteReceipt]
+  );
 
   const sections = useMemo<ReceiptSection[]>(() => {
     const grouped = new Map<string, StoredReceipt[]>();
@@ -205,6 +230,7 @@ export default function ReceiptsScreen() {
             colorScheme === "dark"
               ? "rgba(255, 255, 255, 0.1)"
               : "rgba(0, 0, 0, 0.1)";
+          const rowBaseBg = isDark ? Colors.dark.surface : Colors.light.surface;
           const pressedBg =
             colorScheme === "dark"
               ? "rgba(255, 255, 255, 0.08)"
@@ -223,55 +249,90 @@ export default function ReceiptsScreen() {
                   style={{ backgroundColor: separatorColor }}
                 />
               )}
-              <Pressable
-                cssInterop={false}
-                onPress={handlePress}
-                style={({ pressed }) => ({
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  paddingVertical: 16,
-                  paddingHorizontal: 16,
-                  backgroundColor: pressed ? pressedBg : "transparent",
-                })}
-              >
-                <View className="flex-1 justify-center gap-1">
-                  <View className="flex-row justify-between items-center">
-                    <ThemedText weight="semibold" size="base">
-                      {displayTitle}
-                    </ThemedText>
-                    <ThemedText
-                      weight="bold"
-                      size="base"
-                      lightColor={Colors.light.tint}
-                      darkColor={Colors.dark.tint}
+              <ReanimatedSwipeable
+                rightThreshold={48}
+                friction={2}
+                overshootRight={false}
+                childrenContainerStyle={{ backgroundColor: rowBaseBg }}
+                renderRightActions={(_, __, swipeableMethods) => (
+                  <View
+                    className="h-full justify-center items-center"
+                    style={{
+                      backgroundColor: "#EF4444",
+                    }}
+                  >
+                    <Pressable
+                      cssInterop={false}
+                      className="h-full w-full justify-center items-center px-4"
+                      onPress={() =>
+                        handleDeleteReceipt(item.id, swipeableMethods.close)
+                      }
+                      style={({ pressed }) => ({
+                        backgroundColor: pressed
+                          ? "rgba(0, 0, 0, 0.15)"
+                          : "transparent",
+                      })}
                     >
-                      {formatCurrency(item.totals.total, item.totals.currency)}
-                    </ThemedText>
+                      <ThemedText weight="bold" size="sm" lightColor="#fff">
+                        Delete
+                      </ThemedText>
+                    </Pressable>
                   </View>
-                  <View className="flex-row justify-between items-center">
-                    <ThemedText
-                      size="sm"
-                      lightColor={Colors.light.icon}
-                      darkColor={Colors.dark.icon}
-                    >
-                      {formatReceiptDateTime(
-                        item.transaction.datetime,
-                        isToday
-                      )}
-                    </ThemedText>
-                    {hasCustomTitle && (
+                )}
+              >
+                <Pressable
+                  cssInterop={false}
+                  onPress={handlePress}
+                  style={({ pressed }) => ({
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingVertical: 16,
+                    paddingHorizontal: 16,
+                    backgroundColor: pressed ? pressedBg : rowBaseBg,
+                  })}
+                >
+                  <View className="flex-1 justify-center gap-1">
+                    <View className="flex-row justify-between items-center">
+                      <ThemedText weight="semibold" size="base">
+                        {displayTitle}
+                      </ThemedText>
+                      <ThemedText
+                        weight="bold"
+                        size="base"
+                        lightColor={Colors.light.tint}
+                        darkColor={Colors.dark.tint}
+                      >
+                        {formatCurrency(
+                          item.totals.total,
+                          item.totals.currency
+                        )}
+                      </ThemedText>
+                    </View>
+                    <View className="flex-row justify-between items-center">
                       <ThemedText
                         size="sm"
                         lightColor={Colors.light.icon}
                         darkColor={Colors.dark.icon}
                       >
-                        {item.merchant.name}
+                        {formatReceiptDateTime(
+                          item.transaction.datetime,
+                          isToday
+                        )}
                       </ThemedText>
-                    )}
+                      {hasCustomTitle && (
+                        <ThemedText
+                          size="sm"
+                          lightColor={Colors.light.icon}
+                          darkColor={Colors.dark.icon}
+                        >
+                          {item.merchant.name}
+                        </ThemedText>
+                      )}
+                    </View>
                   </View>
-                </View>
-              </Pressable>
+                </Pressable>
+              </ReanimatedSwipeable>
             </View>
           );
         })}

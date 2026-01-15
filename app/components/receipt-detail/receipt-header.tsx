@@ -9,7 +9,7 @@ import type { StoredReceipt } from "@/utils/storage";
 import type { StackNavigationOptions } from "@react-navigation/stack";
 import ContextMenu from "react-native-context-menu-view";
 import { Colors } from "@/constants/theme";
-import { PlatformPressable } from "@react-navigation/elements";
+import { HeaderButton, PlatformPressable } from "@react-navigation/elements";
 import * as Haptics from "expo-haptics";
 import { View } from "react-native";
 
@@ -134,24 +134,13 @@ export function ReceiptHeader({
         onPress={handleMenuPress}
         dropdownMenuMode={true}
       >
-        <PlatformPressable
-          hitSlop={8}
+        <HeaderButton
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           }}
-          style={{
-            minWidth: 44,
-            minHeight: 44,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
         >
-          <SymbolView
-            name="ellipsis"
-            tintColor={isDark ? Colors.dark.text : Colors.light.text}
-            style={{ width: 24, height: 24 }}
-          />
-        </PlatformPressable>
+          <SymbolView name="ellipsis" />
+        </HeaderButton>
       </ContextMenu>
     ),
   };

@@ -1,5 +1,11 @@
 import { TextInput, TextInputProps, StyleSheet, View } from "react-native";
-import { ReactNode, ReactElement, cloneElement, isValidElement } from "react";
+import {
+  ReactNode,
+  ReactElement,
+  cloneElement,
+  isValidElement,
+  forwardRef,
+} from "react";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
 import { ThemedText } from "./themed-text";
@@ -10,13 +16,11 @@ export type FormTextInputProps = TextInputProps & {
   rightIcon?: ReactNode;
 };
 
-export function FormTextInput({
-  label,
-  style,
-  leftIcon,
-  rightIcon,
-  ...textInputProps
-}: FormTextInputProps) {
+export const FormTextInput = forwardRef<TextInput, FormTextInputProps>(
+  function FormTextInput(
+    { label, style, leftIcon, rightIcon, ...textInputProps },
+    ref
+  ) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const isDark = colorScheme === "dark";
@@ -33,7 +37,6 @@ export function FormTextInput({
   const renderIcon = (icon: ReactNode) => {
     if (!icon) return null;
     if (isValidElement(icon)) {
-      // Clone the icon element and apply the tint color
       return cloneElement(icon as ReactElement<{ color?: string }>, {
         color: iconColor,
       });
@@ -60,6 +63,7 @@ export function FormTextInput({
           </View>
         )}
         <TextInput
+          ref={ref}
           {...textInputProps}
           style={[
             styles.input,
@@ -84,7 +88,8 @@ export function FormTextInput({
       </View>
     </View>
   );
-}
+  }
+);
 
 const styles = StyleSheet.create({
   container: {

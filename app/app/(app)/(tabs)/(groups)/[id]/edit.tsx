@@ -9,11 +9,12 @@ import {
   View,
   ScrollView,
   Image,
-  Pressable,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Pressable,
 } from "react-native";
+import { PlatformPressable } from "@react-navigation/elements";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useForm, Controller } from "react-hook-form";
 import { useLocalSearchParams, router, useNavigation } from "expo-router";
@@ -215,7 +216,7 @@ export default function EditGroupScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
-        <Pressable
+        <PlatformPressable
           onPress={() => router.back()}
           hitSlop={8}
           className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
@@ -224,14 +225,14 @@ export default function EditGroupScreen() {
             name="xmark"
             tintColor={isDark ? Colors.dark.text : Colors.light.text}
           />
-        </Pressable>
+        </PlatformPressable>
       ),
       headerRight: () => (
-        <Pressable
+        <PlatformPressable
           onPress={handleSavePress}
           disabled={isSubmitting}
           hitSlop={8}
-          className={`p-2 min-w-[44px] min-h-[44px] justify-center items-center ${isSubmitting ? 'opacity-50' : ''}`}
+          className={`p-2 min-w-[44px] min-h-[44px] justify-center items-center ${isSubmitting ? "opacity-50" : ""}`}
         >
           {isSubmitting ? (
             <ActivityIndicator
@@ -248,7 +249,7 @@ export default function EditGroupScreen() {
               Save
             </ThemedText>
           )}
-        </Pressable>
+        </PlatformPressable>
       ),
     });
   }, [navigation, isDark, isSubmitting, handleSavePress]);
@@ -515,4 +516,3 @@ export default function EditGroupScreen() {
 }
 
 // Styles removed in favor of Tailwind CSS (NativeWind)
-

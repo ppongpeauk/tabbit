@@ -46,7 +46,8 @@ export function getHeaderScreenOptions(
 export const AppRoutes = {
   receipts: "/(app)/(tabs)/(receipts)",
   groups: "/(app)/(tabs)/(groups)",
-  settings: "/(app)/(tabs)/(settings)",
+  profile: "/(app)/(tabs)/(profile)",
+  settings: "/(app)/(settings)",
   camera: "/(app)/camera",
   create: "/(app)/create",
   createManual: "/(app)/create-manual",
@@ -64,9 +65,9 @@ export const AppRoutes = {
   groupDetails: (id: string) => `/(app)/(tabs)/(groups)/${id}/details`,
   groupCreate: "/(app)/(tabs)/(groups)/create",
   groupJoin: "/(app)/(tabs)/(groups)/join",
-  settingsAbout: "/(app)/(tabs)/(settings)/about",
-  settingsGeneral: "/(app)/(tabs)/(settings)/general",
-  settingsPermissions: "/(app)/(tabs)/(settings)/permissions",
+  settingsAbout: "/(app)/(settings)/about",
+  settingsGeneral: "/(app)/(settings)/general",
+  settingsPermissions: "/(app)/(settings)/permissions",
 } as const;
 
 /**

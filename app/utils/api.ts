@@ -611,3 +611,35 @@ export async function getPresignedUrl(
     };
   }
 }
+
+/**
+ * Check if the server is up and responding
+ * @param timeout - Request timeout in milliseconds (default: 5000)
+ * @returns true if server is up, false otherwise
+ */
+export async function checkServerHealth(
+  timeout: number = 5000
+): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    // Try to reach the server - use /docs endpoint (swagger) which doesn't require auth
+    const response = await fetch(`${API_BASE_URL}/docs`, {
+      method: "GET",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    // Server is up if we get any HTTP response (even 404 means server is running)
+    // Network errors or timeouts mean server is down
+    return response.status >= 200 && response.status < 600;
+  } catch (error) {
+    // Network error, timeout, or other error means server is down
+    return false;
+  }
+}

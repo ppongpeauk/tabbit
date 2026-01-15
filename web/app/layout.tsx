@@ -6,6 +6,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/auth-context";
+import { DM_Sans } from "next/font/google";
+
+const dmSansFont = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: "Tabbit Functional Demo",
@@ -19,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`antialiased`}>
+      <body className={`antialiased ${dmSansFont.className}`}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

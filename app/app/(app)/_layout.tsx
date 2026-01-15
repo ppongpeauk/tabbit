@@ -22,6 +22,13 @@ export default function AuthenticatedLayout() {
           title: "Receipts",
         }}
       />
+      <Stack.Screen
+        name="(settings)"
+        options={{
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
       {/* Receipt detail screens - these will hide the tab bar */}
       <Stack.Screen
         name="camera"

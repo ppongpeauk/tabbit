@@ -3,22 +3,23 @@
  * @description Welcome/start screen with social authentication options
  */
 
-import { View, ActivityIndicator, Image } from "react-native";
+import { View, ActivityIndicator, Image, Alert } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/button";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/contexts/auth-context";
-import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { useEffect } from "react";
+import { useState } from "react";
 import GoogleIcon from "@/assets/images/brand/google.png";
 import AppleIcon from "@/assets/images/brand/apple.png";
+import { checkServerHealth } from "@/utils/api";
 
 export default function WelcomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const { user, isLoading, signInWithGoogle } = useAuth();
+  const [isCheckingServer, setIsCheckingServer] = useState(false);
 
   // Show loading while checking auth state
   if (isLoading) {
@@ -52,8 +53,38 @@ export default function WelcomeScreen() {
   const handleGoogleSignIn = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setIsCheckingServer(true);
+
+      const startTime = Date.now();
+      const MIN_DELAY_MS = 800; // Minimum delay to show loading indicator
+
+      // Check if server is up before proceeding
+      const isServerUp = await checkServerHealth();
+
+      // Ensure minimum delay for better UX
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime < MIN_DELAY_MS) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, MIN_DELAY_MS - elapsedTime)
+        );
+      }
+
+      if (!isServerUp) {
+        setIsCheckingServer(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          "Server Unavailable",
+          "Unable to connect to the server. Please check your connection and try again.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+
+      // Server is up, proceed with Google sign-in
+      setIsCheckingServer(false);
       await signInWithGoogle();
     } catch (error) {
+      setIsCheckingServer(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       console.error("Google sign in error:", error);
     }
@@ -123,15 +154,19 @@ export default function WelcomeScreen() {
           size="base"
           onPress={handleGoogleSignIn}
           fullWidth
+          loading={isCheckingServer}
+          disabled={isCheckingServer}
           leftIcon={
-            <Image
-              source={GoogleIcon}
-              className="w-5 h-5"
-              resizeMode="contain"
-            />
+            !isCheckingServer ? (
+              <Image
+                source={GoogleIcon}
+                className="w-5 h-5"
+                resizeMode="contain"
+              />
+            ) : undefined
           }
         >
-          Continue with Google
+          {isCheckingServer ? "Verifying server..." : "Continue with Google"}
         </Button>
 
         <Button

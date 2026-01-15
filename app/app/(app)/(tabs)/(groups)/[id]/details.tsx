@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Pressable,
 } from "react-native";
+import { HeaderButton } from "@react-navigation/elements";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import {
   useLocalSearchParams,
@@ -115,16 +116,9 @@ export default function GroupDetailsScreen() {
       headerRight: () => {
         if (!isAdmin) return null;
         return (
-          <Pressable
-            onPress={handleEdit}
-            hitSlop={8}
-            className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
-          >
-            <SymbolView
-              name="gearshape.fill"
-              tintColor={isDark ? Colors.dark.text : Colors.light.text}
-            />
-          </Pressable>
+          <HeaderButton onPress={handleEdit}>
+            <SymbolView name="gearshape.fill" />
+          </HeaderButton>
         );
       },
     });
@@ -196,7 +190,10 @@ export default function GroupDetailsScreen() {
             }}
           >
             {iconUrl ? (
-              <Image source={{ uri: iconUrl }} className="w-[120px] h-[120px] rounded-3xl" />
+              <Image
+                source={{ uri: iconUrl }}
+                className="w-[120px] h-[120px] rounded-3xl"
+              />
             ) : (
               <ThemedText size="xl">👥</ThemedText>
             )}
@@ -311,10 +308,7 @@ export default function GroupDetailsScreen() {
                       </View>
                       <View className="flex-1">
                         <View className="flex-row items-center gap-2">
-                          <ThemedText
-                            className="text-base"
-                            weight="semibold"
-                          >
+                          <ThemedText className="text-base" weight="semibold">
                             {displayName}
                           </ThemedText>
                           {isCreator && (
@@ -360,4 +354,3 @@ export default function GroupDetailsScreen() {
 }
 
 // Styles removed in favor of Tailwind CSS (NativeWind)
-

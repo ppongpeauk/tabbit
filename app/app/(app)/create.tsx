@@ -5,13 +5,8 @@ import {
   useCallback,
   useRef,
 } from "react";
-import {
-  View,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-  Pressable,
-} from "react-native";
+import { View, ScrollView, ActivityIndicator, Alert } from "react-native";
+import { PlatformPressable } from "@react-navigation/elements";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useForm, Controller } from "react-hook-form";
@@ -142,21 +137,16 @@ export default function CreateReceiptScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
-        <Pressable
+        <PlatformPressable
           onPress={handleCancel}
           hitSlop={8}
           className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
         >
-          <SymbolView
-            name="xmark"
-            tintColor={
-              colorScheme === "dark" ? Colors.dark.text : Colors.light.text
-            }
-          />
-        </Pressable>
+          <SymbolView name="xmark" />
+        </PlatformPressable>
       ),
       headerRight: () => (
-        <Pressable
+        <PlatformPressable
           onPress={handleSubmit(handleSave)}
           disabled={createReceiptMutation.isPending || !receiptData}
           hitSlop={8}
@@ -177,7 +167,7 @@ export default function CreateReceiptScreen() {
               }
             />
           )}
-        </Pressable>
+        </PlatformPressable>
       ),
     });
   }, [

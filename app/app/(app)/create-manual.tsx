@@ -7,15 +7,22 @@ import { useState, useLayoutEffect, useCallback, useRef } from "react";
 import { View, Alert, ActivityIndicator } from "react-native";
 import { router, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { PlatformPressable } from "@react-navigation/elements";
+import { HeaderButton, PlatformPressable } from "@react-navigation/elements";
 import { SymbolView } from "expo-symbols";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedView } from "@/components/themed-view";
-import { ManualReceiptForm, type ManualReceiptFormRef } from "@/components/manual-receipt-form";
+import { ThemedText } from "@/components/themed-text";
+import {
+  ManualReceiptForm,
+  type ManualReceiptFormRef,
+} from "@/components/manual-receipt-form";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { saveReceipt } from "@/utils/storage";
 import { Toolbar, ToolbarButton } from "@/components/toolbar";
+import { ManualReceiptHeaderSheet } from "@/components/manual-receipt-header-sheet";
+import type { ManualReceiptHeaderFields } from "@/components/manual-receipt-header-fields";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import type {
   Merchant,
   Transaction,
@@ -42,38 +49,50 @@ export default function CreateManualReceiptScreen() {
   const isSavingRef = useRef(false);
   const isCancellingRef = useRef(false);
   const formRef = useRef<ManualReceiptFormRef | null>(null);
+  const headerSheetRef = useRef<TrueSheet>(null);
+  const [headerFields, setHeaderFields] = useState<ManualReceiptHeaderFields>({
+    name: "Untitled",
+    merchantName: "",
+    merchantAddressLine1: "",
+    merchantCity: "",
+    merchantState: "",
+    merchantPostalCode: "",
+    merchantCountry: "",
+    merchantPhone: "",
+    merchantReceiptNumber: "",
+    transactionDate: new Date().toISOString().slice(0, 10),
+    transactionTime: new Date().toTimeString().slice(0, 5),
+    currency: "USD",
+  });
 
-  const handleSave = useCallback(
-    async (formData: ManualReceiptFormData) => {
-      setSaving(true);
-      isSavingRef.current = true;
-      try {
-        await saveReceipt({
-          name: formData.name || formData.merchant.name,
-          merchant: formData.merchant,
-          transaction: formData.transaction,
-          items: formData.items,
-          totals: formData.totals,
-          returnInfo: formData.returnInfo,
-          appData: formData.userNotes
-            ? { userNotes: formData.userNotes }
-            : undefined,
-          technical: {
-            source: "manual",
-          },
-        });
+  const handleSave = useCallback(async (formData: ManualReceiptFormData) => {
+    setSaving(true);
+    isSavingRef.current = true;
+    try {
+      await saveReceipt({
+        name: formData.name || formData.merchant.name,
+        merchant: formData.merchant,
+        transaction: formData.transaction,
+        items: formData.items,
+        totals: formData.totals,
+        returnInfo: formData.returnInfo,
+        appData: formData.userNotes
+          ? { userNotes: formData.userNotes }
+          : undefined,
+        technical: {
+          source: "manual",
+        },
+      });
 
-        router.back();
-      } catch (error) {
-        isSavingRef.current = false;
-        Alert.alert("Error", "Failed to save receipt");
-        console.error("Error saving receipt:", error);
-      } finally {
-        setSaving(false);
-      }
-    },
-    []
-  );
+      router.back();
+    } catch (error) {
+      isSavingRef.current = false;
+      Alert.alert("Error", "Failed to save receipt");
+      console.error("Error saving receipt:", error);
+    } finally {
+      setSaving(false);
+    }
+  }, []);
 
   const [hasFormData, setHasFormData] = useState(false);
 
@@ -113,30 +132,58 @@ export default function CreateManualReceiptScreen() {
     }
   }, []);
 
+  const handleHeaderPress = useCallback(() => {
+    headerSheetRef.current?.present();
+  }, []);
+
+  const handleHeaderFieldsChange = useCallback(
+    (updates: Partial<ManualReceiptHeaderFields>) => {
+      setHeaderFields((prev) => ({ ...prev, ...updates }));
+    },
+    []
+  );
+
   useLayoutEffect(() => {
+    const displayTitle = headerFields.name.trim() || "Untitled";
     navigation.setOptions({
-      title: "Manual Entry",
-      headerLeft: () => (
+      title: displayTitle,
+      headerTitle: () => (
         <PlatformPressable
-          onPress={handleCancel}
+          onPress={handleHeaderPress}
           hitSlop={8}
           style={{
-            minWidth: 44,
-            minHeight: 44,
+            flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
+            gap: 6,
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Edit receipt details"
         >
+          <ThemedText size="base" weight="bold">
+            {displayTitle}
+          </ThemedText>
           <SymbolView
-            name="xmark"
+            name="chevron.down"
+            size={14}
             tintColor={
               colorScheme === "dark" ? Colors.dark.text : Colors.light.text
             }
           />
         </PlatformPressable>
       ),
+      headerLeft: () => (
+        <HeaderButton onPress={handleCancel}>
+          <SymbolView name="xmark" />
+        </HeaderButton>
+      ),
     });
-  }, [navigation, colorScheme, handleCancel]);
+  }, [
+    navigation,
+    colorScheme,
+    handleCancel,
+    handleHeaderPress,
+    headerFields.name,
+  ]);
 
   // Handle back button with confirmation if form has data
   useFocusEffect(
@@ -210,6 +257,7 @@ export default function CreateManualReceiptScreen() {
               ref={formRef}
               onSave={handleSave}
               onFormDataChange={handleFormDataChange}
+              headerFields={headerFields}
             />
             <Toolbar bottom={Math.max(insets.bottom, 20)}>
               <ToolbarButton
@@ -225,6 +273,11 @@ export default function CreateManualReceiptScreen() {
                 variant="glass"
               />
             </Toolbar>
+            <ManualReceiptHeaderSheet
+              bottomSheetRef={headerSheetRef}
+              headerFields={headerFields}
+              onHeaderFieldsChange={handleHeaderFieldsChange}
+            />
           </>
         )}
       </ThemedView>

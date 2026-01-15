@@ -121,6 +121,28 @@ async function findReceiptByIdAndUser(
 }
 
 /**
+ * Finds a receipt by ID, returns null if not found
+ */
+async function findReceiptById(
+  receiptId: string
+): Promise<{
+  id: string;
+  data: Prisma.JsonValue;
+  createdAt: Date;
+} | null> {
+  return prisma.receipt.findUnique({
+    where: {
+      id: receiptId,
+    },
+    select: {
+      id: true,
+      data: true,
+      createdAt: true,
+    },
+  });
+}
+
+/**
  * Converts receipt data to Prisma-compatible JSON value
  */
 function toPrismaJsonValue(
@@ -317,6 +339,43 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
         tags: ["receipts"],
         summary: "Get all receipts",
         description: "Get all receipts for the authenticated user",
+      },
+    }
+  )
+  .get(
+    "/public/:id",
+    async ({ params, set }) => {
+      try {
+        const receipt = await findReceiptById(params.id);
+
+        if (!receipt) {
+          set.status = HTTP_STATUS.NOT_FOUND;
+          return {
+            success: false,
+            message: "Receipt not found",
+          };
+        }
+
+        set.status = HTTP_STATUS.OK;
+        return {
+          success: true,
+          receipt: mapReceiptToResponse(receipt),
+        };
+      } catch (error) {
+        set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+        return {
+          success: false,
+          message:
+            error instanceof Error ? error.message : "Failed to fetch receipt",
+        };
+      }
+    },
+    {
+      detail: {
+        tags: ["receipts"],
+        summary: "Get receipt by ID (public)",
+        description:
+          "Get a specific receipt by ID without authentication for sharing",
       },
     }
   )

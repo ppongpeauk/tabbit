@@ -62,7 +62,7 @@ export function SplitSummaryCard({ receipt, friends }: SplitSummaryCardProps) {
           />
         </View>
         <View className="flex-1">
-          <ThemedText size="base" weight="semibold" className="mb-1">
+          <ThemedText size="base" weight="semibold">
             Split configured
           </ThemedText>
           <ThemedText

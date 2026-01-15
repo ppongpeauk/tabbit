@@ -3,7 +3,13 @@
  * @description Receipt detail screen with hero layout, metadata grid, and content cards
  */
 
-import { useState, useLayoutEffect, useCallback, useRef } from "react";
+import {
+  useState,
+  useLayoutEffect,
+  useCallback,
+  useRef,
+  useEffect,
+} from "react";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import {
   ScrollView,
@@ -38,6 +44,8 @@ import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import type { StoredReceipt, Friend } from "@/utils/storage";
 import { Toolbar, ToolbarButton } from "@/components/toolbar";
 import { SymbolView } from "expo-symbols";
+import { AppleMaps } from "expo-maps";
+import * as Location from "expo-location";
 
 // ============================================================================
 // Toolbar Setup Hook
@@ -107,6 +115,107 @@ function ReceiptNotFoundState() {
     <View className="flex-1 justify-center items-center">
       <ThemedText>Receipt not found</ThemedText>
     </View>
+  );
+}
+
+// ============================================================================
+// Map Component
+// ============================================================================
+
+interface AddressMapProps {
+  address: StoredReceipt["merchant"]["address"];
+  isDark: boolean;
+}
+
+function AddressMap({ address, isDark }: AddressMapProps) {
+  const [coordinates, setCoordinates] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const handleAddressPress = useAddressHandler();
+
+  useEffect(() => {
+    if (!address?.line1) {
+      setIsLoading(false);
+      return;
+    }
+
+    const geocodeAddress = async () => {
+      try {
+        const addressString = [
+          address.line1,
+          address.city,
+          address.state,
+          address.postalCode,
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+        const results = await Location.geocodeAsync(addressString);
+        if (results.length > 0) {
+          setCoordinates({
+            latitude: results[0].latitude,
+            longitude: results[0].longitude,
+          });
+        }
+      } catch (error) {
+        console.error("Geocoding error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    geocodeAddress();
+  }, [address]);
+
+  if (!address?.line1 || isLoading || !coordinates) {
+    return null;
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => handleAddressPress(address)}
+      className="h-48 overflow-hidden"
+      style={{
+        backgroundColor: isDark
+          ? "rgba(255, 255, 255, 0.05)"
+          : "rgba(0, 0, 0, 0.05)",
+      }}
+    >
+      <View pointerEvents="none" style={{ flex: 1 }}>
+        <AppleMaps.View
+          style={{ flex: 1 }}
+          cameraPosition={{
+            coordinates: {
+              latitude: coordinates.latitude,
+              longitude: coordinates.longitude,
+            },
+            zoom: 15,
+          }}
+          markers={[
+            {
+              id: "merchant-location",
+              coordinates: {
+                latitude: coordinates.latitude,
+                longitude: coordinates.longitude,
+              },
+              title: address.line1,
+            },
+          ]}
+          uiSettings={{
+            compassEnabled: false,
+            myLocationButtonEnabled: false,
+            scaleBarEnabled: false,
+            togglePitchEnabled: false,
+          }}
+          properties={{
+            mapType: AppleMaps.MapType.STANDARD,
+          }}
+        />
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -337,6 +446,7 @@ function ReceiptContent({
   showRawReturnText,
   onToggleFormat,
   onShare,
+  onScanBarcode,
   isDark,
 }: {
   receipt: StoredReceipt;
@@ -344,6 +454,7 @@ function ReceiptContent({
   showRawReturnText: boolean;
   onToggleFormat: () => void;
   onShare: () => void;
+  onScanBarcode: () => void;
   isDark: boolean;
 }) {
   return (
@@ -367,6 +478,10 @@ function ReceiptContent({
               : "rgba(0, 0, 0, 0.05)",
           }}
         >
+          {receipt.merchant.address?.line1 ? (
+            <AddressMap address={receipt.merchant.address} isDark={isDark} />
+          ) : null}
+
           {/* Hero Section */}
           <HeroSection receipt={receipt} isDark={isDark} />
 
@@ -407,6 +522,66 @@ function ReceiptContent({
           <TotalsCard receipt={receipt} />
         </View>
       </View>
+
+      {/* Scan Return Barcode Button - shown when no return info exists */}
+      {!shouldShowReturnInfo(receipt.returnInfo) ? (
+        <View className="px-6 mb-4">
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={onScanBarcode}
+            className={`rounded-[20px] p-4 gap-1 ${
+              isDark ? "bg-[#1A1D1E]" : "bg-white"
+            }`}
+            style={{
+              borderWidth: 1,
+              borderStyle: "dashed",
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.2)"
+                : "rgba(0, 0, 0, 0.2)",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 2,
+              elevation: 1,
+            }}
+          >
+            <View className="flex-row items-center gap-3">
+              <View
+                className="w-10 h-10 rounded-full items-center justify-center"
+                style={{
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.05)",
+                }}
+              >
+                <SymbolView
+                  name="qrcode.viewfinder"
+                  tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
+                  style={{ width: 24, height: 24 }}
+                />
+              </View>
+              <View className="flex-1">
+                <ThemedText size="base" weight="semibold">
+                  Add Return Information
+                </ThemedText>
+                <ThemedText
+                  size="sm"
+                  style={{
+                    color: isDark ? Colors.dark.subtle : Colors.light.icon,
+                  }}
+                >
+                  Scan return barcode to add return details
+                </ThemedText>
+              </View>
+              <SymbolView
+                name="chevron.right"
+                tintColor={isDark ? Colors.dark.subtle : Colors.light.icon}
+                style={{ width: 16, height: 16 }}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       {/* Return Info */}
       {shouldShowReturnInfo(receipt.returnInfo) ? (
@@ -574,6 +749,7 @@ export default function ReceiptDetailScreen() {
           showRawReturnText={showRawReturnText}
           onToggleFormat={toggleReturnTextFormat}
           onShare={handleShare}
+          onScanBarcode={handleScanBarcode}
           isDark={isDark}
         />
       </ThemedView>
