@@ -77,7 +77,6 @@ const app = new Elysia()
   )
   .use(betterAuth)
   .onAfterHandle(({ request, response }) => {
-    console.log("onAfterHandle", request.url, response);
     // Intercept Better Auth callback responses to handle redirects
     const url = new URL(request.url);
     if (url.pathname === "/api/auth/callback/google") {

@@ -28,6 +28,11 @@ export function BarcodeModal({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
+  const handleClose = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    bottomSheetRef.current?.dismiss();
+  }, [bottomSheetRef]);
+
   // Don't render if barcode value is invalid
   if (
     !barcodeValue ||
@@ -36,11 +41,6 @@ export function BarcodeModal({
   ) {
     return null;
   }
-
-  const handleClose = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    bottomSheetRef.current?.dismiss();
-  }, [bottomSheetRef]);
 
   return (
     <TrueSheet

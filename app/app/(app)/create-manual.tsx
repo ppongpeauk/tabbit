@@ -3,7 +3,13 @@
  * @description Screen for manually entering receipt information
  */
 
-import { useState, useLayoutEffect, useCallback, useRef } from "react";
+import {
+  useState,
+  useLayoutEffect,
+  useCallback,
+  useRef,
+  useEffect,
+} from "react";
 import { View, Alert, ActivityIndicator } from "react-native";
 import { router, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -64,6 +70,7 @@ export default function CreateManualReceiptScreen() {
     transactionTime: new Date().toTimeString().slice(0, 5),
     currency: "USD",
   });
+  const initialHeaderRef = useRef<ManualReceiptHeaderFields>(headerFields);
 
   const handleSave = useCallback(async (formData: ManualReceiptFormData) => {
     setSaving(true);
@@ -95,6 +102,7 @@ export default function CreateManualReceiptScreen() {
   }, []);
 
   const [hasFormData, setHasFormData] = useState(false);
+  const [isFormDirty, setIsFormDirty] = useState(false);
 
   const handleCancel = useCallback(() => {
     if (hasFormData) {
@@ -122,8 +130,8 @@ export default function CreateManualReceiptScreen() {
     }
   }, [hasFormData]);
 
-  const handleFormDataChange = useCallback((hasData: boolean) => {
-    setHasFormData(hasData);
+  const handleFormDataChange = useCallback((isDirty: boolean) => {
+    setIsFormDirty(isDirty);
   }, []);
 
   const handleToolbarSave = useCallback(async () => {
@@ -184,6 +192,27 @@ export default function CreateManualReceiptScreen() {
     handleHeaderPress,
     headerFields.name,
   ]);
+
+  useEffect(() => {
+    const initialHeader = initialHeaderRef.current;
+    const isHeaderDirty =
+      headerFields.name !== initialHeader.name ||
+      headerFields.merchantName !== initialHeader.merchantName ||
+      headerFields.merchantAddressLine1 !==
+        initialHeader.merchantAddressLine1 ||
+      headerFields.merchantCity !== initialHeader.merchantCity ||
+      headerFields.merchantState !== initialHeader.merchantState ||
+      headerFields.merchantPostalCode !== initialHeader.merchantPostalCode ||
+      headerFields.merchantCountry !== initialHeader.merchantCountry ||
+      headerFields.merchantPhone !== initialHeader.merchantPhone ||
+      headerFields.merchantReceiptNumber !==
+        initialHeader.merchantReceiptNumber ||
+      headerFields.transactionDate !== initialHeader.transactionDate ||
+      headerFields.transactionTime !== initialHeader.transactionTime ||
+      headerFields.currency !== initialHeader.currency;
+
+    setHasFormData(isFormDirty || isHeaderDirty);
+  }, [headerFields, isFormDirty]);
 
   // Handle back button with confirmation if form has data
   useFocusEffect(

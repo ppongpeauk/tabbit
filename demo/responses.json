@@ -1,0 +1,53 @@
+[
+  {
+    "enriched_transactions": [
+      {
+        "amount": 84.47,
+        "description": "Uniqlo USA LLC UNIQLO_ MCCLEAN VA 22102 USA",
+        "direction": "OUTFLOW",
+        "enrichments": {
+          "counterparties": [
+            {
+              "confidence_level": "VERY_HIGH",
+              "entity_id": "kXZga3kavpdrgDo7mnD8k45WJ3d20Lmp7vv6w",
+              "logo_url": "https://plaid-merchant-logos.plaid.com/uniqlo_1172.png",
+              "name": "Uniqlo",
+              "phone_number": "+17038939400",
+              "type": "merchant",
+              "website": "uniqlo.com"
+            }
+          ],
+          "entity_id": "kXZga3kavpdrgDo7mnD8k45WJ3d20Lmp7vv6w",
+          "location": {
+            "address": "1961 Chain Bridge Rd",
+            "city": "McLean",
+            "country": "US",
+            "lat": null,
+            "lon": null,
+            "postal_code": "22102",
+            "region": "VA",
+            "store_number": null
+          },
+          "logo_url": "https://plaid-merchant-logos.plaid.com/uniqlo_1172.png",
+          "merchant_name": "Uniqlo",
+          "payment_channel": "in store",
+          "personal_finance_category": {
+            "confidence_level": "VERY_HIGH",
+            "detailed": "GENERAL_MERCHANDISE_CLOTHING_AND_ACCESSORIES",
+            "primary": "GENERAL_MERCHANDISE",
+            "version": "v2"
+          },
+          "personal_finance_category_icon_url": "https://plaid-category-icons.plaid.com/PFC_GENERAL_MERCHANDISE.png",
+          "phone_number": "+17038939400",
+          "recurrence": {
+            "is_recurring": false
+          },
+          "website": "uniqlo.com"
+        },
+        "id": "6135818adda16500147e7c1d",
+        "iso_currency_code": "USD"
+      }
+    ],
+    "request_id": "73Odtb6n5Rx6pMU"
+  }
+]

@@ -5,6 +5,7 @@ export { TotalsCard } from "./totals-card";
 export { ReturnInfoCard } from "./return-info-card";
 export { ReceiptHeader } from "./receipt-header";
 export { SplitSummaryCard } from "./split-summary-card";
+export { ShareReceiptCard } from "./share-receipt-card";
 export { NotesCard } from "./notes-card";
 export { useScannedBarcode } from "./use-scanned-barcode";
 export { BarcodeModal } from "./barcode-modal";

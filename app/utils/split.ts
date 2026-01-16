@@ -20,6 +20,7 @@ export interface SplitData {
   taxDistribution: Record<string, number>; // friendId -> tax amount
   tipDistribution?: Record<string, number>; // friendId -> tip amount
   totals: Record<string, number>; // friendId -> total owed
+  people?: Record<string, string>; // friendId -> display name
 }
 
 /**

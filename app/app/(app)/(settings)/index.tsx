@@ -135,6 +135,11 @@ export default function SettingsScreen() {
     router.push("./general");
   };
 
+  const handlePeoplePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push("./people");
+  };
+
   const handleAppPermissionsPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push("./permissions");
@@ -154,6 +159,12 @@ export default function SettingsScreen() {
           id: "general",
           label: "General",
           onPress: handleGeneralPress,
+          showChevron: true,
+        },
+        {
+          id: "people",
+          label: "People",
+          onPress: handlePeoplePress,
           showChevron: true,
         },
         {

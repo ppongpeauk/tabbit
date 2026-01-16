@@ -20,6 +20,7 @@ import {
   BarcodeScanningResult,
 } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { router, useLocalSearchParams } from "expo-router";
 import { Fonts } from "@/constants/theme";
 import { scanReceipt, scanBarcodeImage } from "@/utils/api";
@@ -33,6 +34,7 @@ import {
 } from "@/components/camera";
 import * as SecureStore from "expo-secure-store";
 import { useAuth } from "@/contexts/auth-context";
+import { saveReceipt } from "@/utils/storage";
 
 const TOKEN_STORAGE_KEY = "tabbit.token";
 
@@ -243,31 +245,35 @@ export function CameraScreen({ mode: propMode }: CameraScreenProps = {}) {
       return;
     }
 
-    // Store receipt data temporarily to avoid re-scanning in create screen
+    // Create receipt directly and navigate to receipt details
     try {
-      const storageKey = `@tabbit:scan_result:${imageUri}`;
-      await AsyncStorage.setItem(
-        storageKey,
-        JSON.stringify({
-          receipt: response.receipt,
-          barcodes: response.barcodes,
-        })
+      const receiptName = response.receipt.merchant.name || "Untitled Receipt";
+      const savedReceipt = await saveReceipt(
+        {
+          name: receiptName,
+          merchant: response.receipt.merchant,
+          transaction: response.receipt.transaction,
+          items: response.receipt.items,
+          totals: response.receipt.totals,
+          returnInfo: response.receipt.returnInfo,
+          appData: response.receipt.appData,
+          technical: response.receipt.technical,
+        },
+        { imageUri }
       );
-    } catch (error) {
-      console.warn("Failed to store scan result:", error);
-      // Continue anyway - create screen will scan again
-    }
 
-    // Receipt detected - navigate to create screen
-    router.push({
-      pathname: "/create",
-      params: {
-        imageUri,
-        barcodes: response.barcodes
-          ? JSON.stringify(response.barcodes)
-          : undefined,
-      },
-    });
+      // Dismiss camera modal and navigate to receipt detail screen
+      router.dismissAll();
+      router.push(`/receipt/${savedReceipt.id}`);
+    } catch (error) {
+      console.error("Error saving receipt:", error);
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "Failed to save receipt. Please try again."
+      );
+    }
   };
 
   const pickImage = async () => {
@@ -281,8 +287,25 @@ export function CameraScreen({ mode: propMode }: CameraScreenProps = {}) {
     if (!result.canceled && result.assets[0]) {
       try {
         setProcessing(true);
-        setFrozenFrame(result.assets[0].uri);
-        await processImage(result.assets[0].uri);
+        let imageUri = result.assets[0].uri;
+
+        // Convert HEIC to JPEG if needed (for both display and processing)
+        const lowerUri = imageUri.toLowerCase();
+        if (lowerUri.endsWith(".heic") || lowerUri.endsWith(".heif")) {
+          console.log("[Camera] Converting HEIC to JPEG");
+          const converted = await ImageManipulator.manipulateAsync(
+            imageUri,
+            [],
+            {
+              compress: 0.9,
+              format: ImageManipulator.SaveFormat.JPEG,
+            }
+          );
+          imageUri = converted.uri;
+        }
+
+        setFrozenFrame(imageUri);
+        await processImage(imageUri);
       } catch (error) {
         setProcessing(false);
         setFrozenFrame(null);

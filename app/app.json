@@ -14,8 +14,7 @@
       "infoPlist": {
         "UIDesignRequiresCompatibility": true,
         "NSCameraUsageDescription": "This app needs access to your camera to scan receipts and food items.",
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select receipt images.",
-        "NSContactsUsageDescription": "This app needs access to your contacts to import contacts from your device to add as friends."
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select receipt images."
       }
     },
     "android": {
@@ -36,12 +35,6 @@
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-contacts",
-        {
-          "contactsPermission": "Allow $(PRODUCT_NAME) to access your contacts."
-        }
-      ],
       [
         "expo-dev-client",
         {

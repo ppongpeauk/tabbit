@@ -21,15 +21,9 @@ export default function SettingsLayout() {
         }}
       />
       <Stack.Screen
-        name="friends"
+        name="people"
         options={{
-          title: "Friends",
-        }}
-      />
-      <Stack.Screen
-        name="import-contacts"
-        options={{
-          title: "Import Contacts",
+          title: "People",
         }}
       />
       <Stack.Screen

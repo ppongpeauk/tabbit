@@ -1,5 +1,11 @@
-import { useState, useEffect, useCallback, useLayoutEffect } from "react";
-import { View, Alert, ActivityIndicator } from "react-native";
+import { useState, useEffect, useCallback, useLayoutEffect, useRef } from "react";
+import {
+  View,
+  Alert,
+  ActivityIndicator,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import { router } from "expo-router";
 import { useForm, FormProvider } from "react-hook-form";
 import { Button } from "@/components/button";
@@ -7,41 +13,19 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import { SplitStrategy } from "@/utils/split";
-import {
-  AddPeopleSelector,
-  type PersonItem,
-} from "@/components/add-people-selector";
+import { AddPeopleSelector } from "@/components/add-people-selector";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
-import { useFriends } from "@/hooks/use-friends";
-import { fetchContacts, type ContactInfo } from "@/utils/contacts";
+import { useCreateFriend } from "@/hooks/use-friends";
+import { ThemedText } from "@/components/themed-text";
+import { SymbolView } from "expo-symbols";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
+import { FormTextInput } from "@/components/form-text-input";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
 
 interface AddPeopleFormData {
   selectedFriendIds: string[];
-}
-
-// Helper to convert unified ID back to original friend/contact ID
-function getOriginalId(
-  unifiedId: string,
-  personItemsMap: Map<string, PersonItem>
-): string {
-  const item = personItemsMap.get(unifiedId);
-  if (!item) return unifiedId;
-
-  // If it's a friend with originalId, use that
-  if (item.originalId) {
-    return item.originalId;
-  }
-
-  // If it's a contact, reconstruct the contact ID
-  if (item.type === "contact" || item.type === "recent") {
-    return `contact:${item.name}:${item.phoneNumber || item.email || ""}`;
-  }
-
-  // Fallback to unified ID
-  return unifiedId;
 }
 
 export default function AddPeopleScreen() {
@@ -56,11 +40,9 @@ export default function AddPeopleScreen() {
     groupId?: string;
     strategy: string;
   } | null>(null);
-  const [personItemsMap, setPersonItemsMap] = useState<Map<string, PersonItem>>(
-    new Map()
-  );
-
-  const { data: storedFriends = [] } = useFriends();
+  const addPersonSheetRef = useRef<TrueSheet | null>(null);
+  const [newPersonName, setNewPersonName] = useState("");
+  const createFriendMutation = useCreateFriend();
 
   const methods = useForm<AddPeopleFormData>({
     defaultValues: {
@@ -90,56 +72,6 @@ export default function AddPeopleScreen() {
       const tempData = JSON.parse(tempDataStr);
       setSplitData(tempData);
 
-      // Build person items map for ID conversion
-      try {
-        const contacts = await fetchContacts().catch(() => [] as ContactInfo[]);
-        const itemsMap = new Map<string, PersonItem>();
-
-        // Add friends to map
-        storedFriends.forEach((friend) => {
-          const phoneNormalized = friend.phoneNumber?.replace(/\D/g, "");
-          const unifiedId = phoneNormalized
-            ? `unified:phone:${phoneNormalized}`
-            : friend.email
-              ? `unified:email:${friend.email.toLowerCase()}`
-              : `unified:name:${friend.name.toLowerCase().trim()}`;
-
-          itemsMap.set(unifiedId, {
-            id: unifiedId,
-            name: friend.name,
-            phoneNumber: friend.phoneNumber,
-            email: friend.email,
-            type: "friend",
-            originalId: friend.id,
-          });
-        });
-
-        // Add contacts to map
-        contacts.forEach((contact) => {
-          const phoneNormalized = contact.phoneNumber?.replace(/\D/g, "");
-          const unifiedId = phoneNormalized
-            ? `unified:phone:${phoneNormalized}`
-            : contact.email
-              ? `unified:email:${contact.email.toLowerCase()}`
-              : `unified:name:${contact.name.toLowerCase().trim()}`;
-
-          if (!itemsMap.has(unifiedId)) {
-            itemsMap.set(unifiedId, {
-              id: unifiedId,
-              name: contact.name,
-              phoneNumber: contact.phoneNumber,
-              email: contact.email,
-              imageUri: contact.imageUri,
-              type: "contact",
-            });
-          }
-        });
-
-        setPersonItemsMap(itemsMap);
-      } catch (error) {
-        console.error("Error building person items map:", error);
-      }
-
       if (tempData.selectedFriendIds) {
         setValue("selectedFriendIds", tempData.selectedFriendIds);
       }
@@ -149,7 +81,7 @@ export default function AddPeopleScreen() {
     } finally {
       setLoading(false);
     }
-  }, [setValue, storedFriends]);
+  }, [setValue]);
 
   useEffect(() => {
     loadData();
@@ -168,16 +100,11 @@ export default function AddPeopleScreen() {
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Convert unified IDs back to original friend/contact IDs
-    const convertedFriendIds = selectedFriendIds.map((unifiedId) =>
-      getOriginalId(unifiedId, personItemsMap)
-    );
-
     await AsyncStorage.setItem(
       SPLIT_DATA_KEY,
       JSON.stringify({
         ...splitData,
-        selectedFriendIds: convertedFriendIds,
+        selectedFriendIds,
       })
     );
 
@@ -199,7 +126,34 @@ export default function AddPeopleScreen() {
     } else {
       router.push("/split/review");
     }
-  }, [selectedFriendIds, splitData, personItemsMap]);
+  }, [selectedFriendIds, splitData]);
+
+  const handleOpenAddPerson = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setNewPersonName("");
+    addPersonSheetRef.current?.present();
+  }, []);
+
+  const handleSaveNewPerson = useCallback(async () => {
+    const trimmedName = newPersonName.trim();
+    if (!trimmedName) {
+      Alert.alert("Error", "Name is required");
+      return;
+    }
+
+    try {
+      const newPerson = await createFriendMutation.mutateAsync({
+        name: trimmedName,
+      });
+      setValue("selectedFriendIds", [
+        ...selectedFriendIds,
+        newPerson.id,
+      ]);
+      addPersonSheetRef.current?.dismiss();
+    } catch (error) {
+      Alert.alert("Error", "Failed to add person");
+    }
+  }, [newPersonName, createFriendMutation, selectedFriendIds, setValue]);
 
   if (loading) {
     return (
@@ -245,6 +199,61 @@ export default function AddPeopleScreen() {
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
                 />
+
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={handleOpenAddPerson}
+                  className={`rounded-xl p-4 gap-1 ${
+                    isDark ? "bg-[#1A1D1E]" : "bg-white"
+                  }`}
+                  style={{
+                    borderWidth: 1,
+                    borderStyle: "dashed",
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.2)"
+                      : "rgba(0, 0, 0, 0.2)",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 2,
+                    elevation: 1,
+                  }}
+                >
+                  <View className="flex-row items-center gap-3">
+                    <View
+                      className="w-10 h-10 rounded-full items-center justify-center"
+                      style={{
+                        backgroundColor: isDark
+                          ? "rgba(255, 255, 255, 0.1)"
+                          : "rgba(0, 0, 0, 0.05)",
+                      }}
+                    >
+                      <SymbolView
+                        name="plus"
+                        tintColor={isDark ? Colors.dark.tint : Colors.light.tint}
+                        style={{ width: 24, height: 24 }}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <ThemedText size="base" weight="semibold">
+                        Add Someone Not In Contacts
+                      </ThemedText>
+                      <ThemedText
+                        size="sm"
+                        style={{
+                          color: isDark ? Colors.dark.subtle : Colors.light.icon,
+                        }}
+                      >
+                        Create a reusable person for future splits
+                      </ThemedText>
+                    </View>
+                    <SymbolView
+                      name="chevron.right"
+                      tintColor={isDark ? Colors.dark.subtle : Colors.light.icon}
+                      style={{ width: 16, height: 16 }}
+                    />
+                  </View>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -272,6 +281,49 @@ export default function AddPeopleScreen() {
           </>
         )}
       </View>
+
+      <TrueSheet
+        ref={addPersonSheetRef}
+        backgroundColor={isDark ? Colors.dark.background : Colors.light.background}
+        cornerRadius={24}
+        scrollable
+      >
+        <ScrollView
+          contentContainerClassName="px-6 py-8"
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+        >
+          <View className="gap-3">
+            <ThemedText size="xl" weight="bold">
+              Add Person
+            </ThemedText>
+            <FormTextInput
+              label="Name"
+              value={newPersonName}
+              onChangeText={setNewPersonName}
+              placeholder="Enter name"
+              autoFocus
+            />
+            <View className="flex-row gap-3">
+              <Button
+                variant="secondary"
+                onPress={() => addPersonSheetRef.current?.dismiss()}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onPress={handleSaveNewPerson}
+                style={{ flex: 1 }}
+                disabled={!newPersonName.trim()}
+              >
+                Save
+              </Button>
+            </View>
+          </View>
+        </ScrollView>
+      </TrueSheet>
     </FormProvider>
   );
 }

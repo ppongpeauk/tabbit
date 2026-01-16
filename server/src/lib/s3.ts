@@ -7,6 +7,7 @@ import {
   S3Client,
   GetObjectCommand,
   PutObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
@@ -111,6 +112,23 @@ export async function uploadFile(
 }
 
 /**
+ * Delete a file from the bucket
+ * @param key S3 object key
+ */
+export async function deleteFile(key: string): Promise<void> {
+  if (!BUCKET_NAME) {
+    throw new Error("AWS_S3_BUCKET_NAME is not configured");
+  }
+
+  const command = new DeleteObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+  });
+
+  await s3Client.send(command);
+}
+
+/**
  * Generate a unique key for group icons
  * @param groupId Group ID
  * @param extension File extension (e.g., 'jpg', 'png')
@@ -122,4 +140,18 @@ export function generateGroupIconKey(
 ): string {
   const timestamp = Date.now();
   return `groups/${groupId}/icon-${timestamp}.${extension}`;
+}
+
+/**
+ * Generate a unique key for receipt images
+ * @param receiptId Receipt ID
+ * @param extension File extension (e.g., 'jpg', 'png')
+ * @returns S3 key
+ */
+export function generateReceiptImageKey(
+  receiptId: string,
+  extension: string
+): string {
+  const timestamp = Date.now();
+  return `receipts/${receiptId}/photo-${timestamp}.${extension}`;
 }

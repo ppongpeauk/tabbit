@@ -225,10 +225,12 @@ export class PlaidService {
    * @returns Enriched merchant data (name, logo, address, etc.)
    */
   async enrichTransaction(transaction: {
+    id?: string;
     description: string;
     amount: number;
     currency?: string;
     date?: string;
+    direction?: "inflow" | "outflow";
     location?: {
       address?: string;
       city?: string;
@@ -251,15 +253,47 @@ export class PlaidService {
       website?: string;
     }>
   > {
+    console.log("[PlaidService] enrichTransaction called with:", {
+      id: transaction.id,
+      description: transaction.description,
+      amount: transaction.amount,
+      currency: transaction.currency,
+      date: transaction.date,
+      direction: transaction.direction,
+      hasLocation: !!transaction.location,
+      location: transaction.location,
+    });
+
     try {
+      const direction =
+        transaction.direction === "inflow"
+          ? EnrichTransactionDirection.Inflow
+          : EnrichTransactionDirection.Outflow;
+
+      console.log("[PlaidService] Mapped direction:", {
+        input: transaction.direction,
+        output: direction,
+      });
+
       const clientTransaction: ClientProvidedTransaction = {
-        id: `receipt-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+        id:
+          transaction.id ||
+          `receipt-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         description: transaction.description,
         amount: transaction.amount,
-        direction: EnrichTransactionDirection.Outflow,
+        direction,
         iso_currency_code: transaction.currency || "USD",
         date_posted: transaction.date || new Date().toISOString().split("T")[0],
       };
+
+      console.log("[PlaidService] Built client transaction:", {
+        id: clientTransaction.id,
+        description: clientTransaction.description,
+        amount: clientTransaction.amount,
+        direction: clientTransaction.direction,
+        iso_currency_code: clientTransaction.iso_currency_code,
+        date_posted: clientTransaction.date_posted,
+      });
 
       // Add location if available
       if (transaction.location) {
@@ -270,6 +304,9 @@ export class PlaidService {
           postal_code: transaction.location.postalCode,
           country: transaction.location.country || "US",
         };
+        console.log("[PlaidService] Added location to transaction:", clientTransaction.location);
+      } else {
+        console.log("[PlaidService] No location provided");
       }
 
       const request: TransactionsEnrichRequest = {
@@ -277,59 +314,133 @@ export class PlaidService {
         transactions: [clientTransaction],
       };
 
+      console.log("[PlaidService] Sending request to Plaid API:", {
+        account_type: request.account_type,
+        transactionCount: request.transactions.length,
+        transaction: {
+          id: request.transactions[0].id,
+          description: request.transactions[0].description,
+          amount: request.transactions[0].amount,
+          direction: request.transactions[0].direction,
+        },
+      });
+
       const response = await plaidClient.transactionsEnrich(request);
+
+      console.log("[PlaidService] Plaid API response received:", {
+        hasEnrichedTransactions: !!response.data.enriched_transactions,
+        enrichedTransactionCount: response.data.enriched_transactions?.length || 0,
+      });
 
       if (
         response.data.enriched_transactions &&
         response.data.enriched_transactions.length > 0
       ) {
         const enriched = response.data.enriched_transactions[0];
+        console.log("[PlaidService] Processing enriched transaction:", {
+          hasEnrichments: !!(enriched as { enrichments?: unknown }).enrichments,
+          rawEnriched: JSON.stringify(enriched, null, 2),
+        });
+
         // Type assertion needed as Plaid types may be incomplete
+        // The actual structure uses enrichments.merchant_name, enrichments.logo_url, etc.
         const enrichedData = enriched as {
-          merchant?: {
-            name?: string;
+          enrichments?: {
+            merchant_name?: string;
             logo_url?: string;
             website?: string;
-            address?: {
+            location?: {
               address?: string;
               city?: string;
               region?: string;
               postal_code?: string;
               country?: string;
             };
+            personal_finance_category?: {
+              primary?: string;
+              detailed?: string;
+            };
           };
-          category?: string[];
         };
-        const merchant = enrichedData.merchant;
 
-        return {
+        const enrichments = enrichedData.enrichments;
+
+        console.log("[PlaidService] Extracted enrichments:", {
+          hasEnrichments: !!enrichments,
+          merchantName: enrichments?.merchant_name,
+          hasLogo: !!enrichments?.logo_url,
+          logoUrl: enrichments?.logo_url,
+          hasWebsite: !!enrichments?.website,
+          website: enrichments?.website,
+          hasLocation: !!enrichments?.location,
+          location: enrichments?.location,
+          hasCategory: !!enrichments?.personal_finance_category,
+          category: enrichments?.personal_finance_category,
+        });
+
+        // Build category array from personal_finance_category
+        const category: string[] = [];
+        if (enrichments?.personal_finance_category?.primary) {
+          category.push(enrichments.personal_finance_category.primary);
+        }
+        if (
+          enrichments?.personal_finance_category?.detailed &&
+          enrichments.personal_finance_category.detailed !==
+            enrichments.personal_finance_category.primary
+        ) {
+          category.push(enrichments.personal_finance_category.detailed);
+        }
+
+        const result = {
           success: true,
           data: {
-            merchantName: merchant?.name,
-            merchantLogo: merchant?.logo_url,
-            merchantAddress: merchant?.address
+            merchantName: enrichments?.merchant_name,
+            merchantLogo: enrichments?.logo_url,
+            merchantAddress: enrichments?.location
               ? {
-                  line1: merchant.address.address,
-                  city: merchant.address.city,
-                  state: merchant.address.region,
-                  postalCode: merchant.address.postal_code,
-                  country: merchant.address.country,
+                  line1: enrichments.location.address,
+                  city: enrichments.location.city,
+                  state: enrichments.location.region,
+                  postalCode: enrichments.location.postal_code,
+                  country: enrichments.location.country,
                 }
               : undefined,
-            category: enrichedData.category,
-            website: merchant?.website,
+            category: category.length > 0 ? category : undefined,
+            website: enrichments?.website,
           },
         };
+
+        console.log("[PlaidService] Returning enriched data:", {
+          hasMerchantName: !!result.data.merchantName,
+          hasMerchantLogo: !!result.data.merchantLogo,
+          hasMerchantAddress: !!result.data.merchantAddress,
+          hasCategory: !!result.data.category,
+          hasWebsite: !!result.data.website,
+        });
+
+        return result;
       }
 
       // No enrichment available
+      console.log("[PlaidService] No enriched transactions in response");
       return {
         success: true,
         data: {},
       };
     } catch (error) {
       // Don't fail the sync if enrichment fails - just log and continue
-      console.error("Failed to enrich transaction:", error);
+      console.error("[PlaidService] ========================================");
+      console.error("[PlaidService] ERROR in enrichTransaction:", error);
+      console.error("[PlaidService] Error details:", {
+        message: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        transaction: {
+          id: transaction.id,
+          description: transaction.description,
+          amount: transaction.amount,
+        },
+      });
+      console.error("[PlaidService] ========================================");
       return {
         success: false,
         message: "Failed to enrich transaction",

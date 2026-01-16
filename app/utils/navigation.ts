@@ -55,6 +55,7 @@ export const AppRoutes = {
   receiptDetail: (id: string) => `/(app)/receipt/${id}`,
   receiptEdit: (id: string) => `/(app)/receipt/${id}/edit`,
   split: "/(app)/split",
+  splitDetails: "/(app)/split/details",
   splitAddPeople: "/(app)/split/add-people",
   splitCustomInputs: "/(app)/split/custom-inputs",
   splitItemizedAssign: "/(app)/split/itemized-assign",

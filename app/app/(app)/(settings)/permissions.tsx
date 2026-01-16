@@ -3,7 +3,7 @@
  * @description App permissions management screen
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   ScrollView,
@@ -18,9 +18,7 @@ import { ThemedView } from "@/components/themed-view";
 import { SymbolView, SymbolViewProps } from "expo-symbols";
 import { useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import * as Contacts from "expo-contacts";
 import * as Haptics from "expo-haptics";
-import { useFocusEffect } from "expo-router";
 
 type PermissionStatus = "granted" | "denied" | "undetermined" | "checking";
 
@@ -48,8 +46,6 @@ export default function PermissionsScreen() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [mediaLibraryPermission, requestMediaLibraryPermission] =
     ImagePicker.useMediaLibraryPermissions();
-  const [contactsPermission, setContactsPermission] =
-    useState<PermissionStatus>("checking");
   const [isRequesting, setIsRequesting] = useState<string | null>(null);
 
   const getPermissionStatus = (
@@ -63,25 +59,7 @@ export default function PermissionsScreen() {
       : "denied";
   };
 
-  const checkContactsPermission = useCallback(async () => {
-    try {
-      const { status } = await Contacts.getPermissionsAsync();
-      setContactsPermission(normalizePermissionStatus(status));
-    } catch (error) {
-      console.error("Error checking contacts permission:", error);
-      setContactsPermission("undetermined");
-    }
-  }, []);
-
-  useEffect(() => {
-    checkContactsPermission();
-  }, [checkContactsPermission]);
-
-  useFocusEffect(
-    useCallback(() => {
-      checkContactsPermission();
-    }, [checkContactsPermission])
-  );
+  useEffect(() => {}, []);
 
   const showPermissionDeniedAlert = (message: string) => {
     Alert.alert("Permission Denied", message, [
@@ -145,14 +123,6 @@ export default function PermissionsScreen() {
       "Photo library permission is required to select receipt images. You can enable it in Settings."
     );
 
-  const handleRequestContacts = () =>
-    handlePermissionRequest(
-      "contacts",
-      Contacts.requestPermissionsAsync,
-      "Contacts permission is required to import contacts as friends. You can enable it in Settings.",
-      setContactsPermission
-    );
-
   const getActionButtonStyle = (pressed: boolean) => ({
     backgroundColor: pressed
       ? colorScheme === "dark"
@@ -181,15 +151,6 @@ export default function PermissionsScreen() {
       icon: "photo.fill",
       status: getPermissionStatus(mediaLibraryPermission),
       onRequest: handleRequestMediaLibrary,
-    },
-    {
-      id: "contacts",
-      title: "Contacts",
-      description:
-        "Allows you to import contacts from your device to add them as friends for splitting expenses.",
-      icon: "person.2.fill",
-      status: contactsPermission,
-      onRequest: handleRequestContacts,
     },
   ];
 

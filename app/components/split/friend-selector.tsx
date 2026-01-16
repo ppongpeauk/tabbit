@@ -4,27 +4,17 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
 import { CheckboxButton } from "@/components/ui/checkbox-button";
 import type { Friend } from "@/utils/storage";
-import type { ContactInfo } from "@/utils/contacts";
 
 interface FriendSelectorProps {
   friends: Friend[];
-  deviceContacts?: ContactInfo[];
   selectedFriendIds: string[];
   onToggleFriend: (friendId: string) => void;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
 }
 
-// Generate a consistent ID for a contact
-function getContactId(contact: ContactInfo): string {
-  return `contact:${contact.name}:${
-    contact.phoneNumber || contact.email || ""
-  }`;
-}
-
 export function FriendSelector({
   friends,
-  deviceContacts = [],
   selectedFriendIds,
   onToggleFriend,
   searchQuery = "",
@@ -37,11 +27,7 @@ export function FriendSelector({
     friend.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredContacts = deviceContacts.filter((contact) =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const hasResults = filteredFriends.length > 0 || filteredContacts.length > 0;
+  const hasResults = filteredFriends.length > 0;
 
   return (
     <View style={styles.container}>
@@ -87,7 +73,7 @@ export function FriendSelector({
                   },
                 ]}
               >
-                My Friends
+                People
               </ThemedText>
               {filteredFriends.map((friend) => {
                 const isSelected = selectedFriendIds.includes(friend.id);
@@ -99,37 +85,6 @@ export function FriendSelector({
                     subtitle={friend.phoneNumber || friend.email}
                     isSelected={isSelected}
                     onPress={() => onToggleFriend(friend.id)}
-                  />
-                );
-              })}
-            </View>
-          )}
-          {filteredContacts.length > 0 && (
-            <View style={styles.section}>
-              <ThemedText
-                size="sm"
-                weight="semibold"
-                style={[
-                  styles.sectionHeader,
-                  {
-                    color: isDark ? Colors.dark.icon : Colors.light.icon,
-                  },
-                ]}
-              >
-                Contacts
-              </ThemedText>
-              {filteredContacts.map((contact) => {
-                const contactId = getContactId(contact);
-                const isSelected = selectedFriendIds.includes(contactId);
-                return (
-                  <CheckboxButton
-                    key={contactId}
-                    id={contactId}
-                    label={contact.name}
-                    subtitle={contact.phoneNumber || contact.email}
-                    imageUri={contact.imageUri}
-                    isSelected={isSelected}
-                    onPress={() => onToggleFriend(contactId)}
                   />
                 );
               })}

@@ -99,6 +99,7 @@ export interface SplitData {
   taxDistribution: Record<string, number>;
   tipDistribution?: Record<string, number>;
   totals: Record<string, number>;
+  people?: Record<string, string>;
 }
 
 export interface StoredReceipt {
@@ -111,6 +112,7 @@ export interface StoredReceipt {
   returnInfo?: ReturnInfo;
   appData?: AppData;
   splitData?: SplitData;
+  visibility?: "private" | "public";
   createdAt: string;
 }
 

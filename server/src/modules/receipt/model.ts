@@ -72,7 +72,8 @@ export const returnInfoSchema = t.Object({
 });
 
 export const receiptImageSchema = t.Object({
-  url: t.String(),
+  url: t.Optional(t.String()),
+  key: t.Optional(t.String()),
   type: t.String(),
 });
 
@@ -93,6 +94,19 @@ export const technicalSchema = t.Object({
   source: t.Optional(t.String()),
   originalImage: t.Optional(originalImageSchema),
   merchantDetectionConfidence: t.Optional(t.Number()),
+  plaidEnrich: t.Optional(
+    t.Object({
+      status: t.Optional(
+        t.Union([
+          t.Literal("success"),
+          t.Literal("failed"),
+          t.Literal("skipped"),
+        ])
+      ),
+      attemptedAt: t.Optional(t.String()),
+      message: t.Optional(t.String()),
+    })
+  ),
 });
 
 export const receiptSchema = t.Object({
@@ -123,6 +137,7 @@ export const storedReceiptDataSchema = t.Object({
   appData: t.Optional(appDataSchema),
   technical: t.Optional(technicalSchema),
   splitData: t.Optional(t.Unknown()), // SplitData is complex, use Unknown to avoid any
+  visibility: t.Optional(t.Union([t.Literal("private"), t.Literal("public")])),
 });
 
 export type StoredReceiptData = typeof storedReceiptDataSchema.static;

@@ -5,13 +5,25 @@
 
 import { Elysia, t } from "elysia";
 import { Prisma } from "@prisma/client";
+import sharp from "sharp";
 import { receiptService } from "./service";
-import { defaultReceiptSchema, storedReceiptDataSchema } from "./model";
+import {
+  defaultReceiptSchema,
+  storedReceiptDataSchema,
+  type StoredReceiptData,
+} from "./model";
 import { detectBarcodes } from "../../utils/barcode-detector";
 import { HTTP_STATUS } from "../../utils/constants";
 import { errorResponse, unauthorizedResponse } from "../../utils/route-helpers";
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
+import { plaidService } from "../plaid/service";
+import {
+  uploadFile,
+  deleteFile,
+  getPresignedUrl,
+  generateReceiptImageKey,
+} from "../../lib/s3";
 
 function parseSkipPreprocessing(value: string | boolean | undefined): boolean {
   return value === true || (typeof value === "string" && value === "true");
@@ -83,6 +95,510 @@ async function processImage<T extends { status?: number }>(
   return { response: result, status };
 }
 
+function isNonEmptyString(value: string | undefined | null): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function normalizeText(value: string | undefined | null): string {
+  return isNonEmptyString(value) ? value.trim().replace(/\s+/g, " ") : "";
+}
+
+const RECEIPT_PHOTO_MAX_WIDTH = 1600;
+const RECEIPT_PHOTO_QUALITY = 80;
+
+interface ReceiptImageUploadResult {
+  key: string;
+  width?: number;
+  height?: number;
+}
+
+async function compressReceiptImage(imageBuffer: Buffer): Promise<{
+  buffer: Buffer;
+  width?: number;
+  height?: number;
+}> {
+  const pipeline = sharp(imageBuffer).rotate().resize({
+    width: RECEIPT_PHOTO_MAX_WIDTH,
+    withoutEnlargement: true,
+  });
+
+  const metadata = await pipeline.metadata();
+  const buffer = await pipeline
+    .jpeg({
+      quality: RECEIPT_PHOTO_QUALITY,
+      mozjpeg: true,
+    })
+    .toBuffer();
+
+  return {
+    buffer,
+    width: metadata.width,
+    height: metadata.height,
+  };
+}
+
+async function uploadReceiptImage(
+  receiptId: string,
+  imageBase64: string
+): Promise<ReceiptImageUploadResult> {
+  const rawBuffer = Buffer.from(imageBase64, "base64");
+  const compressed = await compressReceiptImage(rawBuffer);
+  const key = generateReceiptImageKey(receiptId, "jpg");
+
+  await uploadFile(key, compressed.buffer, "image/jpeg");
+
+  return {
+    key,
+    width: compressed.width,
+    height: compressed.height,
+  };
+}
+
+function getReceiptImageKey(
+  receipt: StoredReceiptData | null | undefined
+): string | null {
+  if (!receipt?.appData?.images?.length) {
+    return null;
+  }
+
+  const firstImage = receipt.appData.images[0];
+
+  if (isNonEmptyString(firstImage?.key)) {
+    return firstImage.key;
+  }
+
+  if (isNonEmptyString(firstImage?.url)) {
+    return firstImage.url;
+  }
+
+  return null;
+}
+
+function addReceiptImageToData(
+  receipt: StoredReceiptData,
+  image: ReceiptImageUploadResult
+): StoredReceiptData {
+  const existingImages = receipt.appData?.images ?? [];
+  const filteredImages = existingImages.filter(
+    (item) => item.type !== "original"
+  );
+
+  const nextImages = [{ key: image.key, type: "original" }, ...filteredImages];
+  const nextAppData = { ...(receipt.appData ?? {}), images: nextImages };
+  const nextTechnical = {
+    ...(receipt.technical ?? {}),
+    originalImage: {
+      url: image.key,
+      width: image.width,
+      height: image.height,
+    },
+  };
+
+  return {
+    ...receipt,
+    appData: nextAppData,
+    technical: nextTechnical,
+  };
+}
+
+function getEnrichDate(datetime: string | undefined): string | undefined {
+  if (!isNonEmptyString(datetime)) {
+    return undefined;
+  }
+  const parsed = new Date(datetime);
+  if (Number.isNaN(parsed.getTime())) {
+    return undefined;
+  }
+  return parsed.toISOString().split("T")[0];
+}
+
+function buildEnrichDescription(receipt: StoredReceiptData): string {
+  console.log("[PlaidEnrich] Building description for receipt:", {
+    merchantName: receipt.merchant.name,
+  });
+
+  const merchantName = normalizeText(receipt.merchant.name);
+
+  console.log("[PlaidEnrich] Normalized merchant name:", merchantName);
+
+  if (!merchantName) {
+    console.log("[PlaidEnrich] No merchant name found");
+    return "";
+  }
+
+  const description = merchantName;
+  console.log(
+    "[PlaidEnrich] Built description (merchant name only):",
+    description
+  );
+  return description;
+}
+
+function buildEnrichLocation(merchant: StoredReceiptData["merchant"]) {
+  console.log("[PlaidEnrich] Building location from merchant address:", {
+    hasAddress: !!merchant.address,
+    address: merchant.address,
+  });
+
+  const address = merchant.address;
+  if (!address) {
+    console.log("[PlaidEnrich] No address found, skipping location");
+    return undefined;
+  }
+
+  const hasLocation =
+    isNonEmptyString(address.line1) ||
+    isNonEmptyString(address.city) ||
+    isNonEmptyString(address.state) ||
+    isNonEmptyString(address.postalCode) ||
+    isNonEmptyString(address.country);
+
+  if (!hasLocation) {
+    console.log("[PlaidEnrich] Address exists but no valid location fields");
+    return undefined;
+  }
+
+  const location = {
+    address: address.line1,
+    city: address.city,
+    region: address.state,
+    postalCode: address.postalCode,
+    country: address.country,
+  };
+
+  console.log("[PlaidEnrich] Built location:", location);
+  return location;
+}
+
+function shouldUpdateMerchantName(
+  currentName: string | undefined,
+  receiptName: string | undefined,
+  enrichedName: string | undefined
+): boolean {
+  console.log("[PlaidEnrich] Checking if should update merchant name:", {
+    currentName,
+    receiptName,
+    enrichedName,
+  });
+
+  if (!isNonEmptyString(enrichedName)) {
+    console.log("[PlaidEnrich] No enriched name provided, skipping update");
+    return false;
+  }
+  if (!isNonEmptyString(currentName)) {
+    console.log(
+      "[PlaidEnrich] No current name, will update with enriched name"
+    );
+    return true;
+  }
+
+  const normalizedCurrent = currentName.trim().toLowerCase();
+  const normalizedReceipt = normalizeText(receiptName).toLowerCase();
+
+  const shouldUpdate: boolean =
+    normalizedCurrent === "unknown" ||
+    normalizedCurrent === "unknown merchant" ||
+    Boolean(normalizedReceipt && normalizedCurrent === normalizedReceipt);
+
+  console.log("[PlaidEnrich] Should update merchant name:", shouldUpdate, {
+    normalizedCurrent,
+    normalizedReceipt,
+  });
+
+  return shouldUpdate;
+}
+
+type EnrichStatus = "success" | "failed" | "skipped";
+type EnrichData = {
+  merchantName?: string;
+  merchantLogo?: string;
+  merchantAddress?: {
+    line1?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  };
+  category?: string[];
+  website?: string;
+};
+
+function applyPlaidEnrich(
+  existingData: StoredReceiptData,
+  enrichData: EnrichData | null,
+  status: EnrichStatus,
+  message?: string
+): StoredReceiptData {
+  console.log("[PlaidEnrich] Applying enrich data:", {
+    status,
+    message,
+    hasEnrichData: !!enrichData,
+    enrichData: enrichData
+      ? {
+          hasMerchantName: !!enrichData.merchantName,
+          hasMerchantLogo: !!enrichData.merchantLogo,
+          hasWebsite: !!enrichData.website,
+          hasCategory: !!enrichData.category,
+          hasAddress: !!enrichData.merchantAddress,
+        }
+      : null,
+  });
+
+  const nextMerchant = { ...existingData.merchant };
+
+  if (enrichData) {
+    if (
+      shouldUpdateMerchantName(
+        existingData.merchant.name,
+        existingData.name,
+        enrichData.merchantName
+      )
+    ) {
+      console.log("[PlaidEnrich] Updating merchant name:", {
+        from: existingData.merchant.name,
+        to: enrichData.merchantName,
+      });
+      nextMerchant.name = enrichData.merchantName ?? existingData.merchant.name;
+    }
+
+    if (isNonEmptyString(enrichData.merchantLogo)) {
+      console.log(
+        "[PlaidEnrich] Adding merchant logo:",
+        enrichData.merchantLogo
+      );
+      nextMerchant.logo = enrichData.merchantLogo;
+    }
+
+    if (isNonEmptyString(enrichData.website)) {
+      console.log("[PlaidEnrich] Adding merchant website:", enrichData.website);
+      nextMerchant.website = enrichData.website;
+    }
+
+    if (Array.isArray(enrichData.category) && enrichData.category.length > 0) {
+      console.log(
+        "[PlaidEnrich] Adding merchant categories:",
+        enrichData.category
+      );
+      nextMerchant.category = enrichData.category;
+    }
+
+    if (enrichData.merchantAddress) {
+      const currentAddress = existingData.merchant.address ?? {};
+      const mergedAddress = {
+        line1: enrichData.merchantAddress.line1 ?? currentAddress.line1,
+        city: enrichData.merchantAddress.city ?? currentAddress.city,
+        state: enrichData.merchantAddress.state ?? currentAddress.state,
+        postalCode:
+          enrichData.merchantAddress.postalCode ?? currentAddress.postalCode,
+        country: enrichData.merchantAddress.country ?? currentAddress.country,
+      };
+      const hasMergedAddress =
+        Object.values(mergedAddress).some(isNonEmptyString);
+      if (hasMergedAddress) {
+        console.log("[PlaidEnrich] Merging address:", mergedAddress);
+        nextMerchant.address = mergedAddress;
+      }
+    }
+  }
+
+  const nextTechnical = {
+    ...existingData.technical,
+    plaidEnrich: {
+      status,
+      attemptedAt: new Date().toISOString(),
+      message,
+    },
+  };
+
+  console.log("[PlaidEnrich] Final merchant data:", {
+    name: nextMerchant.name,
+    hasLogo: !!nextMerchant.logo,
+    hasWebsite: !!nextMerchant.website,
+    hasCategory: !!nextMerchant.category,
+    hasAddress: !!nextMerchant.address,
+  });
+
+  return {
+    ...existingData,
+    merchant: nextMerchant,
+    technical: nextTechnical,
+  };
+}
+
+async function updateReceiptWithEnrich(
+  receiptId: string,
+  enrichData: EnrichData | null,
+  status: EnrichStatus,
+  message?: string
+): Promise<void> {
+  console.log("[PlaidEnrich] Updating receipt with enrich data:", {
+    receiptId,
+    status,
+    message,
+  });
+
+  const existing = await prisma.receipt.findUnique({
+    where: { id: receiptId },
+    select: { data: true },
+  });
+
+  if (!existing) {
+    console.log("[PlaidEnrich] Receipt not found, skipping update:", receiptId);
+    return;
+  }
+
+  const existingData = existing.data as StoredReceiptData;
+  const nextData = applyPlaidEnrich(existingData, enrichData, status, message);
+
+  console.log("[PlaidEnrich] Saving updated receipt to database");
+  await prisma.receipt.update({
+    where: { id: receiptId },
+    data: { data: toPrismaJsonValue(nextData as Record<string, unknown>) },
+  });
+  console.log("[PlaidEnrich] Receipt updated successfully");
+}
+
+async function enrichReceiptAfterSave(
+  receiptId: string,
+  receipt: StoredReceiptData
+): Promise<void> {
+  console.log("[PlaidEnrich] ========================================");
+  console.log("[PlaidEnrich] Starting enrichment for receipt:", receiptId);
+  console.log("[PlaidEnrich] Receipt data:", {
+    name: receipt.name,
+    merchantName: receipt.merchant.name,
+    total: receipt.totals.total,
+    currency: receipt.totals.currency,
+    itemCount: receipt.items.length,
+    hasAddress: !!receipt.merchant.address,
+  });
+
+  try {
+    const description = buildEnrichDescription(receipt);
+    if (!isNonEmptyString(description)) {
+      console.log("[PlaidEnrich] Skipping: Missing description");
+      await updateReceiptWithEnrich(
+        receiptId,
+        null,
+        "skipped",
+        "Missing description for enrich"
+      );
+      return;
+    }
+
+    const total = receipt.totals.total;
+    const amount = Number.isFinite(total) ? Math.abs(total) : 0;
+    console.log("[PlaidEnrich] Amount calculation:", { total, amount });
+    if (!Number.isFinite(amount) || amount <= 0) {
+      console.log("[PlaidEnrich] Skipping: Invalid amount");
+      await updateReceiptWithEnrich(
+        receiptId,
+        null,
+        "skipped",
+        "Missing total amount for enrich"
+      );
+      return;
+    }
+
+    const direction = total < 0 ? "inflow" : "outflow";
+    const currency = normalizeText(receipt.totals.currency) || "USD";
+    const date = getEnrichDate(receipt.transaction.datetime);
+    const location = buildEnrichLocation(receipt.merchant);
+
+    console.log("[PlaidEnrich] Prepared transaction data:", {
+      id: receipt.transaction.transactionId || receiptId,
+      description,
+      amount,
+      currency,
+      date,
+      direction,
+      hasLocation: !!location,
+      location,
+    });
+
+    console.log("[PlaidEnrich] Calling Plaid Enrich API...");
+    const enrichResult = await plaidService.enrichTransaction({
+      id: receipt.transaction.transactionId || receiptId,
+      description,
+      amount,
+      currency,
+      date,
+      direction,
+      location,
+    });
+
+    console.log("[PlaidEnrich] Plaid API response:", {
+      success: enrichResult.success,
+      hasData: !!enrichResult.data,
+      dataKeys: enrichResult.data ? Object.keys(enrichResult.data) : [],
+      message: enrichResult.message,
+      error: enrichResult.error,
+    });
+
+    if (!enrichResult.success) {
+      console.log("[PlaidEnrich] Enrich failed:", enrichResult.message);
+      await updateReceiptWithEnrich(
+        receiptId,
+        null,
+        "failed",
+        enrichResult.message || "Enrich API call failed"
+      );
+      return;
+    }
+
+    const data = enrichResult.data;
+    const hasEnrichData =
+      Boolean(data?.merchantName) ||
+      Boolean(data?.merchantLogo) ||
+      Boolean(data?.merchantAddress) ||
+      Boolean(data?.website) ||
+      (Array.isArray(data?.category) && data.category.length > 0);
+
+    console.log("[PlaidEnrich] Checking enrich data:", {
+      hasMerchantName: !!data?.merchantName,
+      hasMerchantLogo: !!data?.merchantLogo,
+      hasMerchantAddress: !!data?.merchantAddress,
+      hasWebsite: !!data?.website,
+      hasCategory: Array.isArray(data?.category) && data.category.length > 0,
+      hasEnrichData,
+    });
+
+    if (hasEnrichData) {
+      console.log("[PlaidEnrich] Enrichment successful, applying data:", {
+        merchantName: data?.merchantName,
+        hasLogo: !!data?.merchantLogo,
+        hasWebsite: !!data?.website,
+        hasCategory: !!data?.category,
+        hasAddress: !!data?.merchantAddress,
+      });
+    } else {
+      console.log("[PlaidEnrich] No enrichment data returned");
+    }
+
+    await updateReceiptWithEnrich(
+      receiptId,
+      data ?? null,
+      hasEnrichData ? "success" : "skipped",
+      hasEnrichData
+        ? "Enrichment completed successfully"
+        : "No enrichment data returned"
+    );
+
+    console.log("[PlaidEnrich] Enrichment process completed successfully");
+    console.log("[PlaidEnrich] ========================================");
+  } catch (error) {
+    console.error("[PlaidEnrich] ========================================");
+    console.error("[PlaidEnrich] ERROR during enrichment:", error);
+    console.error("[PlaidEnrich] Error details:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    console.error("[PlaidEnrich] ========================================");
+    const message = error instanceof Error ? error.message : "Enrich failed";
+    await updateReceiptWithEnrich(receiptId, null, "failed", message);
+  }
+}
+
 /**
  * Maps receipt database record to API response format
  */
@@ -123,9 +639,7 @@ async function findReceiptByIdAndUser(
 /**
  * Finds a receipt by ID, returns null if not found
  */
-async function findReceiptById(
-  receiptId: string
-): Promise<{
+async function findReceiptById(receiptId: string): Promise<{
   id: string;
   data: Prisma.JsonValue;
   createdAt: Date;
@@ -356,6 +870,20 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
           };
         }
 
+        const receiptData = receipt.data as Record<string, unknown>;
+        const visibility =
+          typeof receiptData.visibility === "string"
+            ? receiptData.visibility
+            : "private";
+
+        if (visibility !== "public") {
+          set.status = HTTP_STATUS.NOT_FOUND;
+          return {
+            success: false,
+            message: "Receipt not found",
+          };
+        }
+
         set.status = HTTP_STATUS.OK;
         return {
           success: true,
@@ -376,6 +904,62 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
         summary: "Get receipt by ID (public)",
         description:
           "Get a specific receipt by ID without authentication for sharing",
+      },
+    }
+  )
+  .get(
+    "/:id/photo-url",
+    async ({ params, set, user }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return unauthorizedResponse();
+      }
+
+      try {
+        const receipt = await findReceiptByIdAndUser(params.id, user.id);
+
+        if (!receipt) {
+          set.status = HTTP_STATUS.NOT_FOUND;
+          return {
+            success: false,
+            message: "Receipt not found",
+          };
+        }
+
+        const receiptData = receipt.data as StoredReceiptData;
+        const imageKey = getReceiptImageKey(receiptData);
+
+        if (!imageKey) {
+          set.status = HTTP_STATUS.NOT_FOUND;
+          return {
+            success: false,
+            message: "Receipt photo not found",
+          };
+        }
+
+        const url = await getPresignedUrl(imageKey, 3600);
+
+        set.status = HTTP_STATUS.OK;
+        return {
+          success: true,
+          url,
+        };
+      } catch (error) {
+        set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+        return {
+          success: false,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to load receipt photo",
+        };
+      }
+    },
+    {
+      detail: {
+        tags: ["receipts"],
+        summary: "Get receipt photo URL",
+        description: "Get a presigned URL for a receipt photo",
       },
     }
   )
@@ -496,6 +1080,12 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
           };
         }
 
+        const existingData = existing.data as StoredReceiptData;
+        const imageKey = getReceiptImageKey(existingData);
+        if (imageKey) {
+          await deleteFile(imageKey);
+        }
+
         await prisma.receipt.delete({
           where: { id: params.id },
         });
@@ -530,17 +1120,46 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
       }
 
       try {
+        const receiptData = body.receipt as StoredReceiptData;
         const receipt = await prisma.receipt.create({
           data: {
             userId: user.id,
-            data: toPrismaJsonValue(body.receipt as Record<string, unknown>),
+            data: toPrismaJsonValue(receiptData as Record<string, unknown>),
           },
         });
+
+        let responseReceipt = receipt;
+        if (isNonEmptyString(body.image_base64)) {
+          try {
+            const uploaded = await uploadReceiptImage(
+              receipt.id,
+              body.image_base64
+            );
+            const nextData = addReceiptImageToData(receiptData, uploaded);
+
+            responseReceipt = await prisma.receipt.update({
+              where: { id: receipt.id },
+              data: {
+                data: toPrismaJsonValue(nextData as Record<string, unknown>),
+              },
+            });
+          } catch (error) {
+            await prisma.receipt.delete({ where: { id: receipt.id } });
+            throw error;
+          }
+        }
+
+        console.log("[PlaidEnrich] Receipt saved, triggering enrichment:", {
+          receiptId: receipt.id,
+          userId: user.id,
+          merchantName: receiptData.merchant?.name,
+        });
+        void enrichReceiptAfterSave(receipt.id, receiptData);
 
         set.status = HTTP_STATUS.CREATED;
         return {
           success: true,
-          receipt: mapReceiptToResponse(receipt),
+          receipt: mapReceiptToResponse(responseReceipt),
         };
       } catch (error) {
         set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
@@ -554,6 +1173,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
     {
       body: t.Object({
         receipt: storedReceiptDataSchema,
+        image_base64: t.Optional(t.String()),
       }),
       detail: {
         tags: ["receipts"],

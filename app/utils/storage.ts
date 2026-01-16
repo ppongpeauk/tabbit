@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { AxiosError } from "axios";
-import { apiClient } from "./api";
+import { apiClient, imageUriToBase64 } from "./api";
 import type {
   ReceiptItem,
   Merchant,
@@ -24,6 +24,8 @@ export interface Friend {
   createdAt: string;
 }
 
+export type ReceiptVisibility = "private" | "public";
+
 export interface StoredReceipt {
   id: string;
   name: string;
@@ -35,6 +37,7 @@ export interface StoredReceipt {
   appData?: AppData;
   technical?: Technical;
   splitData?: SplitData;
+  visibility?: ReceiptVisibility;
   createdAt: string;
 }
 
@@ -45,10 +48,20 @@ export type { ReceiptItem } from "./api";
  * Save a new receipt to the server
  */
 export async function saveReceipt(
-  receipt: Omit<StoredReceipt, "id" | "createdAt">
+  receipt: Omit<StoredReceipt, "id" | "createdAt">,
+  options?: { imageUri?: string }
 ): Promise<StoredReceipt> {
   try {
-    const response = await apiClient.post("/receipts/save", { receipt });
+    const body: {
+      receipt: Omit<StoredReceipt, "id" | "createdAt">;
+      image_base64?: string;
+    } = { receipt };
+
+    if (options?.imageUri) {
+      body.image_base64 = await imageUriToBase64(options.imageUri);
+    }
+
+    const response = await apiClient.post("/receipts/save", body);
     const data = response.data;
     if (!data.success || !data.receipt) {
       throw new Error(data.message || "Failed to save receipt");
@@ -60,6 +73,27 @@ export async function saveReceipt(
       axiosError.response?.data?.message ||
         axiosError.message ||
         "Failed to save receipt"
+    );
+  }
+}
+
+/**
+ * Get a presigned URL for a receipt photo
+ */
+export async function getReceiptPhotoUrl(id: string): Promise<string> {
+  try {
+    const response = await apiClient.get(`/receipts/${id}/photo-url`);
+    const data = response.data;
+    if (!data.success || !data.url) {
+      throw new Error(data.message || "Failed to load receipt photo");
+    }
+    return data.url as string;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    throw new Error(
+      axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to load receipt photo"
     );
   }
 }
@@ -135,9 +169,11 @@ export async function saveFriend(
   friend: Omit<Friend, "id" | "createdAt">
 ): Promise<Friend> {
   const friends = await getFriends();
+  const createPersonId = () =>
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   const newFriend: Friend = {
     ...friend,
-    id: Date.now().toString(),
+    id: createPersonId(),
     createdAt: new Date().toISOString(),
   };
   friends.push(newFriend);

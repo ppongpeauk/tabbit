@@ -13,7 +13,7 @@ import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import { useReceipt, useUpdateReceipt } from "@/hooks/use-receipts";
 import { useFriends } from "@/hooks/use-friends";
-import { fetchContacts, type ContactInfo } from "@/utils/contacts";
+import type { Friend } from "@/utils/storage";
 import {
   SplitStrategy,
   validateSplit,
@@ -27,12 +27,25 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
 
+function buildPeopleMap(
+  friendIds: string[],
+  friends: Friend[]
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  friendIds.forEach((friendId) => {
+    const friend = friends.find((item) => item.id === friendId);
+    if (friend) {
+      map[friendId] = friend.name;
+    }
+  });
+  return map;
+}
+
 export default function ReviewScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
 
-  const [deviceContacts, setDeviceContacts] = useState<ContactInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [splitData, setSplitData] = useState<{
     receiptId: string;
@@ -70,13 +83,6 @@ export default function ReviewScreen() {
       setSplitData(tempData);
       setReceiptId(tempData.receiptId);
 
-      try {
-        const contacts = await fetchContacts();
-        setDeviceContacts(contacts);
-      } catch (error) {
-        console.error("Error loading contacts:", error);
-      }
-
       const strategy =
         typeof tempData.strategy === "string"
           ? (tempData.strategy as SplitStrategy)
@@ -90,6 +96,10 @@ export default function ReviewScreen() {
           taxDistribution: tempData.calculatedSplit.taxDistribution,
           tipDistribution: tempData.calculatedSplit.tipDistribution,
           totals: tempData.calculatedSplit.totals,
+          people: buildPeopleMap(
+            tempData.selectedFriendIds || [],
+            friends
+          ),
         };
         setCalculatedSplitData(completeSplit);
       }
@@ -99,7 +109,7 @@ export default function ReviewScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [friends]);
 
   useEffect(() => {
     loadData();
@@ -127,7 +137,11 @@ export default function ReviewScreen() {
             splitData.assignments || [],
             splitData.selectedFriendIds
           );
-          setCalculatedSplitData(calculatedSplit);
+          const people = buildPeopleMap(
+            splitData.selectedFriendIds,
+            friends
+          );
+          setCalculatedSplitData({ ...calculatedSplit, people });
 
           // Save the calculated split back to AsyncStorage for consistency
           await AsyncStorage.setItem(
@@ -139,6 +153,7 @@ export default function ReviewScreen() {
                 taxDistribution: calculatedSplit.taxDistribution,
                 tipDistribution: calculatedSplit.tipDistribution,
                 totals: calculatedSplit.totals,
+                people,
               },
             })
           );
@@ -147,7 +162,7 @@ export default function ReviewScreen() {
     };
 
     calculateEqualSplit();
-  }, [receipt, splitData, calculatedSplitData]);
+  }, [receipt, splitData, calculatedSplitData, friends]);
 
   const handleSend = useCallback(async () => {
     if (!receipt || !calculatedSplitData || !splitData) {
@@ -264,7 +279,6 @@ export default function ReviewScreen() {
           <SplitSummary
             splitData={calculatedSplitData}
             friends={friends}
-            deviceContacts={deviceContacts}
             receiptTotal={receipt.totals.total}
             currency={receipt.totals.currency}
           />

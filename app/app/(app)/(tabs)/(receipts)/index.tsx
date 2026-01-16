@@ -6,6 +6,7 @@ import {
   View,
   RefreshControl,
   Alert,
+  Image,
   type SectionListRenderItemInfo,
 } from "react-native";
 import { router } from "expo-router";
@@ -235,6 +236,7 @@ export default function ReceiptsScreen() {
             colorScheme === "dark"
               ? "rgba(255, 255, 255, 0.08)"
               : "rgba(0, 0, 0, 0.03)";
+          const merchantLogo = item.merchant.logo;
 
           const handlePress = () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -292,43 +294,59 @@ export default function ReceiptsScreen() {
                     backgroundColor: pressed ? pressedBg : rowBaseBg,
                   })}
                 >
-                  <View className="flex-1 justify-center gap-1">
-                    <View className="flex-row justify-between items-center">
-                      <ThemedText weight="semibold" size="base">
-                        {displayTitle}
-                      </ThemedText>
-                      <ThemedText
-                        weight="bold"
-                        size="base"
-                        lightColor={Colors.light.tint}
-                        darkColor={Colors.dark.tint}
-                      >
-                        {formatCurrency(
-                          item.totals.total,
-                          item.totals.currency
-                        )}
-                      </ThemedText>
-                    </View>
-                    <View className="flex-row justify-between items-center">
-                      <ThemedText
-                        size="sm"
-                        lightColor={Colors.light.icon}
-                        darkColor={Colors.dark.icon}
-                      >
-                        {formatReceiptDateTime(
-                          item.transaction.datetime,
-                          isToday
-                        )}
-                      </ThemedText>
-                      {hasCustomTitle && (
+                  <View className="flex-row items-center gap-3 flex-1">
+                    {merchantLogo ? (
+                      <Image
+                        source={{ uri: merchantLogo }}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 6,
+                          backgroundColor: isDark
+                            ? "rgba(255, 255, 255, 0.05)"
+                            : "rgba(0, 0, 0, 0.05)",
+                        }}
+                        resizeMode="contain"
+                      />
+                    ) : null}
+                    <View className="flex-1 justify-center gap-1">
+                      <View className="flex-row justify-between items-center">
+                        <ThemedText weight="semibold" size="base">
+                          {displayTitle}
+                        </ThemedText>
+                        <ThemedText
+                          weight="bold"
+                          size="base"
+                          lightColor={Colors.light.tint}
+                          darkColor={Colors.dark.tint}
+                        >
+                          {formatCurrency(
+                            item.totals.total,
+                            item.totals.currency
+                          )}
+                        </ThemedText>
+                      </View>
+                      <View className="flex-row justify-between items-center">
                         <ThemedText
                           size="sm"
                           lightColor={Colors.light.icon}
                           darkColor={Colors.dark.icon}
                         >
-                          {item.merchant.name}
+                          {formatReceiptDateTime(
+                            item.transaction.datetime,
+                            isToday
+                          )}
                         </ThemedText>
-                      )}
+                        {hasCustomTitle && (
+                          <ThemedText
+                            size="sm"
+                            lightColor={Colors.light.icon}
+                            darkColor={Colors.dark.icon}
+                          >
+                            {item.merchant.name}
+                          </ThemedText>
+                        )}
+                      </View>
                     </View>
                   </View>
                 </Pressable>

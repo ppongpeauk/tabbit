@@ -11,6 +11,14 @@ export const getApiBaseUrl = (): string => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
+const DEFAULT_WEB_PORT = 3000;
+export const getWebBaseUrl = (): string => {
+  if (process.env.EXPO_PUBLIC_WEB_URL) return process.env.EXPO_PUBLIC_WEB_URL;
+  return `http://localhost:${DEFAULT_WEB_PORT}`;
+};
+
+export const WEB_BASE_URL = getWebBaseUrl();
+
 /**
  * Animation configuration constants
  * Used for consistent animation timing across UI components

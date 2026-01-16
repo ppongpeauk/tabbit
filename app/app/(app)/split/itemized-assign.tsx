@@ -13,8 +13,6 @@ import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import { useReceipt } from "@/hooks/use-receipts";
 import { useFriends } from "@/hooks/use-friends";
-import type { Friend } from "@/utils/storage";
-import { fetchContacts, type ContactInfo } from "@/utils/contacts";
 import {
   SplitStrategy,
   type ItemAssignment,
@@ -31,7 +29,6 @@ export default function ItemizedAssignScreen() {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
 
-  const [deviceContacts, setDeviceContacts] = useState<ContactInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
   const [assignments, setAssignments] = useState<ItemAssignment[]>([]);
@@ -62,12 +59,6 @@ export default function ItemizedAssignScreen() {
       setSelectedFriendIds(tempData.selectedFriendIds || []);
       setReceiptId(tempData.receiptId);
 
-      try {
-        const contacts = await fetchContacts();
-        setDeviceContacts(contacts);
-      } catch (error) {
-        console.error("Error loading contacts:", error);
-      }
     } catch (error) {
       console.error("Error loading data:", error);
       Alert.alert("Error", "Failed to load data");
@@ -227,7 +218,6 @@ export default function ItemizedAssignScreen() {
                 item={item}
                 itemIndex={index}
                 friends={friends}
-                deviceContacts={deviceContacts}
                 selectedFriendIds={assignment?.friendIds || []}
                 quantities={assignment?.quantities}
                 onFriendIdsChange={(friendIds) =>

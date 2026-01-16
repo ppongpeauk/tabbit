@@ -1,31 +1,21 @@
 import { View, TouchableOpacity } from "react-native";
-import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
-import type { StoredReceipt, Friend } from "@/utils/storage";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 
-interface SplitSummaryCardProps {
-  receipt: StoredReceipt;
-  friends: Friend[];
+interface ShareReceiptCardProps {
+  onShare: () => void;
 }
 
-export function SplitSummaryCard({ receipt, friends }: SplitSummaryCardProps) {
+export function ShareReceiptCard({ onShare }: ShareReceiptCardProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  if (!receipt.splitData) {
-    return null;
-  }
-
-  const handleViewSplit = () => {
+  const handleShare = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({
-      pathname: "/split/details",
-      params: { receiptId: receipt.id },
-    });
+    onShare();
   };
 
   const iconColor = isDark ? Colors.dark.tint : Colors.light.tint;
@@ -34,7 +24,7 @@ export function SplitSummaryCard({ receipt, friends }: SplitSummaryCardProps) {
   return (
     <TouchableOpacity
       activeOpacity={0.7}
-      onPress={handleViewSplit}
+      onPress={handleShare}
       className={`rounded-[20px] p-4 gap-1 border ${
         isDark ? "bg-[#1A1D1E] border-white/5" : "bg-white border-black/5"
       }`}
@@ -56,14 +46,14 @@ export function SplitSummaryCard({ receipt, friends }: SplitSummaryCardProps) {
           }}
         >
           <SymbolView
-            name="person.2.fill"
+            name="square.and.arrow.up"
             tintColor={iconColor}
             style={{ width: 24, height: 24 }}
           />
         </View>
         <View className="flex-1">
           <ThemedText size="base" weight="semibold">
-            Split configured
+            Share Receipt
           </ThemedText>
           <ThemedText
             size="sm"
@@ -71,7 +61,7 @@ export function SplitSummaryCard({ receipt, friends }: SplitSummaryCardProps) {
               color: subtleColor,
             }}
           >
-            Tap to view distribution among people
+            Tap to share this receipt with others
           </ThemedText>
         </View>
         <SymbolView

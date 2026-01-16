@@ -9,13 +9,14 @@ import type { StoredReceipt } from "@/utils/storage";
 import type { StackNavigationOptions } from "@react-navigation/stack";
 import ContextMenu from "react-native-context-menu-view";
 import { Colors } from "@/constants/theme";
-import { HeaderButton, PlatformPressable } from "@react-navigation/elements";
+import { HeaderButton } from "@react-navigation/elements";
 import * as Haptics from "expo-haptics";
 import { View } from "react-native";
 
 interface ReceiptHeaderProps {
   receipt: StoredReceipt | null;
   colorScheme: "light" | "dark";
+  onViewPhoto: () => void;
   onEdit: () => void;
   onShare: () => void;
   onSplit: () => void;
@@ -27,6 +28,7 @@ interface ReceiptHeaderProps {
 export function ReceiptHeader({
   receipt,
   colorScheme,
+  onViewPhoto,
   onEdit,
   onShare,
   onSplit,
@@ -34,19 +36,19 @@ export function ReceiptHeader({
   onShowBarcode,
   onDelete,
 }: ReceiptHeaderProps): Partial<StackNavigationOptions> {
-  const hasReturnBarcode = Boolean(
-    receipt?.returnInfo?.returnBarcode &&
-    receipt.returnInfo.returnBarcode.trim().length > 0
-  );
-
   const menuActions = [
     {
-      title: "Edit Receipt",
+      title: "View Photo",
+      systemIcon: "photo",
+      handler: onViewPhoto,
+    },
+    {
+      title: "Edit",
       systemIcon: "square.and.pencil",
       handler: onEdit,
     },
     {
-      title: "Share Receipt",
+      title: "Share",
       systemIcon: "square.and.arrow.up",
       handler: onShare,
     },
@@ -55,17 +57,6 @@ export function ReceiptHeader({
       systemIcon: "person.2",
       handler: onSplit,
     },
-    hasReturnBarcode && onShowBarcode
-      ? {
-          title: "Show Return Barcode",
-          systemIcon: "qrcode",
-          handler: onShowBarcode,
-        }
-      : {
-          title: "Scan Return Barcode",
-          systemIcon: "qrcode.viewfinder",
-          handler: onScanBarcode,
-        },
     {
       title: "Delete Receipt",
       systemIcon: "trash",
@@ -95,6 +86,9 @@ export function ReceiptHeader({
   );
 
   const isDark = colorScheme === "dark";
+  const visibility = receipt?.visibility || "private";
+  const privacyIcon = visibility === "public" ? "globe" : "lock.fill";
+  const iconColor = isDark ? Colors.dark.icon : Colors.light.icon;
 
   return {
     title: "Receipt Details",
@@ -105,9 +99,16 @@ export function ReceiptHeader({
       ) {
         return (
           <View className="flex-col items-center">
-            <ThemedText size="xs" weight="semibold" family="sans">
-              {receipt?.name}
-            </ThemedText>
+            <View className="flex-row items-center gap-1.5">
+              <SymbolView
+                name={privacyIcon}
+                tintColor={iconColor}
+                style={{ width: 12, height: 12 }}
+              />
+              <ThemedText size="xs" weight="semibold" family="sans">
+                {receipt?.name}
+              </ThemedText>
+            </View>
             <ThemedText size="xs" family="sans">
               {receipt?.merchant?.name}
             </ThemedText>
@@ -115,15 +116,29 @@ export function ReceiptHeader({
         );
       } else if (receipt?.merchant?.name) {
         return (
-          <ThemedText size="base" weight="semibold" family="sans">
-            {receipt?.merchant?.name}
-          </ThemedText>
+          <View className="flex-row items-center gap-1.5">
+            <SymbolView
+              name={privacyIcon}
+              tintColor={iconColor}
+              style={{ width: 14, height: 14 }}
+            />
+            <ThemedText size="base" weight="semibold" family="sans">
+              {receipt?.merchant?.name}
+            </ThemedText>
+          </View>
         );
       } else {
         return (
-          <ThemedText size="base" weight="semibold" family="sans">
-            Receipt Details
-          </ThemedText>
+          <View className="flex-row items-center gap-1.5">
+            <SymbolView
+              name={privacyIcon}
+              tintColor={iconColor}
+              style={{ width: 14, height: 14 }}
+            />
+            <ThemedText size="base" weight="semibold" family="sans">
+              Receipt Details
+            </ThemedText>
+          </View>
         );
       }
     },

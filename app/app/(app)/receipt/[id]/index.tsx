@@ -18,12 +18,18 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Image,
+  Share,
 } from "react-native";
+import * as Linking from "expo-linking";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useReceipt, useDeleteReceipt } from "@/hooks/use-receipts";
+import {
+  useReceipt,
+  useDeleteReceipt,
+  useUpdateReceipt,
+} from "@/hooks/use-receipts";
 import { useFriends } from "@/hooks/use-friends";
 import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
@@ -33,6 +39,7 @@ import {
   ReturnInfoCard,
   ReceiptHeader,
   SplitSummaryCard,
+  ShareReceiptCard,
   NotesCard,
   useScannedBarcode,
   shouldShowReturnInfo,
@@ -42,10 +49,13 @@ import {
 } from "@/components/receipt-detail";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import type { StoredReceipt, Friend } from "@/utils/storage";
+import { getReceiptPhotoUrl } from "@/utils/storage";
 import { Toolbar, ToolbarButton } from "@/components/toolbar";
 import { SymbolView } from "expo-symbols";
 import { AppleMaps } from "expo-maps";
 import * as Location from "expo-location";
+import { WEB_BASE_URL } from "@/utils/config";
+import { getCategoryName, getCategoryEmoji } from "@/utils/categories";
 
 // ============================================================================
 // Toolbar Setup Hook
@@ -54,6 +64,7 @@ import * as Location from "expo-location";
 function useReceiptToolbar({
   receipt,
   colorScheme,
+  onViewPhoto,
   onEdit,
   onShare,
   onSplit,
@@ -63,6 +74,7 @@ function useReceiptToolbar({
 }: {
   receipt: StoredReceipt | null;
   colorScheme: "light" | "dark" | null | undefined;
+  onViewPhoto: () => void;
   onEdit: () => void;
   onShare: () => void;
   onSplit: () => void;
@@ -77,6 +89,7 @@ function useReceiptToolbar({
       ReceiptHeader({
         receipt,
         colorScheme: colorScheme || "light",
+        onViewPhoto,
         onEdit,
         onShare,
         onSplit,
@@ -89,6 +102,7 @@ function useReceiptToolbar({
     navigation,
     colorScheme,
     receipt,
+    onViewPhoto,
     onEdit,
     onShare,
     onSplit,
@@ -177,7 +191,7 @@ function AddressMap({ address, isDark }: AddressMapProps) {
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={() => handleAddressPress(address)}
-      className="h-48 overflow-hidden"
+      className="h-32 overflow-hidden"
       style={{
         backgroundColor: isDark
           ? "rgba(255, 255, 255, 0.05)"
@@ -192,7 +206,7 @@ function AddressMap({ address, isDark }: AddressMapProps) {
               latitude: coordinates.latitude,
               longitude: coordinates.longitude,
             },
-            zoom: 15,
+            zoom: 16,
           }}
           markers={[
             {
@@ -201,7 +215,6 @@ function AddressMap({ address, isDark }: AddressMapProps) {
                 latitude: coordinates.latitude,
                 longitude: coordinates.longitude,
               },
-              title: address.line1,
             },
           ]}
           uiSettings={{
@@ -238,56 +251,41 @@ function HeroSection({ receipt, isDark }: HeroSectionProps) {
   const [logoError, setLogoError] = useState(false);
 
   return (
-    <View className="px-4 py-4">
-      {/* Merchant Logo */}
-      {merchantLogo && !logoError ? (
-        <View className="mb-4 items-center">
+    <View
+      className={`px-4 pt-6 pb-4 ${merchantLogo && !logoError ? "gap-4" : "gap-0"}`}
+    >
+      <View className="flex flex-row items-center gap-4">
+        {merchantLogo && !logoError ? (
           <Image
             source={{ uri: merchantLogo }}
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: 12,
-              backgroundColor: isDark
-                ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(0, 0, 0, 0.05)",
-            }}
             resizeMode="contain"
             onError={() => setLogoError(true)}
+            className="w-16 h-16 border-2 border-gray-200 dark:border-gray-800 rounded-2xl"
           />
-        </View>
-      ) : null}
-
-      <View className="p-2">
+        ) : null}
         {/* Merchant Name */}
-        <ThemedText
-          size="2xl"
-          weight="bold"
-          family="sans"
-          className="text-left"
-        >
+        <ThemedText size="xl" weight="bold" family="sans" className="text-left">
           {receiptTitle || merchantName}
         </ThemedText>
-
-        {/* Address */}
-        {hasAddress ? (
-          <TouchableOpacity
-            onPress={() => handleAddressPress(receipt.merchant.address!)}
-            activeOpacity={0.7}
-            className="items-start"
-          >
-            <ThemedText
-              size="sm"
-              className="text-center"
-              style={{
-                color: isDark ? Colors.dark.subtle : Colors.light.icon,
-              }}
-            >
-              {merchantAddress}
-            </ThemedText>
-          </TouchableOpacity>
-        ) : null}
       </View>
+      {/* Address */}
+      {hasAddress ? (
+        <TouchableOpacity
+          onPress={() => handleAddressPress(receipt.merchant.address!)}
+          activeOpacity={0.7}
+          className="items-start"
+        >
+          <ThemedText
+            size="base"
+            className="text-center"
+            style={{
+              color: isDark ? Colors.dark.subtle : Colors.light.icon,
+            }}
+          >
+            {merchantAddress}
+          </ThemedText>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
@@ -309,8 +307,9 @@ function MetadataGrid({ receipt, isDark }: MetadataGridProps) {
     year: "numeric",
   });
 
-  const category = receipt.merchant.category?.[0] || "Shopping";
-  const categoryEmoji = getCategoryEmoji(category);
+  const categoryRaw = receipt.merchant.category?.[0] || "OTHER";
+  const category = getCategoryName(categoryRaw);
+  const categoryEmoji = getCategoryEmoji(categoryRaw);
   const total = receipt.totals.total || 0;
   const currency = receipt.totals.currency || "USD";
 
@@ -358,7 +357,7 @@ function MetadataGrid({ receipt, isDark }: MetadataGridProps) {
               Category
             </ThemedText>
           </View>
-          <View className="flex-row items-center gap-1">
+          <View className="flex-row items-start gap-2">
             <ThemedText size="base">{categoryEmoji}</ThemedText>
             <ThemedText size="base" weight="semibold" family="sans">
               {category}
@@ -413,27 +412,6 @@ function MetadataGrid({ receipt, isDark }: MetadataGridProps) {
       </View>
     </View>
   );
-}
-
-// ============================================================================
-// Helper: Get Category Emoji
-// ============================================================================
-
-function getCategoryEmoji(category: string): string {
-  const categoryMap: Record<string, string> = {
-    Shopping: "🛍️",
-    Groceries: "🛒",
-    "Food & Drink": "🍽️",
-    Dining: "🍽️",
-    Transportation: "🚗",
-    Entertainment: "🎬",
-    Travel: "✈️",
-    Health: "🏥",
-    Services: "🔧",
-    Other: "📋",
-  };
-
-  return categoryMap[category] || "🛍️";
 }
 
 // ============================================================================
@@ -500,12 +478,10 @@ function ReceiptContent({
         </View>
       </View>
 
-      {/* Split Summary */}
-      {receipt.splitData ? (
-        <View className="px-6 mb-4">
-          <SplitSummaryCard receipt={receipt} friends={friends} />
-        </View>
-      ) : null}
+      {/* Share Receipt Card */}
+      <View className="px-6 mb-4">
+        <ShareReceiptCard onShare={onShare} />
+      </View>
 
       {/* Items and Totals Card */}
       <View className="px-6 mb-4">
@@ -522,6 +498,13 @@ function ReceiptContent({
           <TotalsCard receipt={receipt} />
         </View>
       </View>
+
+      {/* Split Summary */}
+      {receipt.splitData ? (
+        <View className="px-6 mb-4">
+          <SplitSummaryCard receipt={receipt} friends={friends} />
+        </View>
+      ) : null}
 
       {/* Scan Return Barcode Button - shown when no return info exists */}
       {!shouldShowReturnInfo(receipt.returnInfo) ? (
@@ -624,10 +607,16 @@ export default function ReceiptDetailScreen() {
     isLoading: isLoadingReceipt,
     refetch: refetchReceipt,
   } = useReceipt(id);
+
   const { data: friends = [], isLoading: isLoadingFriends } = useFriends();
   const deleteReceiptMutation = useDeleteReceipt();
+  const updateReceiptMutation = useUpdateReceipt();
 
   const isLoading = isLoadingReceipt || isLoadingFriends;
+  const [isLoadingPhoto, setIsLoadingPhoto] = useState(false);
+  const hasPhoto = Boolean(
+    receipt?.appData?.images?.some((image) => Boolean(image.key || image.url))
+  );
 
   // Handle scanned barcode from barcode scanner
   useScannedBarcode({
@@ -690,6 +679,32 @@ export default function ReceiptDetailScreen() {
     barcodeModalRef.current?.present();
   }, []);
 
+  const handleViewPhoto = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    if (isLoadingPhoto) {
+      return;
+    }
+
+    if (!hasPhoto) {
+      Alert.alert("No Photo", "No photo is attached to this receipt.");
+      return;
+    }
+
+    setIsLoadingPhoto(true);
+    try {
+      const url = await getReceiptPhotoUrl(id);
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Failed to load receipt photo"
+      );
+    } finally {
+      setIsLoadingPhoto(false);
+    }
+  }, [hasPhoto, id, isLoadingPhoto]);
+
   const handleEdit = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push({
@@ -698,15 +713,34 @@ export default function ReceiptDetailScreen() {
     });
   }, [id]);
 
-  const handleShare = useCallback(() => {
+  const handleShare = useCallback(async () => {
+    if (!receipt) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // TODO: Implement share functionality
-  }, []);
+    try {
+      await updateReceiptMutation.mutateAsync({
+        id: receipt.id,
+        updates: { visibility: "public" },
+      });
+      const shareUrl = `${WEB_BASE_URL}/receipts/${receipt.id}`;
+      await Share.share({
+        message: shareUrl,
+        url: shareUrl,
+        title: "Share Receipt",
+      });
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "Failed to share receipt. Please try again."
+      );
+    }
+  }, [receipt, updateReceiptMutation]);
 
   const handleSplit = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push({
-      pathname: "/split",
+      pathname: "/split/details",
       params: { receiptId: id },
     });
   }, [id]);
@@ -720,6 +754,7 @@ export default function ReceiptDetailScreen() {
   useReceiptToolbar({
     receipt: receipt || null,
     colorScheme,
+    onViewPhoto: handleViewPhoto,
     onEdit: handleEdit,
     onShare: handleShare,
     onSplit: handleSplit,

@@ -5,6 +5,7 @@
 
 import OpenAI from "openai";
 import sharp from "sharp";
+import convert from "heic-convert";
 import type { Receipt, ReceiptResponse } from "./model";
 import { detectBarcodes } from "../../utils/barcode-detector";
 import { cacheService } from "../../utils/cache";
@@ -292,15 +293,76 @@ export class ReceiptService {
   }
 
   /**
+   * Detect if buffer is HEIF/HEIC format by checking magic bytes
+   */
+  private isHeifFormat(buffer: Buffer): boolean {
+    // HEIF/HEIC files start with ftyp box at offset 4
+    // Check for common HEIF signatures
+    if (buffer.length < 12) return false;
+
+    const ftyp = buffer.toString("ascii", 4, 8);
+    if (ftyp !== "ftyp") return false;
+
+    // Check for HEIF brand identifiers
+    const brand = buffer.toString("ascii", 8, 12);
+    const heifBrands = ["heic", "heif", "mif1", "msf1"];
+    return heifBrands.some((b) => brand.includes(b));
+  }
+
+  /**
+   * Convert HEIF/HEIC image to JPEG format using heic-convert
+   * Falls back to original buffer if conversion fails
+   */
+  private async convertHeifToJpeg(imageBuffer: Buffer): Promise<Buffer> {
+    try {
+      // Convert HEIF to JPEG using heic-convert library
+      // heic-convert expects ArrayBuffer and returns ArrayBuffer
+      const arrayBuffer = imageBuffer.buffer.slice(
+        imageBuffer.byteOffset,
+        imageBuffer.byteOffset + imageBuffer.byteLength
+      );
+      const jpegArrayBuffer = await convert({
+        buffer: arrayBuffer,
+        format: "JPEG",
+        quality: 0.9,
+      });
+
+      const jpegBuffer = Buffer.from(jpegArrayBuffer);
+
+      console.log(
+        `[ReceiptService] Converted HEIF to JPEG: ${imageBuffer.length} bytes -> ${jpegBuffer.length} bytes`
+      );
+      return jpegBuffer;
+    } catch (error) {
+      console.warn(
+        "[ReceiptService] HEIF conversion failed, attempting to use original:",
+        error instanceof Error ? error.message : "Unknown error"
+      );
+      // If conversion fails, return original and let preprocessImage handle it
+      return imageBuffer;
+    }
+  }
+
+  /**
    * Preprocess image buffer (resize if needed)
    * Resizes image to max height of 1280px while maintaining aspect ratio
+   * Handles HEIF format conversion if needed
    */
   private async preprocessImage(
     imageBuffer: Buffer,
     maxHeight: number = 1280
   ): Promise<Buffer> {
     try {
-      const image = sharp(imageBuffer);
+      // Check if image is HEIF format and convert if needed
+      let processedBuffer = imageBuffer;
+      if (this.isHeifFormat(imageBuffer)) {
+        console.log(
+          "[ReceiptService] Detected HEIF format, converting to JPEG"
+        );
+        processedBuffer = await this.convertHeifToJpeg(imageBuffer);
+      }
+
+      const image = sharp(processedBuffer);
       const metadata = await image.metadata();
 
       // Only resize if height exceeds maxHeight
@@ -322,14 +384,33 @@ export class ReceiptService {
         return resizedBuffer;
       }
 
-      // Return original if no resize needed
-      return imageBuffer;
+      // Return processed buffer (may be converted from HEIF)
+      return processedBuffer;
     } catch (error) {
-      console.warn(
-        "[ReceiptService] Failed to preprocess image, using original:",
-        error
-      );
-      // Return original buffer if preprocessing fails
+      // If sharp fails completely, try to convert HEIF and retry
+      if (this.isHeifFormat(imageBuffer)) {
+        console.log(
+          "[ReceiptService] Sharp failed on HEIF, attempting conversion"
+        );
+        try {
+          const converted = await this.convertHeifToJpeg(imageBuffer);
+          // Retry preprocessing with converted image
+          return this.preprocessImage(converted, maxHeight);
+        } catch (conversionError) {
+          console.warn(
+            "[ReceiptService] HEIF conversion and preprocessing failed, using original:",
+            conversionError instanceof Error
+              ? conversionError.message
+              : "Unknown error"
+          );
+        }
+      } else {
+        console.warn(
+          "[ReceiptService] Failed to preprocess image, using original:",
+          error instanceof Error ? error.message : "Unknown error"
+        );
+      }
+      // Return original buffer if all preprocessing fails
       return imageBuffer;
     }
   }

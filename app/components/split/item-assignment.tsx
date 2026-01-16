@@ -8,13 +8,11 @@ import { formatCurrency } from "@/utils/format";
 import { FriendSelector } from "./friend-selector";
 import type { Friend } from "@/utils/storage";
 import type { ReceiptItem } from "@/utils/api";
-import type { ContactInfo } from "@/utils/contacts";
 
 interface ItemAssignmentProps {
   item: ReceiptItem;
   itemIndex: number;
   friends: Friend[];
-  deviceContacts?: ContactInfo[];
   selectedFriendIds: string[];
   quantities?: number[];
   onFriendIdsChange: (friendIds: string[]) => void;
@@ -26,7 +24,6 @@ export function ItemAssignment({
   item,
   itemIndex,
   friends,
-  deviceContacts = [],
   selectedFriendIds,
   quantities,
   onFriendIdsChange,
@@ -127,11 +124,10 @@ export function ItemAssignment({
       {showDetails && (
         <View style={styles.details}>
           <ThemedText size="sm" weight="semibold" style={styles.sectionTitle}>
-            Assign to friends
+            Assign to people
           </ThemedText>
           <FriendSelector
             friends={friends}
-            deviceContacts={deviceContacts}
             selectedFriendIds={selectedFriendIds}
             onToggleFriend={handleToggleFriend}
           />
@@ -146,17 +142,8 @@ export function ItemAssignment({
                 Split breakdown
               </ThemedText>
               {selectedFriendIds.map((friendId, index) => {
-                // Check if it's a friend or contact
                 const friend = friends.find((f) => f.id === friendId);
-                const contact = friendId.startsWith("contact:")
-                  ? deviceContacts.find(
-                      (c) =>
-                        `contact:${c.name}:${
-                          c.phoneNumber || c.email || ""
-                        }` === friendId
-                    )
-                  : undefined;
-                const personName = friend?.name || contact?.name || "Unknown";
+                const personName = friend?.name || "Unknown";
                 const quantity = quantities?.[index] || 1;
                 const share = calculateShare(index);
 

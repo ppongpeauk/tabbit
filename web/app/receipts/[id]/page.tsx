@@ -10,6 +10,7 @@ import {
   type ReturnInfo,
   type StoredReceipt,
 } from "@/utils/public-receipts";
+import { MerchantLogo } from "@/components/merchant-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -101,23 +102,12 @@ function getReturnPolicyLines(returnInfo?: ReturnInfo): string[] {
   return [];
 }
 
-function getPersonLabel(personId: string, index: number): string {
-  if (personId.startsWith("unified:name:")) {
-    return personId.replace("unified:name:", "");
-  }
-  if (personId.startsWith("unified:email:")) {
-    return personId.replace("unified:email:", "");
-  }
-  if (personId.startsWith("unified:phone:")) {
-    return personId.replace("unified:phone:", "");
-  }
-  if (personId.startsWith("contact:")) {
-    const parts = personId.split(":");
-    if (parts.length >= 2) {
-      return parts[1];
-    }
-  }
-
+function getPersonLabel(
+  personId: string,
+  index: number,
+  peopleMap?: Record<string, string>
+): string {
+  if (peopleMap?.[personId]) return peopleMap[personId];
   return `Person ${index + 1}`;
 }
 
@@ -160,7 +150,7 @@ function SplitSummary({ receipt }: { receipt: StoredReceipt }) {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="font-semibold">
-                  {getPersonLabel(personId, index)}
+                  {getPersonLabel(personId, index, splitData.people)}
                 </div>
                 <div className="font-bold">
                   {formatCurrency(total, receipt.totals.currency)}
@@ -361,15 +351,10 @@ function ReceiptHero({ receipt }: { receipt: StoredReceipt }) {
 
   return (
     <div className="px-6 py-6">
-      {merchantLogo ? (
-        <div className="mb-4 flex justify-center">
-          <img
-            src={merchantLogo}
-            alt={merchantName || "Merchant logo"}
-            className="h-20 w-20 rounded-xl bg-black/5 object-contain"
-          />
-        </div>
-      ) : null}
+      <MerchantLogo
+        logo={merchantLogo || ""}
+        alt={merchantName || "Merchant logo"}
+      />
       <div className="text-left">
         <div className="text-2xl font-bold">{receiptTitle}</div>
         {showMerchantName ? (

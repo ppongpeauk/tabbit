@@ -1,4 +1,5 @@
 import { File } from "expo-file-system";
+import * as ImageManipulator from "expo-image-manipulator";
 import axios, { type AxiosInstance, type AxiosError } from "axios";
 import { API_BASE_URL } from "./config";
 import * as SecureStore from "expo-secure-store";
@@ -118,7 +119,8 @@ export interface ReturnInfo {
 }
 
 export interface ReceiptImage {
-  url: string;
+  url?: string;
+  key?: string;
   type: string;
 }
 
@@ -139,6 +141,11 @@ export interface Technical {
   source?: string;
   originalImage?: OriginalImage;
   merchantDetectionConfidence?: number;
+  plaidEnrich?: {
+    status?: "success" | "failed" | "skipped";
+    attemptedAt?: string;
+    message?: string;
+  };
 }
 
 export interface Receipt {
@@ -173,12 +180,47 @@ export interface ReceiptScanResponse {
 }
 
 /**
- * Convert image URI to base64 string
+ * Check if image URI is HEIC/HEIF format
  */
-async function imageUriToBase64(uri: string): Promise<string> {
+function isHeicFormat(uri: string): boolean {
+  const lowerUri = uri.toLowerCase();
+  return lowerUri.endsWith(".heic") || lowerUri.endsWith(".heif");
+}
+
+/**
+ * Convert HEIC/HEIF image to JPEG format
+ */
+async function convertHeicToJpeg(uri: string): Promise<string> {
   try {
+    const result = await ImageManipulator.manipulateAsync(uri, [], {
+      compress: 0.9,
+      format: ImageManipulator.SaveFormat.JPEG,
+    });
+    return result.uri;
+  } catch (error) {
+    throw new Error(
+      `Failed to convert HEIC image: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+/**
+ * Convert image URI to base64 string
+ * Automatically converts HEIC/HEIF images to JPEG before reading
+ */
+export async function imageUriToBase64(uri: string): Promise<string> {
+  try {
+    // Convert HEIC to JPEG if needed
+    let imageUri = uri;
+    if (isHeicFormat(uri)) {
+      console.log("[imageUriToBase64] Converting HEIC to JPEG");
+      imageUri = await convertHeicToJpeg(uri);
+    }
+
     // Use new expo-file-system File API
-    const file = new File(uri);
+    const file = new File(imageUri);
     // Use the built-in base64() method
     return await file.base64();
   } catch (error) {
@@ -638,7 +680,7 @@ export async function checkServerHealth(
     // Server is up if we get any HTTP response (even 404 means server is running)
     // Network errors or timeouts mean server is down
     return response.status >= 200 && response.status < 600;
-  } catch (error) {
+  } catch {
     // Network error, timeout, or other error means server is down
     return false;
   }

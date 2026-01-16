@@ -19,8 +19,6 @@ import { Colors, Fonts } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import { useReceipt } from "@/hooks/use-receipts";
 import { useFriends } from "@/hooks/use-friends";
-import type { Friend } from "@/utils/storage";
-import { fetchContacts, type ContactInfo } from "@/utils/contacts";
 import { formatCurrency } from "@/utils/format";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { calculateProportionalTaxTip } from "@/utils/split";
@@ -33,7 +31,6 @@ export default function PercentageInputsScreen() {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
 
-  const [deviceContacts, setDeviceContacts] = useState<ContactInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
   const [percentages, setPercentages] = useState<Record<string, string>>({});
@@ -63,13 +60,6 @@ export default function PercentageInputsScreen() {
       setSplitData(tempData);
       setSelectedFriendIds(tempData.selectedFriendIds || []);
       setReceiptId(tempData.receiptId);
-
-      try {
-        const contacts = await fetchContacts();
-        setDeviceContacts(contacts);
-      } catch (error) {
-        console.error("Error loading contacts:", error);
-      }
 
       // Initialize percentages - default to equal split
       const defaultPercentage = (
@@ -102,95 +92,8 @@ export default function PercentageInputsScreen() {
   const isLoading = loading || isLoadingReceipt || isLoadingFriends;
 
   const getPersonName = (friendId: string): string => {
-    // Check if it's a friend
     const friend = friends.find((f) => f.id === friendId);
-    if (friend) return friend.name;
-
-    // Check if it's a unified ID (from add-people selector)
-    if (friendId.startsWith("unified:")) {
-      // Try to match by phone number
-      if (friendId.startsWith("unified:phone:")) {
-        const phoneNormalized = friendId.replace("unified:phone:", "");
-        const contact = deviceContacts.find((c) => {
-          const contactPhone = c.phoneNumber?.replace(/\D/g, "");
-          return contactPhone === phoneNormalized;
-        });
-        if (contact) return contact.name;
-
-        // Also check friends
-        const friendMatch = friends.find((f) => {
-          const friendPhone = f.phoneNumber?.replace(/\D/g, "");
-          return friendPhone === phoneNormalized;
-        });
-        if (friendMatch) return friendMatch.name;
-      }
-
-      // Try to match by email
-      if (friendId.startsWith("unified:email:")) {
-        const email = friendId.replace("unified:email:", "");
-        const contact = deviceContacts.find(
-          (c) => c.email?.toLowerCase() === email.toLowerCase()
-        );
-        if (contact) return contact.name;
-
-        // Also check friends
-        const friendMatch = friends.find(
-          (f) => f.email?.toLowerCase() === email.toLowerCase()
-        );
-        if (friendMatch) return friendMatch.name;
-      }
-
-      // Try to match by name
-      if (friendId.startsWith("unified:name:")) {
-        const name = friendId.replace("unified:name:", "");
-        const contact = deviceContacts.find(
-          (c) => c.name.toLowerCase().trim() === name.toLowerCase().trim()
-        );
-        if (contact) return contact.name;
-
-        // Also check friends
-        const friendMatch = friends.find(
-          (f) => f.name.toLowerCase().trim() === name.toLowerCase().trim()
-        );
-        if (friendMatch) return friendMatch.name;
-      }
-    }
-
-    // Check if it's a contact ID
-    if (friendId.startsWith("contact:")) {
-      // Parse the contact ID format: contact:name:phoneOrEmail
-      const parts = friendId.split(":");
-      if (parts.length >= 3) {
-        const contactName = parts[1];
-        const phoneOrEmail = parts.slice(2).join(":"); // Handle colons in email addresses
-
-        // Try exact match first
-        const exactMatch = deviceContacts.find(
-          (c) =>
-            `contact:${c.name}:${c.phoneNumber || c.email || ""}` === friendId
-        );
-        if (exactMatch) return exactMatch.name;
-
-        // Try matching by name and phone/email with normalization
-        const contact = deviceContacts.find((c) => {
-          if (c.name !== contactName) return false;
-          const contactPhone = c.phoneNumber?.replace(/\D/g, "");
-          const searchPhone = phoneOrEmail.replace(/\D/g, "");
-          if (contactPhone && searchPhone && contactPhone === searchPhone)
-            return true;
-          if (
-            c.email &&
-            phoneOrEmail &&
-            c.email.toLowerCase() === phoneOrEmail.toLowerCase()
-          )
-            return true;
-          return false;
-        });
-        if (contact) return contact.name;
-      }
-    }
-
-    return "Unknown";
+    return friend?.name || "Unknown";
   };
 
   const getTotalPercentage = (): number => {
@@ -257,14 +160,7 @@ export default function PercentageInputsScreen() {
     );
 
     router.push("/split/review");
-  }, [
-    receipt,
-    splitData,
-    selectedFriendIds,
-    percentages,
-    friends,
-    deviceContacts,
-  ]);
+  }, [receipt, splitData, selectedFriendIds, percentages]);
 
   if (loading) {
     return (
