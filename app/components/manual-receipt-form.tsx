@@ -429,21 +429,24 @@ export const ManualReceiptForm = forwardRef<
               label="Subtotal"
               value={subtotal}
               onChangeText={setSubtotal}
-              keyboardType="numeric"
+              numericOnly
+              min={0}
               placeholder="0.00"
             />
             <FormTextInput
               label="Tax"
               value={tax}
               onChangeText={setTax}
-              keyboardType="numeric"
+              numericOnly
+              min={0}
               placeholder="0.00"
             />
             <FormTextInput
               label="Total"
               value={total}
               onChangeText={setTotal}
-              keyboardType="numeric"
+              numericOnly
+              min={0}
               placeholder="0.00"
             />
             <View className="flex-col gap-3 mt-3">

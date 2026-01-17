@@ -723,7 +723,6 @@ export default function ReceiptDetailScreen() {
       });
       const shareUrl = `${WEB_BASE_URL}/receipts/${receipt.id}`;
       await Share.share({
-        message: shareUrl,
         url: shareUrl,
         title: "Share Receipt",
       });

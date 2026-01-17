@@ -23,7 +23,7 @@
     "@shopify/flash-list": "2.0.2",
     "@tanstack/react-query": "^5.90.12",
     "axios": "^1.13.2",
-    "expo": "^54",
+    "expo": "^54.0.31",
     "expo-application": "~7.0.8",
     "expo-auth-session": "~7.0.10",
     "expo-blur": "~15.0.8",

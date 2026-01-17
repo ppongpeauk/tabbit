@@ -7,15 +7,15 @@ import { useState, useEffect, useCallback } from "react";
 import {
   View,
   ScrollView,
-  TextInput,
   Alert,
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/button";
+import { FormTextInput } from "@/components/form-text-input";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Colors, Fonts } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import { useReceipt } from "@/hooks/use-receipts";
 import { useFriends } from "@/hooks/use-friends";
@@ -225,8 +225,9 @@ export default function CustomInputsScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="gap-3">
-          <ThemedText size="xl" weight="bold" className="mb-2">
+        <View className="gap-2">
+         <View>
+         <ThemedText size="xl" weight="bold">
             Custom Amounts
           </ThemedText>
           <ThemedText
@@ -239,6 +240,7 @@ export default function CustomInputsScreen() {
             Enter amounts for each person (must sum to{" "}
             {formatCurrency(receipt.totals.subtotal, receipt.totals.currency)})
           </ThemedText>
+         </View>
 
           {/* Remaining Amount Indicator */}
           <View
@@ -256,15 +258,12 @@ export default function CustomInputsScreen() {
             }}
           >
             <View className="flex-row items-center justify-between">
-              <ThemedText size="base" weight="semibold">
+              <ThemedText weight="semibold">
                 Remaining
               </ThemedText>
               <ThemedText
-                size="lg"
+                size="base"
                 weight="bold"
-                style={{
-                  color: isValid ? Colors.light.tint : "#ff4444",
-                }}
               >
                 {formatCurrency(remainingAmount, receipt.totals.currency)}
               </ThemedText>
@@ -297,42 +296,20 @@ export default function CustomInputsScreen() {
                     : "rgba(0, 0, 0, 0.1)",
                 }}
               >
-                <View className="flex-row items-center justify-between">
-                  <ThemedText className="font-sans text-base flex-1">
-                    {personName}
-                  </ThemedText>
-                  <TextInput
-                    style={{
-                      width: 100,
-                      borderRadius: 6,
-                      borderWidth: 1,
-                      paddingVertical: 8,
-                      paddingHorizontal: 12,
-                      fontSize: 16,
-                      fontFamily: Fonts.sans,
-                      textAlign: "right",
-                      backgroundColor: isDark
-                        ? "rgba(255, 255, 255, 0.05)"
-                        : "rgba(0, 0, 0, 0.02)",
-                      borderColor: isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(0, 0, 0, 0.1)",
-                      color: isDark ? Colors.dark.text : Colors.light.text,
-                    }}
-                    value={customAmounts[friendId] || ""}
-                    onChangeText={(text) =>
-                      setCustomAmounts({
-                        ...customAmounts,
-                        [friendId]: text,
-                      })
-                    }
-                    placeholder="0.00"
-                    placeholderTextColor={
-                      isDark ? Colors.dark.icon : Colors.light.icon
-                    }
-                    keyboardType="decimal-pad"
-                  />
-                </View>
+                <FormTextInput
+                  label={personName}
+                  value={customAmounts[friendId] || ""}
+                  onChangeText={(text) =>
+                    setCustomAmounts({
+                      ...customAmounts,
+                      [friendId]: text,
+                    })
+                  }
+                  numericOnly
+                  min={0}
+                  placeholder="0.00"
+                  style={{ textAlign: "right" }}
+                />
               </View>
             );
           })}

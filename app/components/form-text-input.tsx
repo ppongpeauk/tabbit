@@ -5,6 +5,7 @@ import {
   cloneElement,
   isValidElement,
   forwardRef,
+  useCallback,
 } from "react";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
@@ -14,11 +15,27 @@ export type FormTextInputProps = TextInputProps & {
   label?: string;
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
+  numericOnly?: boolean;
+  min?: number;
+  max?: number;
 };
 
 export const FormTextInput = forwardRef<TextInput, FormTextInputProps>(
   function FormTextInput(
-    { label, style, leftIcon, rightIcon, ...textInputProps },
+    {
+      label,
+      style,
+      leftIcon,
+      rightIcon,
+      numericOnly,
+      min,
+      max,
+      onChangeText,
+      value,
+      keyboardType,
+      onBlur,
+      ...textInputProps
+    },
     ref
   ) {
   const colorScheme = useColorScheme();
@@ -44,6 +61,78 @@ export const FormTextInput = forwardRef<TextInput, FormTextInputProps>(
     return icon;
   };
 
+  const handleChangeText = useCallback(
+    (text: string) => {
+      if (!numericOnly) {
+        onChangeText?.(text);
+        return;
+      }
+
+      // Allow empty string - user can clear the input
+      if (text === "") {
+        onChangeText?.("");
+        return;
+      }
+
+      // Only filter non-numeric characters during typing
+      // Don't enforce min/max here - allow free typing
+      let cleaned = text.replace(/[^0-9.-]/g, "");
+
+      // Only allow one decimal point
+      const parts = cleaned.split(".");
+      if (parts.length > 2) {
+        cleaned = parts[0] + "." + parts.slice(1).join("");
+      }
+
+      // Only allow negative sign at the start
+      if (cleaned.startsWith("-")) {
+        cleaned = "-" + cleaned.substring(1).replace(/-/g, "");
+      } else {
+        cleaned = cleaned.replace(/-/g, "");
+      }
+
+      // Allow any numeric input while typing - validation happens on blur
+      onChangeText?.(cleaned);
+    },
+    [numericOnly, onChangeText]
+  );
+
+  const handleBlur = useCallback(
+    (e: any) => {
+      // Validate min/max only on blur
+      if (numericOnly && value !== undefined && value !== "") {
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+          let validatedValue = numValue;
+
+          // Clamp to min if provided
+          if (min !== undefined && numValue < min) {
+            validatedValue = min;
+          }
+
+          // Clamp to max if provided
+          if (max !== undefined && numValue > max) {
+            validatedValue = max;
+          }
+
+          // Update value if it was clamped
+          if (validatedValue !== numValue) {
+            onChangeText?.(validatedValue.toString());
+          }
+        }
+      }
+
+      // Call original onBlur if provided
+      onBlur?.(e);
+    },
+    [numericOnly, value, min, max, onChangeText, onBlur]
+  );
+
+  // Set keyboardType to decimal-pad if numericOnly is true and not already set
+  const finalKeyboardType = numericOnly
+    ? keyboardType || "decimal-pad"
+    : keyboardType;
+
   return (
     <View style={styles.container}>
       {label && (
@@ -65,6 +154,10 @@ export const FormTextInput = forwardRef<TextInput, FormTextInputProps>(
         <TextInput
           ref={ref}
           {...textInputProps}
+          value={value}
+          onChangeText={handleChangeText}
+          onBlur={handleBlur}
+          keyboardType={finalKeyboardType}
           style={[
             styles.input,
             {

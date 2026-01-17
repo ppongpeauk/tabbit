@@ -220,7 +220,8 @@ export function ReceiptEditForm({
                       const qty = parseFloat(text) || 0;
                       updateItem(index, { quantity: qty });
                     }}
-                    keyboardType="numeric"
+                    numericOnly
+                    min={0}
                     placeholder="1"
                   />
                 </View>
@@ -232,7 +233,8 @@ export function ReceiptEditForm({
                       const price = parseFloat(text) || 0;
                       updateItem(index, { unitPrice: price });
                     }}
-                    keyboardType="numeric"
+                    numericOnly
+                    min={0}
                     placeholder="0.00"
                   />
                 </View>

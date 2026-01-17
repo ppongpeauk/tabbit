@@ -7,15 +7,15 @@ import { useState, useEffect, useCallback } from "react";
 import {
   View,
   ScrollView,
-  TextInput,
   Alert,
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/button";
+import { FormTextInput } from "@/components/form-text-input";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Colors, Fonts } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import { useReceipt } from "@/hooks/use-receipts";
 import { useFriends } from "@/hooks/use-friends";
@@ -281,23 +281,7 @@ export default function PercentageInputsScreen() {
                     {personName}
                   </ThemedText>
                   <View className="flex-row items-center gap-2">
-                    <TextInput
-                      style={{
-                        width: 100,
-                        borderRadius: 6,
-                        borderWidth: 1,
-                        paddingVertical: 8,
-                        paddingHorizontal: 12,
-                        fontSize: 16,
-                        textAlign: "right",
-                        backgroundColor: isDark
-                          ? "rgba(255, 255, 255, 0.05)"
-                          : "rgba(0, 0, 0, 0.02)",
-                        borderColor: isDark
-                          ? "rgba(255, 255, 255, 0.1)"
-                          : "rgba(0, 0, 0, 0.1)",
-                        color: isDark ? Colors.dark.text : Colors.light.text,
-                      }}
+                    <FormTextInput
                       value={percentages[friendId] || ""}
                       onChangeText={(text) =>
                         setPercentages({
@@ -305,11 +289,11 @@ export default function PercentageInputsScreen() {
                           [friendId]: text,
                         })
                       }
+                      numericOnly
+                      min={0}
+                      max={100}
                       placeholder="0"
-                      placeholderTextColor={
-                        isDark ? Colors.dark.icon : Colors.light.icon
-                      }
-                      keyboardType="decimal-pad"
+                      style={{ width: 100, textAlign: "right" }}
                     />
                     <ThemedText size="base">%</ThemedText>
                   </View>

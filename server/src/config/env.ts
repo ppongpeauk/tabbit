@@ -30,6 +30,7 @@ export const env = {
   PLAID_CLIENT_ID: process.env.PLAID_CLIENT_ID || "",
   PLAID_SECRET: process.env.PLAID_SECRET || "",
   PLAID_ENV: process.env.PLAID_ENV || "sandbox",
+  DISABLE_PLAID_ENRICH: process.env.DISABLE_PLAID_ENRICH === "true",
 } as const;
 
 export function validateEnv(): void {

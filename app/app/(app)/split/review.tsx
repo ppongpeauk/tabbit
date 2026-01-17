@@ -198,7 +198,7 @@ export default function ReviewScreen() {
         onSuccess: async () => {
           await AsyncStorage.removeItem(SPLIT_DATA_KEY);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          router.push("/split/sent");
+          router.replace(`/(app)/receipt/${receipt.id}`);
         },
         onError: () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -299,7 +299,7 @@ export default function ReviewScreen() {
         }}
       >
         <Button variant="primary" onPress={handleSend} fullWidth>
-          Send Requests
+          Finish
         </Button>
       </View>
     </View>

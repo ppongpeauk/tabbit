@@ -18,6 +18,7 @@ import { errorResponse, unauthorizedResponse } from "../../utils/route-helpers";
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
 import { plaidService } from "../plaid/service";
+import { env } from "../../config/env";
 import {
   uploadFile,
   deleteFile,
@@ -462,6 +463,11 @@ async function enrichReceiptAfterSave(
   receiptId: string,
   receipt: StoredReceiptData
 ): Promise<void> {
+  if (env.DISABLE_PLAID_ENRICH) {
+    console.log("[PlaidEnrich] Enrichment disabled via DISABLE_PLAID_ENRICH config");
+    return;
+  }
+
   console.log("[PlaidEnrich] ========================================");
   console.log("[PlaidEnrich] Starting enrichment for receipt:", receiptId);
   console.log("[PlaidEnrich] Receipt data:", {

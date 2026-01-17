@@ -157,7 +157,8 @@ export function ItemEditSheet({
               label="Price"
               value={price}
               onChangeText={setPrice}
-              keyboardType="numeric"
+              numericOnly
+              min={0}
               placeholder="0.00"
             />
           </View>
