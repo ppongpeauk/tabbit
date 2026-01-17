@@ -328,10 +328,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   leftIcon: {
-    marginRight: -4,
   },
   rightIcon: {
-    marginLeft: -4,
   },
   loader: {
     marginHorizontal: 4,

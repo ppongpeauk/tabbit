@@ -1,76 +1,54 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import {
   View,
   FlatList,
   Pressable,
   Alert,
-  Modal,
-  ScrollView,
   ActivityIndicator,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Colors, Fonts } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
 import {
   useFriends,
-  useCreateFriend,
-  useUpdateFriend,
   useDeleteFriend,
 } from "@/hooks/use-friends";
-import type { Friend } from "@/utils/storage";
-import { FormTextInput } from "@/components/form-text-input";
+import type { Friend } from "@/utils/api";
+import { router } from "expo-router";
 
 export default function FriendsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingFriend, setEditingFriend] = useState<Friend | null>(null);
-  const [name, setName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [email, setEmail] = useState("");
 
   // Use React Query hooks
   const { data: friends = [], isLoading: loading } = useFriends();
-  const createFriendMutation = useCreateFriend();
-  const updateFriendMutation = useUpdateFriend();
   const deleteFriendMutation = useDeleteFriend();
 
   const handleAddFriend = useCallback(() => {
-    setName("");
-    setPhoneNumber("");
-    setEmail("");
-    setShowAddModal(true);
-  }, []);
-
-  const handleEditFriend = useCallback((friend: Friend) => {
-    setEditingFriend(friend);
-    setName(friend.name);
-    setPhoneNumber(friend.phoneNumber || "");
-    setEmail(friend.email || "");
-    setShowEditModal(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push("/(app)/(tabs)/(profile)");
+    // The profile screen will handle opening the friend share sheet
   }, []);
 
   const handleDeleteFriend = useCallback(
     (friend: Friend) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       Alert.alert(
-        "Delete Friend",
-        `Are you sure you want to delete ${friend.name}?`,
+        "Remove Friend",
+        `Are you sure you want to remove ${friend.friendName}?`,
         [
           {
             text: "Cancel",
             style: "cancel",
           },
           {
-            text: "Delete",
+            text: "Remove",
             style: "destructive",
             onPress: () => {
-              deleteFriendMutation.mutate(friend.id, {
+              deleteFriendMutation.mutate(friend.friendId, {
                 onSuccess: () => {
                   Haptics.notificationAsync(
                     Haptics.NotificationFeedbackType.Success
@@ -80,7 +58,7 @@ export default function FriendsScreen() {
                   Haptics.notificationAsync(
                     Haptics.NotificationFeedbackType.Error
                   );
-                  Alert.alert("Error", "Failed to delete friend");
+                  Alert.alert("Error", "Failed to remove friend");
                 },
               });
             },
@@ -90,63 +68,6 @@ export default function FriendsScreen() {
     },
     [deleteFriendMutation]
   );
-
-  const handleSaveFriend = useCallback(() => {
-    if (!name.trim()) {
-      Alert.alert("Error", "Name is required");
-      return;
-    }
-
-    const friendData = {
-      name: name.trim(),
-      phoneNumber: phoneNumber.trim() || undefined,
-      email: email.trim() || undefined,
-    };
-
-    if (editingFriend) {
-      updateFriendMutation.mutate(
-        {
-          id: editingFriend.id,
-          updates: friendData,
-        },
-        {
-          onSuccess: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            setShowEditModal(false);
-            setEditingFriend(null);
-            setName("");
-            setPhoneNumber("");
-            setEmail("");
-          },
-          onError: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert("Error", "Failed to save friend");
-          },
-        }
-      );
-    } else {
-      createFriendMutation.mutate(friendData, {
-        onSuccess: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          setShowAddModal(false);
-          setName("");
-          setPhoneNumber("");
-          setEmail("");
-        },
-        onError: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          Alert.alert("Error", "Failed to save friend");
-        },
-      });
-    }
-  }, [
-    name,
-    phoneNumber,
-    email,
-    editingFriend,
-    createFriendMutation,
-    updateFriendMutation,
-  ]);
 
   const renderFriendItem = useCallback(
     ({ item }: { item: Friend }) => (
@@ -163,9 +84,9 @@ export default function FriendsScreen() {
       >
         <View className="flex-1">
           <ThemedText size="base" weight="semibold">
-            {item.name}
+            {item.friendName}
           </ThemedText>
-          {(item.phoneNumber || item.email) && (
+          {item.friendEmail && (
             <ThemedText
               size="sm"
               className="mt-1"
@@ -173,20 +94,11 @@ export default function FriendsScreen() {
                 color: isDark ? Colors.dark.icon : Colors.light.icon,
               }}
             >
-              {item.phoneNumber || item.email}
+              {item.friendEmail}
             </ThemedText>
           )}
         </View>
         <View className="flex-row gap-3">
-          <Pressable
-            onPress={() => handleEditFriend(item)}
-            className="p-2"
-          >
-            <SymbolView
-              name="pencil"
-              tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
-            />
-          </Pressable>
           <Pressable
             onPress={() => handleDeleteFriend(item)}
             className="p-2"
@@ -199,103 +111,9 @@ export default function FriendsScreen() {
         </View>
       </View>
     ),
-    [isDark, handleEditFriend, handleDeleteFriend]
+    [isDark, handleDeleteFriend]
   );
 
-  const renderModal = (isEdit: boolean) => (
-    <Modal
-      visible={isEdit ? showEditModal : showAddModal}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={() => {
-        if (isEdit) {
-          setShowEditModal(false);
-          setEditingFriend(null);
-        } else {
-          setShowAddModal(false);
-        }
-        setName("");
-        setPhoneNumber("");
-        setEmail("");
-      }}
-    >
-      <ThemedView className="flex-1">
-        <View className="flex-row justify-between items-center px-5 py-4 border-b border-black/10 dark:border-white/10">
-          <ThemedText size="xl" weight="bold">
-            {isEdit ? "Edit Friend" : "Add Friend"}
-          </ThemedText>
-          <Pressable
-            onPress={() => {
-              if (isEdit) {
-                setShowEditModal(false);
-                setEditingFriend(null);
-              } else {
-                setShowAddModal(false);
-              }
-              setName("");
-              setPhoneNumber("");
-              setEmail("");
-            }}
-          >
-            <SymbolView
-              name="xmark"
-              tintColor={isDark ? Colors.dark.text : Colors.light.text}
-            />
-          </Pressable>
-        </View>
-        <ScrollView className="flex-1 px-5 pt-5">
-          <FormTextInput
-            label="Name"
-            value={name}
-            onChangeText={setName}
-            placeholder="Enter name"
-            autoFocus
-          />
-          <FormTextInput
-            label="Phone Number"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            placeholder="Enter phone number"
-            keyboardType="phone-pad"
-          />
-          <FormTextInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Enter email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </ScrollView>
-        <View className="flex-row gap-3 px-5 py-4 border-t border-black/10 dark:border-white/10">
-          <Button
-            variant="secondary"
-            onPress={() => {
-              if (isEdit) {
-                setShowEditModal(false);
-                setEditingFriend(null);
-              } else {
-                setShowAddModal(false);
-              }
-              setName("");
-              setPhoneNumber("");
-              setEmail("");
-            }}
-            style={{ flex: 1 }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onPress={handleSaveFriend}
-            style={{ flex: 1 }}
-          >
-            Save
-          </Button>
-        </View>
-      </ThemedView>
-    </Modal>
-  );
 
   if (loading) {
     return (
@@ -337,9 +155,8 @@ export default function FriendsScreen() {
           <ThemedText size="lg" className="opacity-70">
             No friends yet
           </ThemedText>
-          <ThemedText size="sm" className="opacity-50 mt-2">
-            Add friends manually. Device contacts are available when splitting
-            receipts.
+          <ThemedText size="sm" className="opacity-50 mt-2 text-center">
+            Add friends by scanning their QR code or sharing your QR code.
           </ThemedText>
         </View>
       ) : (
@@ -350,9 +167,6 @@ export default function FriendsScreen() {
           contentContainerClassName="px-5 pb-5"
         />
       )}
-
-      {renderModal(false)}
-      {renderModal(true)}
     </View>
   );
 }

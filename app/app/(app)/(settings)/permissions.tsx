@@ -264,8 +264,8 @@ export default function PermissionsScreen() {
             App Permissions
           </ThemedText>
           <ThemedText size="sm" family="sans">
-            Tabbit needs certain permissions to work properly. We only use these
-            features when needed—your data is never shared.
+            Tabbit works best with these permissions enabled. We only use these
+            features when needed. Your data is never shared.
           </ThemedText>
         </View>
 

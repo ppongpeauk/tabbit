@@ -73,12 +73,14 @@ export function ReceiptHeader({
       actions: [
         {
           title: "Public",
+          subtitle: "Accessible to everyone via a link.",
           systemIcon: "globe",
           selected: visibility === "public",
           handler: () => onSetVisibility("public"),
         },
         {
           title: "Private",
+          subtitle: "Accessible only to you and those you share with.",
           systemIcon: "lock.fill",
           selected: visibility === "private",
           handler: () => onSetVisibility("private"),

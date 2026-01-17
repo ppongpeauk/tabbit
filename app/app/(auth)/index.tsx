@@ -166,7 +166,7 @@ export default function WelcomeScreen() {
             ) : undefined
           }
         >
-          {isCheckingServer ? "Verifying server..." : "Continue with Google"}
+          {isCheckingServer ? "Contacting server..." : "Continue with Google"}
         </Button>
 
         <Button

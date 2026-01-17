@@ -21,9 +21,10 @@ import {
 } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
+import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import { Fonts } from "@/constants/theme";
-import { scanReceipt, scanBarcodeImage } from "@/utils/api";
+import { scanReceipt, scanBarcodeImage, addFriendByToken } from "@/utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   CameraGuideOverlay,
@@ -52,6 +53,7 @@ export function CameraScreen({ mode: propMode }: CameraScreenProps = {}) {
   // Determine mode: prop > route name > default to receipt
   const mode: ScanMode =
     propMode || (params.onScan !== undefined ? "barcode" : "receipt");
+  const isFriendScan = params.onScan === "friend";
 
   const [facing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<"on" | "off">("off");
@@ -103,6 +105,88 @@ export function CameraScreen({ mode: propMode }: CameraScreenProps = {}) {
 
     setScanned(true);
     setProcessing(true);
+
+    // If scanning for friend, process the token directly
+    if (isFriendScan) {
+      let token = result.data;
+
+      // Extract token from web URL if it's a web link
+      if (token.startsWith("http")) {
+        try {
+          const url = new URL(token);
+          const tokenParam = url.searchParams.get("token");
+          if (tokenParam) {
+            token = tokenParam;
+          }
+        } catch {
+          // If URL parsing fails, try to extract token from tabbit:// URL
+          const tabbitMatch = token.match(/tabbit:\/\/add-friend\?token=([^&]+)/);
+          if (tabbitMatch) {
+            token = decodeURIComponent(tabbitMatch[1]);
+          }
+        }
+      } else if (token.startsWith("tabbit://")) {
+        // Extract token from tabbit:// URL
+        const match = token.match(/tabbit:\/\/add-friend\?token=([^&]+)/);
+        if (match) {
+          token = decodeURIComponent(match[1]);
+        }
+      }
+
+      try {
+        const response = await addFriendByToken(token);
+        setProcessing(false);
+        setScanned(false);
+
+        if (response.success) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          Alert.alert(
+            "Friend Added",
+            `You've successfully added ${response.friend?.friendName || "this user"} as a friend!`,
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  router.back();
+                },
+              },
+            ]
+          );
+        } else {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          Alert.alert(
+            "Failed to Add Friend",
+            response.message || "Invalid or expired friend request token.",
+            [
+              {
+                text: "Try Again",
+                onPress: () => {
+                  setScanned(false);
+                },
+              },
+              {
+                text: "Cancel",
+                style: "cancel",
+                onPress: () => {
+                  router.back();
+                },
+              },
+            ]
+          );
+        }
+      } catch (error) {
+        setProcessing(false);
+        setScanned(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          "Error",
+          error instanceof Error
+            ? error.message
+            : "Failed to add friend. Please try again."
+        );
+      }
+      return;
+    }
 
     // Normalize barcode type format (Expo uses formats like "qr", "ean13", etc.)
     // Convert to match server format (e.g., "QR_CODE", "EAN_13")
@@ -159,7 +243,7 @@ export function CameraScreen({ mode: propMode }: CameraScreenProps = {}) {
       Alert.alert(
         "No Barcode Detected",
         response.message ||
-          "No barcode or QR code was detected in the image. Please try again with a clearer image.",
+        "No barcode or QR code was detected in the image. Please try again with a clearer image.",
         [{ text: "OK" }]
       );
       return;
@@ -169,6 +253,74 @@ export function CameraScreen({ mode: propMode }: CameraScreenProps = {}) {
     const barcodeData = response.barcodes[0];
     const barcodeValue = barcodeData.content;
     const barcodeFormat = barcodeData.type;
+
+    // If scanning for friend, process the token directly
+    if (isFriendScan) {
+      let token = barcodeValue;
+
+      // Extract token from web URL if it's a web link
+      if (token.startsWith("http")) {
+        try {
+          const url = new URL(token);
+          const tokenParam = url.searchParams.get("token");
+          if (tokenParam) {
+            token = tokenParam;
+          }
+        } catch {
+          // If URL parsing fails, try to extract token from tabbit:// URL
+          const tabbitMatch = token.match(/tabbit:\/\/add-friend\?token=([^&]+)/);
+          if (tabbitMatch) {
+            token = decodeURIComponent(tabbitMatch[1]);
+          }
+        }
+      } else if (token.startsWith("tabbit://")) {
+        // Extract token from tabbit:// URL
+        const match = token.match(/tabbit:\/\/add-friend\?token=([^&]+)/);
+        if (match) {
+          token = decodeURIComponent(match[1]);
+        }
+      }
+
+      try {
+        const friendResponse = await addFriendByToken(token);
+        setProcessing(false);
+        setFrozenFrame(null);
+
+        if (friendResponse.success) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          Alert.alert(
+            "Friend Added",
+            `You've successfully added ${friendResponse.friend?.friendName || "this user"} as a friend!`,
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  router.back();
+                },
+              },
+            ]
+          );
+        } else {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          Alert.alert(
+            "Failed to Add Friend",
+            friendResponse.message || "Invalid or expired friend request token.",
+            [{ text: "OK" }]
+          );
+        }
+      } catch (error) {
+        setProcessing(false);
+        setFrozenFrame(null);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          "Error",
+          error instanceof Error
+            ? error.message
+            : "Failed to add friend. Please try again."
+        );
+      }
+      return;
+    }
 
     // Store the scanned barcode temporarily in AsyncStorage
     const paramName = params.onScan || "scannedBarcode";
@@ -239,7 +391,7 @@ export function CameraScreen({ mode: propMode }: CameraScreenProps = {}) {
       Alert.alert(
         "No Receipt Detected",
         response.message ||
-          "No receipt was detected in the image. Please try again with a clearer image of a receipt.",
+        "No receipt was detected in the image. Please try again with a clearer image of a receipt.",
         [{ text: "OK" }]
       );
       return;
@@ -340,22 +492,22 @@ export function CameraScreen({ mode: propMode }: CameraScreenProps = {}) {
           barcodeScannerSettings={
             isNativeBarcodeMode
               ? {
-                  barcodeTypes: [
-                    "qr",
-                    "ean13",
-                    "ean8",
-                    "upc_a",
-                    "upc_e",
-                    "code128",
-                    "code39",
-                    "code93",
-                    "codabar",
-                    "itf14",
-                    "datamatrix",
-                    "pdf417",
-                    "aztec",
-                  ],
-                }
+                barcodeTypes: [
+                  "qr",
+                  "ean13",
+                  "ean8",
+                  "upc_a",
+                  "upc_e",
+                  "code128",
+                  "code39",
+                  "code93",
+                  "codabar",
+                  "itf14",
+                  "datamatrix",
+                  "pdf417",
+                  "aztec",
+                ],
+              }
               : undefined
           }
         />

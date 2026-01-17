@@ -3,7 +3,8 @@ import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
-import type { StoredReceipt, Friend } from "@/utils/storage";
+import type { StoredReceipt } from "@/utils/storage";
+import type { Friend } from "@/utils/api";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 

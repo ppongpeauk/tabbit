@@ -49,7 +49,8 @@ import {
   MerchantDetailsSheet,
 } from "@/components/receipt-detail";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
-import type { StoredReceipt, Friend } from "@/utils/storage";
+import type { StoredReceipt } from "@/utils/storage";
+import type { Friend } from "@/utils/api";
 import { getReceiptPhotoUrl } from "@/utils/storage";
 import { Toolbar, ToolbarButton } from "@/components/toolbar";
 import { SymbolView } from "expo-symbols";
@@ -550,7 +551,7 @@ function ReceiptContent({
               </View>
               <View className="flex-1">
                 <ThemedText size="base" weight="semibold">
-                  Return Period Expired
+                  Return Period Passed
                 </ThemedText>
                 <ThemedText
                   size="sm"
@@ -560,7 +561,7 @@ function ReceiptContent({
                       : "rgba(0, 0, 0, 0.7)",
                   }}
                 >
-                  The return period for this purchase has expired.
+                  The return period for this purchase has passed.
                 </ThemedText>
               </View>
             </View>
@@ -898,6 +899,7 @@ export default function ReceiptDetailScreen() {
           updates: { visibility },
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert("Visibility Updated", `Successfully set visibility to ${visibility}.`);
       } catch (error) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         Alert.alert(
@@ -952,7 +954,7 @@ export default function ReceiptDetailScreen() {
           onMerchantPress={handleMerchantPress}
         />
       </ThemedView>
-      <Toolbar bottom={insets.bottom}>
+      {/* <Toolbar bottom={insets.bottom}>
         <ToolbarButton
           onPress={handleEdit}
           label="Edit"
@@ -966,7 +968,7 @@ export default function ReceiptDetailScreen() {
           variant="glass"
         />
         <ToolbarButton onPress={handleDelete} icon="trash" variant="danger" />
-      </Toolbar>
+      </Toolbar> */}
       {receipt.returnInfo?.returnBarcode && (
         <BarcodeModal
           bottomSheetRef={barcodeModalRef}

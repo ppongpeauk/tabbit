@@ -80,6 +80,13 @@ export default function AuthenticatedLayout() {
           presentation: "containedModal",
         }}
       />
+      <Stack.Screen
+        name="add-friend"
+        options={{
+          headerShown: false,
+          presentation: "modal",
+        }}
+      />
     </Stack>
   );
 }

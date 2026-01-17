@@ -6,11 +6,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getFriends,
-  saveFriend,
-  updateFriend,
-  deleteFriend,
+  removeFriend,
   type Friend,
-} from "@/utils/storage";
+} from "@/utils/api";
 
 // Query keys
 export const friendKeys = {
@@ -28,41 +26,12 @@ export const friendKeys = {
 export function useFriends() {
   return useQuery({
     queryKey: friendKeys.lists(),
-    queryFn: getFriends,
-  });
-}
-
-/**
- * Hook to create a new friend
- */
-export function useCreateFriend() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (friend: Omit<Friend, "id" | "createdAt">) =>
-      saveFriend(friend),
-    onSuccess: () => {
-      // Invalidate and refetch friends list
-      queryClient.invalidateQueries({ queryKey: friendKeys.lists() });
-    },
-  });
-}
-
-/**
- * Hook to update a friend
- */
-export function useUpdateFriend() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Friend> }) =>
-      updateFriend(id, updates),
-    onSuccess: (_, variables) => {
-      // Invalidate both the list and the specific friend
-      queryClient.invalidateQueries({ queryKey: friendKeys.lists() });
-      queryClient.invalidateQueries({
-        queryKey: friendKeys.detail(variables.id),
-      });
+    queryFn: async () => {
+      const response = await getFriends();
+      if (response.success && response.friends) {
+        return response.friends;
+      }
+      return [];
     },
   });
 }
@@ -74,10 +43,9 @@ export function useDeleteFriend() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => deleteFriend(id),
-    onSuccess: (_, id) => {
-      // Remove the friend from cache and invalidate list
-      queryClient.removeQueries({ queryKey: friendKeys.detail(id) });
+    mutationFn: (friendId: string) => removeFriend(friendId),
+    onSuccess: () => {
+      // Invalidate and refetch friends list
       queryClient.invalidateQueries({ queryKey: friendKeys.lists() });
     },
   });

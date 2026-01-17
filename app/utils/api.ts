@@ -773,3 +773,102 @@ export async function confirmUserProfileUpload(
     };
   }
 }
+
+export interface Friend {
+  id: string;
+  userId: string;
+  friendId: string;
+  friendName: string;
+  friendEmail: string;
+  friendImage: string | null;
+  createdAt: string;
+}
+
+export interface FriendResponse {
+  success: boolean;
+  message?: string;
+  friend?: Friend;
+  friends?: Friend[];
+}
+
+export interface FriendTokenResponse {
+  success: boolean;
+  message?: string;
+  token?: string;
+}
+
+/**
+ * Generate a friend request token for QR code sharing
+ */
+export async function generateFriendToken(): Promise<FriendTokenResponse> {
+  try {
+    const response = await apiClient.post("/friends/token");
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to generate friend token. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Add a friend by scanning their QR code token
+ */
+export async function addFriendByToken(token: string): Promise<FriendResponse> {
+  try {
+    const response = await apiClient.post("/friends/add", { token });
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to add friend. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Get all friends for the current user
+ */
+export async function getFriends(): Promise<FriendResponse> {
+  try {
+    const response = await apiClient.get("/friends");
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to get friends. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Remove a friend
+ */
+export async function removeFriend(friendId: string): Promise<FriendResponse> {
+  try {
+    const response = await apiClient.delete(`/friends/${friendId}`);
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to remove friend. Please check your connection and try again.",
+    };
+  }
+}

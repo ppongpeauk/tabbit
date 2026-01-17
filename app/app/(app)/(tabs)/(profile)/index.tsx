@@ -10,6 +10,7 @@ import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ProfileEditSheet } from "@/components/profile-edit-sheet";
+import { FriendShareBottomSheet } from "@/components/friend-share-bottom-sheet";
 import { useAuth } from "@/contexts/auth-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
@@ -43,6 +44,7 @@ export default function ProfileScreen() {
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [loadingImage, setLoadingImage] = useState(false);
   const editSheetRef = useRef<TrueSheet>(null);
+  const friendShareSheetRef = useRef<TrueSheet>(null);
 
   const loadProfileImage = useCallback(async (imageKey: string) => {
     try {
@@ -69,6 +71,11 @@ export default function ProfileScreen() {
   const handleEditPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     editSheetRef.current?.present();
+  }, []);
+
+  const handleAddFriendPress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    friendShareSheetRef.current?.present();
   }, []);
 
   const handleSave = useCallback(
@@ -204,14 +211,38 @@ export default function ProfileScreen() {
         </ThemedText>
 
         {user && (
-          <Button
-            onPress={handleEditPress}
-            variant="secondary"
-            size="base"
-            className="mt-0"
-          >
-            Edit Profile
-          </Button>
+          <View className="flex-row gap-3 mt-0">
+            <Button
+              onPress={handleEditPress}
+              variant="secondary"
+              size="base"
+              className="flex-1"
+              leftIcon={
+                <SymbolView
+                  name="pencil"
+                  size={18}
+                  tintColor={isDark ? Colors.dark.text : Colors.light.text}
+                />
+              }
+            >
+              Edit Profile
+            </Button>
+            <Button
+              onPress={handleAddFriendPress}
+              variant="secondary"
+              size="base"
+              className="flex-1"
+              leftIcon={
+                <SymbolView
+                  name="person.badge.plus"
+                  size={18}
+                  tintColor={isDark ? Colors.dark.text : Colors.light.text}
+                />
+              }
+            >
+              Add Friend
+            </Button>
+          </View>
         )}
       </View>
 
@@ -221,6 +252,7 @@ export default function ProfileScreen() {
         onSave={handleSave}
         onClose={() => { }}
       />
+      <FriendShareBottomSheet bottomSheetRef={friendShareSheetRef} />
     </ThemedView>
   );
 }

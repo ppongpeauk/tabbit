@@ -67,7 +67,7 @@ function getReturnDateInfo(returnByDate?: string): {
   const isUrgent = daysRemaining < 7;
   const text =
     daysRemaining < 0
-      ? "Return period expired"
+      ? "Return period passed"
       : daysRemaining === 0
         ? "Return by today"
         : daysRemaining === 1

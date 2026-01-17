@@ -11,9 +11,9 @@ import {
   SectionList,
   Pressable,
   Alert,
-  Modal,
   ScrollView,
   Linking,
+  TouchableOpacity,
 } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
@@ -24,7 +24,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { API_BASE_URL } from "@/utils/config";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
 
 const TOKEN_STORAGE_KEY = "tabbit.token";
 const AUTH_STORAGE_KEY = "tabbit.auth";
@@ -51,7 +52,7 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const { signOut, user } = useAuth();
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const deleteAccountSheetRef = useRef<TrueSheet | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleAboutPress = () => {
@@ -61,7 +62,7 @@ export default function SettingsScreen() {
 
   const handleContactSupport = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Linking.openURL("mailto:support@usetabbit.com");
+    Linking.openURL("mailto:support@usetabbit.com?subject=Support Request");
   };
 
   const handlePrivacyPolicy = () => {
@@ -80,12 +81,19 @@ export default function SettingsScreen() {
 
   const handleSendFeedback = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Linking.openURL("mailto:feedback@usetabbit.com?subject=Tabbit Feedback");
+    Linking.openURL("mailto:support@usetabbit.com?subject=Tabbit Feedback");
   };
 
   const handleDeleteAccount = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setShowDeleteModal(true);
+    deleteAccountSheetRef.current?.present();
+  };
+
+  const handleCloseDeleteSheet = () => {
+    if (!isDeleting) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      deleteAccountSheetRef.current?.dismiss();
+    }
   };
 
   const confirmDeleteAccount = async () => {
@@ -114,7 +122,7 @@ export default function SettingsScreen() {
       await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setShowDeleteModal(false);
+      deleteAccountSheetRef.current?.dismiss();
       // Auth state cleared, root layout will handle navigation to (auth) stack
     } catch (error) {
       console.error("Error deleting account:", error);
@@ -400,36 +408,40 @@ export default function SettingsScreen() {
         />
       </View>
 
-      <Modal
-        visible={showDeleteModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => !isDeleting && setShowDeleteModal(false)}
+      <TrueSheet
+        ref={deleteAccountSheetRef}
+        backgroundColor={
+          isDark ? Colors.dark.background : Colors.light.background
+        }
+        detents={['auto']}
       >
-        <ThemedView className="flex-1">
-          <View
-            className="flex-row items-center justify-between px-5 pt-5 pb-4 border-b"
-            style={{
-              borderBottomColor:
-                colorScheme === "dark"
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.1)",
-            }}
-          >
+        <View className="flex-1 px-6 pt-8 pb-6">
+          {/* Header with close button */}
+          <View className="flex-row justify-between items-center mb-8">
             <ThemedText size="xl" weight="bold">
               Delete Account
             </ThemedText>
             {!isDeleting && (
-              <Pressable onPress={() => setShowDeleteModal(false)}>
+              <TouchableOpacity
+                onPress={handleCloseDeleteSheet}
+                className="p-1"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <SymbolView
-                  name="xmark"
-                  tintColor={isDark ? Colors.dark.text : Colors.light.text}
+                  name="xmark.circle.fill"
+                  tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
+                  size={28}
                 />
-              </Pressable>
+              </TouchableOpacity>
             )}
           </View>
-          <ScrollView className="flex-1 px-5 pt-6">
-            <ThemedText size="lg" weight="semibold" className="mb-3">
+
+          <ScrollView
+            className="flex-1"
+            showsVerticalScrollIndicator={false}
+            contentContainerClassName="pb-6"
+          >
+            <ThemedText size="xl" weight="bold" className="mb-2">
               Are you sure?
             </ThemedText>
             <ThemedText size="base" className="mb-6 opacity-80 leading-[22px]">
@@ -441,7 +453,7 @@ export default function SettingsScreen() {
                 <SymbolView
                   name="minus.circle.fill"
                   tintColor="#FF3B30"
-                  className="mt-0.5"
+                  size={20}
                 />
                 <ThemedText size="base" className="flex-1 leading-[22px]">
                   Delete all your receipts and expense data
@@ -451,7 +463,7 @@ export default function SettingsScreen() {
                 <SymbolView
                   name="minus.circle.fill"
                   tintColor="#FF3B30"
-                  className="mt-0.5"
+                  size={20}
                 />
                 <ThemedText size="base" className="flex-1 leading-[22px]">
                   Remove all split expense records
@@ -461,7 +473,7 @@ export default function SettingsScreen() {
                 <SymbolView
                   name="minus.circle.fill"
                   tintColor="#FF3B30"
-                  className="mt-0.5"
+                  size={20}
                 />
                 <ThemedText size="base" className="flex-1 leading-[22px]">
                   Cancel any pending expense splits
@@ -471,7 +483,7 @@ export default function SettingsScreen() {
                 <SymbolView
                   name="minus.circle.fill"
                   tintColor="#FF3B30"
-                  className="mt-0.5"
+                  size={20}
                 />
                 <ThemedText size="base" className="flex-1 leading-[22px]">
                   Permanently remove your account and all associated data
@@ -480,7 +492,8 @@ export default function SettingsScreen() {
             </View>
             <ThemedText
               size="sm"
-              className="font-semibold leading-5 mt-2"
+              weight="semibold"
+              className="leading-5"
               style={{
                 color: isDark
                   ? "rgba(255, 59, 48, 0.8)"
@@ -491,20 +504,14 @@ export default function SettingsScreen() {
               proceed, click the delete button below.
             </ThemedText>
           </ScrollView>
-          <View
-            className="flex-row gap-3 px-5 py-5 border-t"
-            style={{
-              borderTopColor:
-                colorScheme === "dark"
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.1)",
-            }}
-          >
+
+          {/* Action Buttons */}
+          <View className="gap-3 pt-4">
             <Button
               variant="secondary"
-              onPress={() => setShowDeleteModal(false)}
+              onPress={handleCloseDeleteSheet}
               disabled={isDeleting}
-              style={{ flex: 1 }}
+              fullWidth
             >
               Nevermind
             </Button>
@@ -513,13 +520,13 @@ export default function SettingsScreen() {
               onPress={confirmDeleteAccount}
               loading={isDeleting}
               disabled={isDeleting}
-              style={{ flex: 1 }}
+              fullWidth
             >
               Delete Account
             </Button>
           </View>
-        </ThemedView>
-      </Modal>
+        </View>
+      </TrueSheet>
     </>
   );
 }

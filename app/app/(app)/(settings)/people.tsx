@@ -1,15 +1,12 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import {
   View,
   FlatList,
   Pressable,
   Alert,
-  Modal,
-  ScrollView,
   ActivityIndicator,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
@@ -17,50 +14,31 @@ import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
 import {
   useFriends,
-  useCreateFriend,
-  useUpdateFriend,
   useDeleteFriend,
 } from "@/hooks/use-friends";
-import type { Friend } from "@/utils/storage";
-import { FormTextInput } from "@/components/form-text-input";
+import type { Friend } from "@/utils/api";
 
 export default function PeopleScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingPerson, setEditingPerson] = useState<Friend | null>(null);
-  const [name, setName] = useState("");
 
   const { data: people = [], isLoading: loading } = useFriends();
-  const createPersonMutation = useCreateFriend();
-  const updatePersonMutation = useUpdateFriend();
   const deletePersonMutation = useDeleteFriend();
 
-  const handleAddPerson = useCallback(() => {
-    setName("");
-    setShowAddModal(true);
-  }, []);
-
-  const handleEditPerson = useCallback((person: Friend) => {
-    setEditingPerson(person);
-    setName(person.name);
-    setShowEditModal(true);
-  }, []);
 
   const handleDeletePerson = useCallback(
     (person: Friend) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       Alert.alert(
-        "Delete Person",
-        `Are you sure you want to delete ${person.name}?`,
+        "Remove Person",
+        `Are you sure you want to remove ${person.friendName}?`,
         [
           { text: "Cancel", style: "cancel" },
           {
-            text: "Delete",
+            text: "Remove",
             style: "destructive",
             onPress: () => {
-              deletePersonMutation.mutate(person.id, {
+              deletePersonMutation.mutate(person.friendId, {
                 onSuccess: () => {
                   Haptics.notificationAsync(
                     Haptics.NotificationFeedbackType.Success
@@ -70,7 +48,7 @@ export default function PeopleScreen() {
                   Haptics.notificationAsync(
                     Haptics.NotificationFeedbackType.Error
                   );
-                  Alert.alert("Error", "Failed to delete person");
+                  Alert.alert("Error", "Failed to remove person");
                 },
               });
             },
@@ -81,49 +59,6 @@ export default function PeopleScreen() {
     [deletePersonMutation]
   );
 
-  const handleSavePerson = useCallback(() => {
-    if (!name.trim()) {
-      Alert.alert("Error", "Name is required");
-      return;
-    }
-
-    const personData = {
-      name: name.trim(),
-    };
-
-    if (editingPerson) {
-      updatePersonMutation.mutate(
-        {
-          id: editingPerson.id,
-          updates: personData,
-        },
-        {
-          onSuccess: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            setShowEditModal(false);
-            setEditingPerson(null);
-            setName("");
-          },
-          onError: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert("Error", "Failed to save person");
-          },
-        }
-      );
-    } else {
-      createPersonMutation.mutate(personData, {
-        onSuccess: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          setShowAddModal(false);
-          setName("");
-        },
-        onError: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          Alert.alert("Error", "Failed to save person");
-        },
-      });
-    }
-  }, [name, editingPerson, createPersonMutation, updatePersonMutation]);
 
   const renderPersonItem = useCallback(
     ({ item }: { item: Friend }) => (
@@ -140,16 +75,21 @@ export default function PeopleScreen() {
       >
         <View className="flex-1">
           <ThemedText size="base" weight="semibold">
-            {item.name}
+            {item.friendName}
           </ThemedText>
+          {item.friendEmail && (
+            <ThemedText
+              size="sm"
+              className="mt-1"
+              style={{
+                color: isDark ? Colors.dark.icon : Colors.light.icon,
+              }}
+            >
+              {item.friendEmail}
+            </ThemedText>
+          )}
         </View>
         <View className="flex-row gap-3">
-          <Pressable onPress={() => handleEditPerson(item)} className="p-2">
-            <SymbolView
-              name="pencil"
-              tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
-            />
-          </Pressable>
           <Pressable onPress={() => handleDeletePerson(item)} className="p-2">
             <SymbolView
               name="trash"
@@ -159,82 +99,9 @@ export default function PeopleScreen() {
         </View>
       </View>
     ),
-    [isDark, handleEditPerson, handleDeletePerson]
+    [isDark, handleDeletePerson]
   );
 
-  const renderModal = (isEdit: boolean) => (
-    <Modal
-      visible={isEdit ? showEditModal : showAddModal}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={() => {
-        if (isEdit) {
-          setShowEditModal(false);
-          setEditingPerson(null);
-        } else {
-          setShowAddModal(false);
-        }
-        setName("");
-      }}
-    >
-      <ThemedView className="flex-1">
-        <View className="flex-row justify-between items-center px-5 py-4 border-b border-black/10 dark:border-white/10">
-          <ThemedText size="xl" weight="bold">
-            {isEdit ? "Edit Person" : "Add Person"}
-          </ThemedText>
-          <Pressable
-            onPress={() => {
-              if (isEdit) {
-                setShowEditModal(false);
-                setEditingPerson(null);
-              } else {
-                setShowAddModal(false);
-              }
-              setName("");
-            }}
-          >
-            <SymbolView
-              name="xmark"
-              tintColor={isDark ? Colors.dark.text : Colors.light.text}
-            />
-          </Pressable>
-        </View>
-        <ScrollView className="flex-1 px-5 pt-5">
-          <FormTextInput
-            label="Name"
-            value={name}
-            onChangeText={setName}
-            placeholder="Enter name"
-            autoFocus
-          />
-        </ScrollView>
-        <View className="flex-row gap-3 px-5 py-4 border-t border-black/10 dark:border-white/10">
-          <Button
-            variant="secondary"
-            onPress={() => {
-              if (isEdit) {
-                setShowEditModal(false);
-                setEditingPerson(null);
-              } else {
-                setShowAddModal(false);
-              }
-              setName("");
-            }}
-            style={{ flex: 1 }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onPress={handleSavePerson}
-            style={{ flex: 1 }}
-          >
-            Save
-          </Button>
-        </View>
-      </ThemedView>
-    </Modal>
-  );
 
   if (loading) {
     return (
@@ -259,7 +126,14 @@ export default function PeopleScreen() {
       <View className="flex-row gap-3 px-5 py-4">
         <Button
           variant="secondary"
-          onPress={handleAddPerson}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            Alert.alert(
+              "Add Friend",
+              "To add people, use the 'Add Friend' button on your profile screen to share your QR code or scan someone else's.",
+              [{ text: "OK" }]
+            );
+          }}
           leftIcon={<SymbolView name="plus" />}
           fullWidth
         >
@@ -285,8 +159,6 @@ export default function PeopleScreen() {
         />
       )}
 
-      {renderModal(false)}
-      {renderModal(true)}
     </View>
   );
 }

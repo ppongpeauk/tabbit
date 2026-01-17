@@ -12,6 +12,7 @@ import { userModule } from "./modules/user";
 import { receiptModule } from "./modules/receipt";
 import { groupModule } from "./modules/group";
 import { plaidModule } from "./modules/plaid";
+import { friendModule } from "./modules/friend";
 import { cacheService } from "./utils/cache";
 import { env } from "./config/env";
 import { betterAuth, authModule } from "./modules/auth";
@@ -70,6 +71,10 @@ const app = new Elysia()
           {
             name: "plaid",
             description: "Plaid bank account integration endpoints",
+          },
+          {
+            name: "friends",
+            description: "Friend relationship management endpoints",
           },
         ],
       },
@@ -140,6 +145,7 @@ const app = new Elysia()
   .use(receiptModule)
   .use(groupModule)
   .use(plaidModule)
+  .use(friendModule)
   .get("/user", ({ user }) => user, {
     auth: true,
   })

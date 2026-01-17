@@ -24,13 +24,17 @@ model User {
   subscriptionExpiresAt DateTime?
   subscriptionUpdatedAt DateTime?
 
-  accounts      Account[]
-  sessions      Session[]
-  verifications Verification[]
-  authCodes     AuthCode[]
-  receipts      Receipt[]
-  groupMembers  GroupMember[]
-  createdGroups Group[]        @relation("GroupCreator")
+  accounts               Account[]
+  sessions               Session[]
+  verifications          Verification[]
+  authCodes              AuthCode[]
+  receipts               Receipt[]
+  groupMembers           GroupMember[]
+  createdGroups          Group[]         @relation("GroupCreator")
+  friendRequestsSent     FriendRequest[] @relation("Requester")
+  friendRequestsReceived FriendRequest[] @relation("Requestee")
+  friendshipsAsUser1     Friendship[]    @relation("User1")
+  friendshipsAsUser2     Friendship[]    @relation("User2")
 }
 
 model Account {
@@ -142,4 +146,36 @@ model GroupMember {
   @@unique([groupId, userId])
   @@index([groupId])
   @@index([userId])
+}
+
+model FriendRequest {
+  id          String   @id @default(cuid())
+  requesterId String
+  requesteeId String
+  token       String   @unique // Unique QR code token
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime // Token expires in 7 days (set in application code)
+
+  requester User @relation("Requester", fields: [requesterId], references: [id], onDelete: Cascade)
+  requestee User @relation("Requestee", fields: [requesteeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, requesteeId])
+  @@index([token])
+  @@index([requesterId])
+  @@index([requesteeId])
+  @@index([expiresAt])
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  user1Id   String
+  user2Id   String
+  createdAt DateTime @default(now())
+
+  user1 User @relation("User1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2 User @relation("User2", fields: [user2Id], references: [id], onDelete: Cascade)
+
+  @@unique([user1Id, user2Id])
+  @@index([user1Id])
+  @@index([user2Id])
 }
