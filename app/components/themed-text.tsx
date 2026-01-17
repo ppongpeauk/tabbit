@@ -14,6 +14,7 @@ export type FontSize =
   | "xl"
   | "2xl"
   | "3xl"
+  | "4xl"
   | number;
 
 export type ThemedTextProps = TextProps & {
@@ -31,13 +32,13 @@ export type ThemedTextProps = TextProps & {
   lineHeight?: number;
   /** Legacy type prop for backward compatibility */
   type?:
-    | "default"
-    | "title"
-    | "defaultSemiBold"
-    | "subtitle"
-    | "link"
-    | "defaultMono"
-    | "defaultMonoSemiBold";
+  | "default"
+  | "title"
+  | "defaultSemiBold"
+  | "subtitle"
+  | "link"
+  | "defaultMono"
+  | "defaultMonoSemiBold";
 };
 
 /**
@@ -137,6 +138,8 @@ function getSizeStyles(size: FontSize): {
       return { fontSize: 24, lineHeight: 32 };
     case "3xl":
       return { fontSize: 32, lineHeight: 40 };
+    case "4xl":
+      return { fontSize: 36, lineHeight: 44 };
     default:
       return { fontSize: 16, lineHeight: 24 };
   }

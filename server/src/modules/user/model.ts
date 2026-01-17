@@ -9,6 +9,7 @@ export const updateUserSchema = t.Partial(
   t.Object({
     email: t.String({ format: 'email' }),
     name: t.String({ minLength: 1 }),
+    image: t.Union([t.String(), t.Null()]),
   })
 );
 
@@ -19,6 +20,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  image: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

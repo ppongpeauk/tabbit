@@ -2,12 +2,10 @@ import { Stack, router } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getHeaderScreenOptions } from "@/utils/navigation";
 import { SymbolView } from "expo-symbols";
-import { Colors } from "@/constants/theme";
-import { HeaderButton, PlatformPressable } from "@react-navigation/elements";
+import { HeaderButton } from "@react-navigation/elements";
 
 export default function SplitLayout() {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
 
   return (
     <Stack
@@ -34,16 +32,9 @@ export default function SplitLayout() {
           title: "Add People",
           presentation: "card",
           headerLeft: () => (
-            <PlatformPressable
-              onPress={() => router.back()}
-              hitSlop={8}
-              className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
-            >
-              <SymbolView
-                name="xmark"
-                tintColor={isDark ? Colors.dark.text : Colors.light.text}
-              />
-            </PlatformPressable>
+            <HeaderButton onPress={() => router.back()}>
+              <SymbolView name="xmark" />
+            </HeaderButton>
           ),
         }}
       />
@@ -53,16 +44,9 @@ export default function SplitLayout() {
           title: "Custom Amounts",
           presentation: "card",
           headerLeft: () => (
-            <PlatformPressable
-              onPress={() => router.back()}
-              hitSlop={8}
-              className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
-            >
-              <SymbolView
-                name="xmark"
-                tintColor={isDark ? Colors.dark.text : Colors.light.text}
-              />
-            </PlatformPressable>
+            <HeaderButton onPress={() => router.back()}>
+              <SymbolView name="xmark" />
+            </HeaderButton>
           ),
         }}
       />
@@ -72,16 +56,9 @@ export default function SplitLayout() {
           title: "Percentage Split",
           presentation: "card",
           headerLeft: () => (
-            <PlatformPressable
-              onPress={() => router.back()}
-              hitSlop={8}
-              className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
-            >
-              <SymbolView
-                name="xmark"
-                tintColor={isDark ? Colors.dark.text : Colors.light.text}
-              />
-            </PlatformPressable>
+            <HeaderButton onPress={() => router.back()}>
+              <SymbolView name="xmark" />
+            </HeaderButton>
           ),
         }}
       />
@@ -91,16 +68,9 @@ export default function SplitLayout() {
           title: "Assign Items",
           presentation: "card",
           headerLeft: () => (
-            <PlatformPressable
-              onPress={() => router.back()}
-              hitSlop={8}
-              className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
-            >
-              <SymbolView
-                name="xmark"
-                tintColor={isDark ? Colors.dark.text : Colors.light.text}
-              />
-            </PlatformPressable>
+            <HeaderButton onPress={() => router.back()}>
+              <SymbolView name="xmark" />
+            </HeaderButton>
           ),
         }}
       />
@@ -110,16 +80,9 @@ export default function SplitLayout() {
           title: "Review Split",
           presentation: "card",
           headerLeft: () => (
-            <PlatformPressable
-              onPress={() => router.back()}
-              hitSlop={8}
-              className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
-            >
-              <SymbolView
-                name="xmark"
-                tintColor={isDark ? Colors.dark.text : Colors.light.text}
-              />
-            </PlatformPressable>
+            <HeaderButton onPress={() => router.back()}>
+              <SymbolView name="xmark" />
+            </HeaderButton>
           ),
         }}
       />

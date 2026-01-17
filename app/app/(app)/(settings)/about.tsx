@@ -18,14 +18,13 @@ export default function AboutScreen() {
     >
       <ScrollView contentContainerClassName="flex-1 px-5 gap-4 justify-center">
         <View className="gap-0">
-          <ThemedText size="3xl" family="serif" className="text-center">
+          <ThemedText size="3xl" weight="bold" className="text-center">
             Tabbit
           </ThemedText>
           <ThemedText
-            size="sm"
+            size="base"
             weight="normal"
-            family="mono"
-            className="text-center opacity-70"
+            className="text-center text-neutral-500 dark:text-neutral-400"
           >
             Version 1.0.0
           </ThemedText>
@@ -41,9 +40,17 @@ export default function AboutScreen() {
             size="sm"
             weight="normal"
             family="sans"
-            className="mt-1 text-center opacity-60"
+            className="text-center text-neutral-500 dark:text-neutral-400"
           >
-            Copyright © 2025 Tabbit. All rights reserved.
+            Copyright © 2026 Hoolamox LLC. All rights reserved.
+          </ThemedText>
+          <ThemedText
+            size="sm"
+            weight="normal"
+            family="sans"
+            className="text-center mt-1 text-neutral-500 dark:text-neutral-400"
+          >
+            Built with ❤️ by Pete.
           </ThemedText>
         </View>
       </ScrollView>

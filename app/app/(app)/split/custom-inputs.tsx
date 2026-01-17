@@ -226,21 +226,21 @@ export default function CustomInputsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="gap-2">
-         <View>
-         <ThemedText size="xl" weight="bold">
-            Custom Amounts
-          </ThemedText>
-          <ThemedText
-            size="sm"
-            style={{
-              color: isDark ? Colors.dark.icon : Colors.light.icon,
-              marginBottom: 12,
-            }}
-          >
-            Enter amounts for each person (must sum to{" "}
-            {formatCurrency(receipt.totals.subtotal, receipt.totals.currency)})
-          </ThemedText>
-         </View>
+          <View>
+            <ThemedText size="xl" weight="bold">
+              Custom Amounts
+            </ThemedText>
+            <ThemedText
+              size="sm"
+              style={{
+                color: isDark ? Colors.dark.icon : Colors.light.icon,
+                marginBottom: 12,
+              }}
+            >
+              Enter amounts for each person (must sum to{" "}
+              {formatCurrency(receipt.totals.subtotal, receipt.totals.currency)})
+            </ThemedText>
+          </View>
 
           {/* Remaining Amount Indicator */}
           <View

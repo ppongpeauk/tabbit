@@ -5,9 +5,9 @@
   "scripts": {
     "start": "expo start --dev-client",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android --dev-client",
-    "ios": "expo start --ios --dev-client",
-    "web": "expo start --web --dev-client",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo run:web",
     "lint": "expo lint"
   },
   "dependencies": {
@@ -29,7 +29,7 @@
     "expo-blur": "~15.0.8",
     "expo-camera": "~17.0.10",
     "expo-clipboard": "~8.0.8",
-    "expo-constants": "~18.0.12",
+    "expo-constants": "~18.0.13",
     "expo-contacts": "~15.0.11",
     "expo-crypto": "~15.0.8",
     "expo-dev-client": "~6.0.20",

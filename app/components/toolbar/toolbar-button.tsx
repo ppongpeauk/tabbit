@@ -10,6 +10,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
+import { GlassView } from "expo-glass-effect";
 
 interface ToolbarButtonProps {
   onPress: () => void;
@@ -33,41 +34,55 @@ export function ToolbarButton({
   };
 
   if (variant === "glass") {
+    const containerStyle = label ? styles.glassButton : styles.glassIconButton;
     return (
-      <TouchableOpacity
-        onPress={handlePress}
-        activeOpacity={0.7}
+      <View
         style={[
-          label ? styles.glassButton : styles.glassIconButton,
+          containerStyle,
           {
-            backgroundColor: isDark
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(0, 0, 0, 0.05)",
             borderColor: isDark
               ? "rgba(255, 255, 255, 0.1)"
               : "rgba(0, 0, 0, 0.1)",
           },
         ]}
       >
-        {icon && (
-          <SymbolView
-            name={icon}
-            tintColor={isDark ? Colors.dark.text : Colors.light.text}
-            style={styles.icon}
-          />
-        )}
-        {label && (
-          <ThemedText
-            size="base"
-            weight="semibold"
-            style={{
-              color: isDark ? Colors.dark.text : Colors.light.text,
-            }}
-          >
-            {label}
-          </ThemedText>
-        )}
-      </TouchableOpacity>
+        <GlassView
+          glassEffectStyle="regular"
+          style={[
+            styles.glassLayer,
+            {
+              borderRadius: 28,
+            },
+          ]}
+        />
+        <TouchableOpacity
+          onPress={handlePress}
+          activeOpacity={0.7}
+          style={[
+            styles.glassButtonInner,
+            label && { paddingHorizontal: 20 },
+          ]}
+        >
+          {icon && (
+            <SymbolView
+              name={icon}
+              tintColor={isDark ? Colors.dark.text : Colors.light.text}
+              style={styles.icon}
+            />
+          )}
+          {label && (
+            <ThemedText
+              size="base"
+              weight="semibold"
+              style={{
+                color: isDark ? Colors.dark.text : Colors.light.text,
+              }}
+            >
+              {label}
+            </ThemedText>
+          )}
+        </TouchableOpacity>
+      </View>
     );
   }
 
@@ -109,18 +124,27 @@ export function ToolbarButton({
   }
 
   if (variant === "danger") {
+    const containerStyle = label ? styles.dangerButton : styles.dangerIconButton;
     return (
       <View
         style={[
-          label ? styles.dangerButton : styles.dangerIconButton,
+          containerStyle,
           {
-            backgroundColor: isDark ? Colors.dark.surface : "#F5F5F5",
             borderColor: isDark
               ? "rgba(239, 68, 68, 0.4)"
               : "rgba(239, 68, 68, 0.3)",
           },
         ]}
       >
+        <GlassView
+          glassEffectStyle="regular"
+          style={[
+            styles.glassLayer,
+            {
+              borderRadius: 28,
+            },
+          ]}
+        />
         <TouchableOpacity
           onPress={handlePress}
           activeOpacity={0.7}
@@ -216,22 +240,38 @@ const styles = StyleSheet.create({
   },
   glassButton: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
     height: 56,
     borderRadius: 28,
     borderWidth: 1,
-    paddingHorizontal: 20,
+    overflow: "hidden",
+    position: "relative",
   },
   glassIconButton: {
     width: 56,
     height: 56,
-    alignItems: "center",
-    justifyContent: "center",
     borderRadius: 28,
     borderWidth: 1,
+    overflow: "hidden",
+    position: "relative",
+  },
+  glassLayer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  glassButtonInner: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    width: "100%",
+    height: "100%",
+    position: "relative",
+    zIndex: 1,
   },
   dangerButton: {
     flex: 1,
@@ -239,15 +279,15 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     borderWidth: 1,
     overflow: "hidden",
+    position: "relative",
   },
   dangerIconButton: {
     width: 56,
     height: 56,
-    alignItems: "center",
-    justifyContent: "center",
     borderRadius: 28,
     borderWidth: 1,
     overflow: "hidden",
+    position: "relative",
   },
   dangerButtonInner: {
     flex: 1,
@@ -257,5 +297,7 @@ const styles = StyleSheet.create({
     gap: 8,
     width: "100%",
     height: "100%",
+    position: "relative",
+    zIndex: 1,
   },
 });

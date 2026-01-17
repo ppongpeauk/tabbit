@@ -3,9 +3,16 @@
 Test script for Plaid Transactions Enrich API
 """
 
+import os
 import requests
 import json
 from typing import Any
+from dotenv import load_dotenv
+
+load_dotenv()
+
+PLAID_CLIENT_ID = os.getenv("PLAID_CLIENT_ID")
+PLAID_SECRET = os.getenv("PLAID_SECRET")
 
 
 def test_plaid_enrich() -> None:
@@ -16,8 +23,8 @@ def test_plaid_enrich() -> None:
     headers = {"Content-Type": "application/json"}
 
     payload = {
-        "client_id": "65ff1113e43110001dbb80f8",
-        "secret": "c527f10462a6e43191db8516b8ff13",
+        "client_id": PLAID_CLIENT_ID,
+        "secret": PLAID_SECRET,
         "account_type": "depository",
         "transactions": [
             {

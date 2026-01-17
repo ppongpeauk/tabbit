@@ -128,7 +128,7 @@ export const ManualReceiptForm = forwardRef<
       };
       const totalsDirty =
         Math.abs(currentTotals.subtotal - initialTotalsSnapshot.subtotal) >
-          0.01 ||
+        0.01 ||
         Math.abs(currentTotals.tax - initialTotalsSnapshot.tax) > 0.01 ||
         Math.abs(currentTotals.total - initialTotalsSnapshot.total) > 0.01;
       const itemsDirty = !areItemsEqual(
@@ -254,8 +254,8 @@ export const ManualReceiptForm = forwardRef<
           name: headerFields.merchantName.trim(),
           address: headerFields.merchantAddressLine1
             ? {
-                line1: headerFields.merchantAddressLine1,
-              }
+              line1: headerFields.merchantAddressLine1,
+            }
             : undefined,
           phone: headerFields.merchantPhone || undefined,
         },
@@ -368,9 +368,8 @@ export const ManualReceiptForm = forwardRef<
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={handleAddItem}
-              className={`rounded-xl p-4 gap-1 ${
-                isDark ? "bg-[#1A1D1E]" : "bg-white"
-              }`}
+              className={`rounded-xl p-4 gap-1 ${isDark ? "bg-[#1A1D1E]" : "bg-white"
+                }`}
               style={{
                 borderWidth: 1,
                 borderStyle: "dashed",

@@ -9,8 +9,9 @@ import {
 import { cssInterop } from "nativewind";
 import { ReactNode, ReactElement, cloneElement, isValidElement } from "react";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Colors, Fonts } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { ThemedText } from "./themed-text";
+import { GlassView } from "expo-glass-effect";
 
 export type ButtonVariant =
   | "primary"
@@ -195,21 +196,13 @@ export function Button({
   };
 
   return (
-    <Pressable
-      {...pressableProps}
-      disabled={isDisabled}
-      className={className}
-      cssInterop={false}
-      style={({ pressed }) => [
-        styles.button,
+    <View
+      style={[
+        styles.container,
         {
-          backgroundColor: isDisabled
-            ? isDark
-              ? "rgba(255, 255, 255, 0.05)"
-              : "rgba(0, 0, 0, 0.05)"
-            : pressed
-              ? variantStyles.pressedBackgroundColor
-              : variantStyles.backgroundColor,
+          borderRadius: 9999,
+          width: fullWidth ? "100%" : undefined,
+          minHeight: sizeStyles.paddingVertical * 2 + sizeStyles.fontSize + 4,
           borderColor:
             variant === "outline"
               ? isDisabled
@@ -219,68 +212,108 @@ export function Button({
                 : variantStyles.borderColor
               : variantStyles.borderColor,
           borderWidth: variant === "outline" ? 1 : 0,
-          paddingVertical: sizeStyles.paddingVertical,
-          paddingHorizontal: sizeStyles.paddingHorizontal,
-          opacity: isDisabled && !loading ? 0.6 : 1,
-          width: fullWidth ? "100%" : undefined,
-          minHeight: sizeStyles.paddingVertical * 2 + sizeStyles.fontSize + 4,
         },
         style,
       ]}
+      className={className}
     >
-      <View style={[styles.content, fullWidth && styles.contentFullWidth]}>
-        {loading && (
-          <ActivityIndicator
-            size="small"
-            color={variantStyles.textColor}
-            style={styles.loader}
-          />
-        )}
-        {leftIcon && !loading && (
-          <View style={styles.leftIcon}>{renderIcon(leftIcon, "left")}</View>
-        )}
-        {typeof children === "string" ? (
-          <ThemedText
-            weight="semibold"
-            size={
-              sizeStyles.fontSize === 14
-                ? "sm"
-                : sizeStyles.fontSize === 18
-                  ? "lg"
-                  : "base"
-            }
-            style={[
-              styles.text,
-              {
-                color: isDisabled
-                  ? isDark
-                    ? "rgba(255, 255, 255, 0.4)"
-                    : "rgba(0, 0, 0, 0.4)"
-                  : variantStyles.textColor,
-              },
-            ]}
-          >
-            {children}
-          </ThemedText>
-        ) : (
-          children
-        )}
-        {rightIcon && !loading && (
-          <View style={styles.rightIcon}>{renderIcon(rightIcon, "right")}</View>
-        )}
-      </View>
-    </Pressable>
+      <GlassView
+        glassEffectStyle="regular"
+        style={[
+          styles.glassLayer,
+          {
+            borderRadius: 9999,
+          },
+        ]}
+      />
+      <Pressable
+        {...pressableProps}
+        disabled={isDisabled}
+        cssInterop={false}
+        style={({ pressed }) => [
+          styles.button,
+          {
+            backgroundColor: isDisabled
+              ? isDark
+                ? "rgba(255, 255, 255, 0.05)"
+                : "rgba(0, 0, 0, 0.05)"
+              : pressed
+                ? variantStyles.pressedBackgroundColor
+                : variantStyles.backgroundColor,
+            paddingVertical: sizeStyles.paddingVertical,
+            paddingHorizontal: sizeStyles.paddingHorizontal,
+            opacity: isDisabled && !loading ? 0.6 : 1,
+          },
+        ]}
+      >
+        <View style={[styles.content, fullWidth && styles.contentFullWidth]}>
+          {loading && (
+            <ActivityIndicator
+              size="small"
+              color={variantStyles.textColor}
+              style={styles.loader}
+            />
+          )}
+          {leftIcon && !loading && (
+            <View style={styles.leftIcon}>{renderIcon(leftIcon, "left")}</View>
+          )}
+          {typeof children === "string" ? (
+            <ThemedText
+              weight="semibold"
+              size={
+                sizeStyles.fontSize === 14
+                  ? "sm"
+                  : sizeStyles.fontSize === 18
+                    ? "lg"
+                    : "base"
+              }
+              style={[
+                styles.text,
+                {
+                  color: isDisabled
+                    ? isDark
+                      ? "rgba(255, 255, 255, 0.4)"
+                      : "rgba(0, 0, 0, 0.4)"
+                    : variantStyles.textColor,
+                },
+              ]}
+            >
+              {children}
+            </ThemedText>
+          ) : (
+            children
+          )}
+          {rightIcon && !loading && (
+            <View style={styles.rightIcon}>{renderIcon(rightIcon, "right")}</View>
+          )}
+        </View>
+      </Pressable>
+    </View>
   );
 }
 
 cssInterop(Button, { className: "style" });
 
 const styles = StyleSheet.create({
+  container: {
+    overflow: "hidden",
+    position: "relative",
+  },
+  glassLayer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
   button: {
-    borderRadius: 12,
+    borderRadius: 9999,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
+    position: "relative",
+    zIndex: 1,
   },
   content: {
     flexDirection: "row",

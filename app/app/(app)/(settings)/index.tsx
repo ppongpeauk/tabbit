@@ -64,6 +64,25 @@ export default function SettingsScreen() {
     Linking.openURL("mailto:support@usetabbit.com");
   };
 
+  const handlePrivacyPolicy = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Linking.openURL("https://usetabbit.com/privacy").catch(() => {
+      Alert.alert("Error", "Unable to open privacy policy");
+    });
+  };
+
+  const handleTermsOfService = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Linking.openURL("https://usetabbit.com/terms").catch(() => {
+      Alert.alert("Error", "Unable to open terms of service");
+    });
+  };
+
+  const handleSendFeedback = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Linking.openURL("mailto:feedback@usetabbit.com?subject=Tabbit Feedback");
+  };
+
   const handleDeleteAccount = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setShowDeleteModal(true);
@@ -175,7 +194,7 @@ export default function SettingsScreen() {
         },
         {
           id: "integrations",
-          label: "App Integrations",
+          label: "Integrations",
           onPress: handleAppIntegrationsPress,
           showChevron: true,
         },
@@ -190,11 +209,29 @@ export default function SettingsScreen() {
           onPress: handleAboutPress,
           showChevron: true,
         },
+        {
+          id: "privacy",
+          label: "Privacy Policy",
+          onPress: handlePrivacyPolicy,
+          showChevron: true,
+        },
+        {
+          id: "terms",
+          label: "Terms of Service",
+          onPress: handleTermsOfService,
+          showChevron: true,
+        },
       ],
     },
     {
       title: "Other",
       data: [
+        {
+          id: "feedback",
+          label: "Send Feedback",
+          onPress: handleSendFeedback,
+          showChevron: true,
+        },
         {
           id: "contact",
           label: "Contact Support",

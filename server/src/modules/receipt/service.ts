@@ -92,6 +92,7 @@ const EXAMPLE_RECEIPT_FOUND: { receipt: Receipt } = {
       exchangeByDate: "2026-01-15",
       returnBarcode: "1234567890",
       hasReturnBarcode: true,
+      shouldKeepPhysicalReceipt: true,
     },
     appData: {
       tags: ["groceries", "personal"],
@@ -160,6 +161,12 @@ IMPORTANT: For returnInfo.returnByDate and returnInfo.exchangeByDate:
 - For exchangeByDate: Calculate from the purchase date if policy mentions "X days for exchange" or "exchange within X days"
 - Always use the transaction.datetime as the base date for calculations
 - If no return/exchange policy is mentioned or no timespan can be determined, omit the respective date field
+
+IMPORTANT: For returnInfo.shouldKeepPhysicalReceipt:
+- Set this to true if the return instructions explicitly state that a physical receipt must be shown or presented to return an item
+- Look for phrases like "must show receipt", "original receipt required", "bring receipt", "present receipt", "receipt must be shown", "physical receipt required", or similar language indicating the physical receipt is mandatory for returns
+- Set this to false if the return policy does not require showing the physical receipt, or if returns can be processed without the physical receipt (e.g., using order number, email confirmation, or other proof of purchase)
+- If the return policy is unclear or not mentioned, omit this field
 
 Here is an example of a desired JSON output when a receipt IS found:
 

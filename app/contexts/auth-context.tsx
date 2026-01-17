@@ -38,6 +38,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  image?: string | null;
 }
 
 interface AuthContextType {
@@ -53,6 +54,7 @@ interface AuthContextType {
   signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   clearAuthState: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -228,6 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: data.user.id,
         email: data.user.email,
         name: data.user.name || "",
+        image: data.user.image || null,
       };
 
       return { token, user: userData };
@@ -350,6 +353,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clearAuthStorage();
   };
 
+  const refreshUser = useCallback(async (): Promise<void> => {
+    try {
+      const token = await SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
+      if (!token) {
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...JSON_HEADERS,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.user) {
+          const userData: User = {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.name || "",
+            image: data.user.image || null,
+          };
+          await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userData));
+          setUser(userData);
+        }
+      }
+    } catch (error) {
+      console.error("Error refreshing user:", error);
+    }
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -361,6 +397,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithApple,
         signOut,
         clearAuthState,
+        refreshUser,
       }}
     >
       {children}

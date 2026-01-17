@@ -6,7 +6,7 @@ import {
   useRef,
 } from "react";
 import { View, ScrollView, ActivityIndicator, Alert } from "react-native";
-import { PlatformPressable } from "@react-navigation/elements";
+import { HeaderButton } from "@react-navigation/elements";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useForm, Controller } from "react-hook-form";
@@ -137,20 +137,14 @@ export default function CreateReceiptScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
-        <PlatformPressable
-          onPress={handleCancel}
-          hitSlop={8}
-          className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
-        >
+        <HeaderButton onPress={handleCancel}>
           <SymbolView name="xmark" />
-        </PlatformPressable>
+        </HeaderButton>
       ),
       headerRight: () => (
-        <PlatformPressable
+        <HeaderButton
           onPress={handleSubmit(handleSave)}
           disabled={createReceiptMutation.isPending || !receiptData}
-          hitSlop={8}
-          className={`p-2 ${createReceiptMutation.isPending || !receiptData ? "opacity-50" : ""}`}
         >
           {createReceiptMutation.isPending ? (
             <ActivityIndicator
@@ -167,7 +161,7 @@ export default function CreateReceiptScreen() {
               }
             />
           )}
-        </PlatformPressable>
+        </HeaderButton>
       ),
     });
   }, [

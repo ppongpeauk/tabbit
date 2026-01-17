@@ -116,6 +116,7 @@ export interface ReturnInfo {
   returnBarcode?: string;
   returnBarcodeFormat?: string;
   hasReturnBarcode?: boolean;
+  shouldKeepPhysicalReceipt?: boolean;
 }
 
 export interface ReceiptImage {
@@ -640,7 +641,13 @@ export async function getPresignedUrl(
   try {
     // URL-encode the key to handle special characters
     const encodedKey = encodeURIComponent(key);
-    const response = await apiClient.get(`/groups/presigned/${encodedKey}`);
+
+    // Determine endpoint based on key prefix
+    const endpoint = key.startsWith("users/")
+      ? `/users/presigned/${encodedKey}`
+      : `/groups/presigned/${encodedKey}`;
+
+    const response = await apiClient.get(endpoint);
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<{ message?: string }>;
@@ -683,5 +690,86 @@ export async function checkServerHealth(
   } catch {
     // Network error, timeout, or other error means server is down
     return false;
+  }
+}
+
+export interface UserResponse {
+  success: boolean;
+  message?: string;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+    image?: string | null;
+  };
+}
+
+/**
+ * Update user profile
+ */
+export async function updateUser(
+  userId: string,
+  data: { name?: string; image?: string | null }
+): Promise<UserResponse> {
+  try {
+    const response = await apiClient.put(`/users/${userId}`, data);
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to update profile. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Get presigned POST URL for uploading user profile picture
+ */
+export async function getUserProfileUploadUrl(
+  userId: string,
+  extension: string = "jpg"
+): Promise<PresignedUploadResponse> {
+  try {
+    const response = await apiClient.post(`/users/${userId}/profile/presigned`, {
+      extension,
+    });
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to get upload URL. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Confirm profile picture upload and update user
+ */
+export async function confirmUserProfileUpload(
+  userId: string,
+  key: string
+): Promise<UserResponse> {
+  try {
+    const response = await apiClient.post(`/users/${userId}/profile/confirm`, {
+      key,
+    });
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to confirm profile picture upload. Please check your connection and try again.",
+    };
   }
 }

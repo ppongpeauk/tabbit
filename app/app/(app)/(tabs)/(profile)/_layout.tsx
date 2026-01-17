@@ -42,8 +42,6 @@ export default function ProfileLayout() {
         options={{
           title: "Profile",
           headerTitle: "Profile",
-          headerLargeTitle: true,
-          headerTransparent: true,
           headerBlurEffect: "none",
           headerRight: () => <HeaderRight />,
         }}

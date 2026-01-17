@@ -1,10 +1,11 @@
 /**
  * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description User service with in-memory storage (TODO: migrate to Prisma)
+ * @description User service with Prisma database storage
  */
 
 import type { CreateUserDto, UpdateUserDto, User, UserResponse } from "./model";
 import { cacheService } from "../../utils/cache";
+import { prisma } from "../../lib/prisma";
 
 const CACHE_TTL = 3600; // 1 hour
 const CACHE_KEYS = {
@@ -43,16 +44,6 @@ function deserializeUser(user: SerializedUser): User {
 }
 
 export class UserService {
-  private users: User[] = [
-    {
-      id: "1",
-      email: "test@example.com",
-      name: "Test User",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  ];
-
   /**
    * Get all users
    */
@@ -68,16 +59,29 @@ export class UserService {
       };
     }
 
-    // Cache miss, get from source
+    // Cache miss, get from database
+    const dbUsers = await prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+
+    const users: User[] = dbUsers.map((u) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name || "",
+      image: u.image || null,
+      createdAt: u.createdAt,
+      updatedAt: u.updatedAt,
+    }));
+
     const result = {
       success: true,
-      users: this.users,
+      users,
     };
 
     // Cache the result (serialize dates)
     await cacheService.set(
       CACHE_KEYS.allUsers,
-      this.users.map(serializeUser),
+      users.map(serializeUser),
       CACHE_TTL
     );
 
@@ -97,15 +101,26 @@ export class UserService {
       };
     }
 
-    // Cache miss, get from source
-    const user = this.users.find((u) => u.id === id);
+    // Cache miss, get from database
+    const dbUser = await prisma.user.findUnique({
+      where: { id },
+    });
 
-    if (!user) {
+    if (!dbUser) {
       return {
         success: false,
         message: "User not found",
       };
     }
+
+    const user: User = {
+      id: dbUser.id,
+      email: dbUser.email,
+      name: dbUser.name || "",
+      image: dbUser.image || null,
+      createdAt: dbUser.createdAt,
+      updatedAt: dbUser.updatedAt,
+    };
 
     // Cache the result (serialize dates)
     await cacheService.set(CACHE_KEYS.user(id), serializeUser(user), CACHE_TTL);
@@ -120,14 +135,22 @@ export class UserService {
    * Create a new user
    */
   async createUser(data: CreateUserDto): Promise<UserResponse> {
-    const newUser: User = {
-      id: String(this.users.length + 1),
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    const dbUser = await prisma.user.create({
+      data: {
+        email: data.email,
+        name: data.name,
+        image: null,
+      },
+    });
 
-    this.users.push(newUser);
+    const newUser: User = {
+      id: dbUser.id,
+      email: dbUser.email,
+      name: dbUser.name || "",
+      image: dbUser.image || null,
+      createdAt: dbUser.createdAt,
+      updatedAt: dbUser.updatedAt,
+    };
 
     // Invalidate cache
     await cacheService.delete(CACHE_KEYS.allUsers);
@@ -148,22 +171,34 @@ export class UserService {
    * Update user by ID
    */
   async updateUser(id: string, data: UpdateUserDto): Promise<UserResponse> {
-    const userIndex = this.users.findIndex((u) => u.id === id);
+    const dbUser = await prisma.user.findUnique({
+      where: { id },
+    });
 
-    if (userIndex === -1) {
+    if (!dbUser) {
       return {
         success: false,
         message: "User not found",
       };
     }
 
-    const updatedUser: User = {
-      ...this.users[userIndex],
-      ...data,
-      updatedAt: new Date(),
-    };
+    const updatedDbUser = await prisma.user.update({
+      where: { id },
+      data: {
+        ...(data.email && { email: data.email }),
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.image !== undefined && { image: data.image }),
+      },
+    });
 
-    this.users[userIndex] = updatedUser;
+    const updatedUser: User = {
+      id: updatedDbUser.id,
+      email: updatedDbUser.email,
+      name: updatedDbUser.name || "",
+      image: updatedDbUser.image || null,
+      createdAt: updatedDbUser.createdAt,
+      updatedAt: updatedDbUser.updatedAt,
+    };
 
     // Invalidate cache
     await cacheService.delete(CACHE_KEYS.user(id));
@@ -185,16 +220,20 @@ export class UserService {
    * Delete user by ID
    */
   async deleteUser(id: string): Promise<UserResponse> {
-    const userIndex = this.users.findIndex((u) => u.id === id);
+    const dbUser = await prisma.user.findUnique({
+      where: { id },
+    });
 
-    if (userIndex === -1) {
+    if (!dbUser) {
       return {
         success: false,
         message: "User not found",
       };
     }
 
-    this.users.splice(userIndex, 1);
+    await prisma.user.delete({
+      where: { id },
+    });
 
     // Invalidate cache
     await cacheService.delete(CACHE_KEYS.user(id));

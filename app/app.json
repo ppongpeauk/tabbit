@@ -12,7 +12,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.ppkl.tabbit",
       "infoPlist": {
-        "UIDesignRequiresCompatibility": true,
+        "UIDesignRequiresCompatibility": false,
         "NSCameraUsageDescription": "This app needs access to your camera to scan receipts and food items.",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select receipt images."
       }

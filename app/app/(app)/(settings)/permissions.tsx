@@ -36,8 +36,8 @@ const normalizePermissionStatus = (status: string): PermissionStatus => {
   return status === "granted"
     ? "granted"
     : status === "denied"
-    ? "denied"
-    : "undetermined";
+      ? "denied"
+      : "undetermined";
 };
 
 export default function PermissionsScreen() {
@@ -55,11 +55,9 @@ export default function PermissionsScreen() {
     return permission.granted
       ? "granted"
       : permission.canAskAgain !== false
-      ? "undetermined"
-      : "denied";
+        ? "undetermined"
+        : "denied";
   };
-
-  useEffect(() => {}, []);
 
   const showPermissionDeniedAlert = (message: string) => {
     Alert.alert("Permission Denied", message, [
@@ -85,8 +83,8 @@ export default function PermissionsScreen() {
         "granted" in result
           ? result.granted
           : normalizePermissionStatus(
-              "status" in result ? result.status : ""
-            ) === "granted";
+            "status" in result ? result.status : ""
+          ) === "granted";
 
       if ("status" in result && onStatusUpdate) {
         onStatusUpdate(normalizePermissionStatus(result.status));
@@ -129,8 +127,8 @@ export default function PermissionsScreen() {
         ? "rgba(255, 255, 255, 0.08)"
         : "rgba(0, 0, 0, 0.03)"
       : colorScheme === "dark"
-      ? "rgba(255, 255, 255, 0.1)"
-      : "rgba(0, 0, 0, 0.05)",
+        ? "rgba(255, 255, 255, 0.1)"
+        : "rgba(0, 0, 0, 0.05)",
   });
 
   const permissions: PermissionItem[] = [

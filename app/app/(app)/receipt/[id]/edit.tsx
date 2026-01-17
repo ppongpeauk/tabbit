@@ -11,7 +11,7 @@ import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useReceipt, useUpdateReceipt } from "@/hooks/use-receipts";
-import type { ReceiptVisibility, StoredReceipt } from "@/utils/storage";
+import type { StoredReceipt } from "@/utils/storage";
 import * as Haptics from "expo-haptics";
 import {
   ManualReceiptForm,
@@ -22,7 +22,7 @@ import { ManualReceiptHeaderSheet } from "@/components/manual-receipt-header-she
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { Toolbar, ToolbarButton } from "@/components/toolbar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { HeaderButton, PlatformPressable } from "@react-navigation/elements";
+import { HeaderButton } from "@react-navigation/elements";
 import { SymbolView } from "expo-symbols";
 import { Colors } from "@/constants/theme";
 
@@ -37,7 +37,6 @@ export default function EditReceiptScreen() {
   const [headerFields, setHeaderFields] =
     useState<ManualReceiptHeaderFields | null>(null);
   const [userNotes, setUserNotes] = useState("");
-  const [visibility, setVisibility] = useState<ReceiptVisibility>("private");
 
   // Use React Query hooks
   const { data: receipt, isLoading } = useReceipt(id);
@@ -109,7 +108,6 @@ export default function EditReceiptScreen() {
       currency: receipt.totals.currency || "USD",
     });
     setUserNotes(receipt.appData?.userNotes || "");
-    setVisibility(receipt.visibility || "private");
   }, [receipt, headerFields]);
 
   useLayoutEffect(() => {
@@ -117,28 +115,28 @@ export default function EditReceiptScreen() {
     navigation.setOptions({
       title: displayTitle,
       headerTitle: () => (
-        <PlatformPressable
+        <HeaderButton
           onPress={handleHeaderPress}
-          hitSlop={8}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 6,
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Edit receipt details"
         >
-          <ThemedText size="base" weight="bold">
-            {displayTitle}
-          </ThemedText>
-          <SymbolView
-            name="chevron.down"
-            size={14}
-            tintColor={
-              colorScheme === "dark" ? Colors.dark.text : Colors.light.text
-            }
-          />
-        </PlatformPressable>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <ThemedText size="base" weight="bold">
+              {displayTitle}
+            </ThemedText>
+            <SymbolView
+              name="chevron.down"
+              size={14}
+              tintColor={
+                colorScheme === "dark" ? Colors.dark.text : Colors.light.text
+              }
+            />
+          </View>
+        </HeaderButton>
       ),
       headerLeft: () => (
         <HeaderButton onPress={handleCancel}>
@@ -153,6 +151,12 @@ export default function EditReceiptScreen() {
     handleHeaderPress,
     headerFields?.name,
   ]);
+
+  const handleToolbarSave = useCallback(async () => {
+    if (formRef.current) {
+      await formRef.current.save();
+    }
+  }, []);
 
   if (isLoading) {
     return (
@@ -209,17 +213,12 @@ export default function EditReceiptScreen() {
         ...receipt.appData,
         userNotes: userNotes.trim() || undefined,
       },
-      visibility,
     };
 
     await handleSave(nextReceipt);
   };
 
-  const handleToolbarSave = useCallback(async () => {
-    if (formRef.current) {
-      await formRef.current.save();
-    }
-  }, []);
+
 
   return (
     <View className="flex-1">
@@ -231,94 +230,6 @@ export default function EditReceiptScreen() {
           initialItems={receipt.items}
           initialTotals={receipt.totals}
         >
-          <View className="mt-6">
-            <ThemedText size="lg" weight="semibold" className="mb-3">
-              Privacy
-            </ThemedText>
-            <View className="flex-row gap-3">
-              <View
-                className={`flex-1 rounded-xl border p-3 ${
-                  visibility === "private" ? "border-blue-500" : ""
-                }`}
-                style={{
-                  backgroundColor: isDark
-                    ? "rgba(255, 255, 255, 0.05)"
-                    : "rgba(0, 0, 0, 0.02)",
-                  borderColor:
-                    visibility === "private"
-                      ? Colors.light.tint
-                      : isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(0, 0, 0, 0.1)",
-                }}
-              >
-                <PlatformPressable
-                  onPress={() => setVisibility("private")}
-                  accessibilityRole="button"
-                >
-                  <View className="flex-row items-center gap-2">
-                    <SymbolView
-                      name="lock"
-                      size={16}
-                      tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
-                    />
-                    <ThemedText size="base" weight="semibold">
-                      Private
-                    </ThemedText>
-                  </View>
-                  <ThemedText
-                    size="sm"
-                    style={{
-                      color: isDark ? Colors.dark.icon : Colors.light.icon,
-                    }}
-                  >
-                    Only you can view this receipt
-                  </ThemedText>
-                </PlatformPressable>
-              </View>
-              <View
-                className={`flex-1 rounded-xl border p-3 ${
-                  visibility === "public" ? "border-blue-500" : ""
-                }`}
-                style={{
-                  backgroundColor: isDark
-                    ? "rgba(255, 255, 255, 0.05)"
-                    : "rgba(0, 0, 0, 0.02)",
-                  borderColor:
-                    visibility === "public"
-                      ? Colors.light.tint
-                      : isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(0, 0, 0, 0.1)",
-                }}
-              >
-                <PlatformPressable
-                  onPress={() => setVisibility("public")}
-                  accessibilityRole="button"
-                >
-                  <View className="flex-row items-center gap-2">
-                    <SymbolView
-                      name="globe"
-                      size={16}
-                      tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
-                    />
-                    <ThemedText size="base" weight="semibold">
-                      Public
-                    </ThemedText>
-                  </View>
-                  <ThemedText
-                    size="sm"
-                    style={{
-                      color: isDark ? Colors.dark.icon : Colors.light.icon,
-                    }}
-                  >
-                    Anyone with a link can view
-                  </ThemedText>
-                </PlatformPressable>
-              </View>
-            </View>
-          </View>
-
           <View className="mt-6">
             <ThemedText size="lg" weight="semibold" className="mb-3">
               Notes

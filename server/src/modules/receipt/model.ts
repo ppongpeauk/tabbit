@@ -69,6 +69,7 @@ export const returnInfoSchema = t.Object({
   returnBarcode: t.Optional(t.String()),
   returnBarcodeFormat: t.Optional(t.String()),
   hasReturnBarcode: t.Optional(t.Boolean()),
+  shouldKeepPhysicalReceipt: t.Optional(t.Boolean()),
 });
 
 export const receiptImageSchema = t.Object({
@@ -222,6 +223,7 @@ export const defaultReceiptSchema = {
     exchangeByDate: "string",
     returnBarcode: "string",
     hasReturnBarcode: "boolean",
+    shouldKeepPhysicalReceipt: "boolean",
   },
   appData: {
     tags: ["string"],

@@ -74,6 +74,7 @@ export interface ReturnInfo {
   returnBarcode?: string;
   returnBarcodeFormat?: string;
   hasReturnBarcode?: boolean;
+  shouldKeepPhysicalReceipt?: boolean;
 }
 
 export interface ReceiptImage {

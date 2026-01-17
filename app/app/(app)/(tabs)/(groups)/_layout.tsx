@@ -5,21 +5,17 @@
 
 import { Stack, router } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Colors } from "@/constants/theme";
 import { SymbolView } from "expo-symbols";
 import { View } from "react-native";
 import ContextMenu from "react-native-context-menu-view";
 import * as Haptics from "expo-haptics";
 import { getHeaderScreenOptions } from "@/utils/navigation";
-import { PlatformPressable } from "@react-navigation/elements";
+import { HeaderButton } from "@react-navigation/elements";
 
 /**
  * Header right component with plus button and context menu
  */
 function HeaderRight() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-
   const handleCreateGroup = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push("/(app)/(tabs)/(groups)/create");
@@ -59,12 +55,9 @@ function HeaderRight() {
         onPress={handleMenuPress}
         dropdownMenuMode={true}
       >
-        <PlatformPressable hitSlop={8} className="p-2 min-w-[44px] min-h-[44px] justify-center items-center">
-          <SymbolView
-            name="plus"
-            tintColor={isDark ? Colors.dark.text : Colors.light.text}
-          />
-        </PlatformPressable>
+        <HeaderButton>
+          <SymbolView name="plus" />
+        </HeaderButton>
       </ContextMenu>
     </View>
   );

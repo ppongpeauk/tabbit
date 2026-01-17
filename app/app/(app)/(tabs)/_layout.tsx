@@ -25,7 +25,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="(receipts)"
         options={{
-          title: "Home",
+          title: "Tabbit",
           tabBarIcon: ({ color, size }) => (
             <IconSymbol name="house.fill" color={color} size={size} />
           ),

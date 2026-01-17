@@ -13,7 +13,7 @@ import {
 import { View, Alert, ActivityIndicator } from "react-native";
 import { router, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { HeaderButton, PlatformPressable } from "@react-navigation/elements";
+import { HeaderButton } from "@react-navigation/elements";
 import { SymbolView } from "expo-symbols";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedView } from "@/components/themed-view";
@@ -156,28 +156,22 @@ export default function CreateManualReceiptScreen() {
     navigation.setOptions({
       title: displayTitle,
       headerTitle: () => (
-        <PlatformPressable
+        <HeaderButton
           onPress={handleHeaderPress}
-          hitSlop={8}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 6,
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Edit receipt details"
         >
-          <ThemedText size="base" weight="bold">
-            {displayTitle}
-          </ThemedText>
-          <SymbolView
-            name="chevron.down"
-            size={14}
-            tintColor={
-              colorScheme === "dark" ? Colors.dark.text : Colors.light.text
-            }
-          />
-        </PlatformPressable>
+          <View className="flex-row items-center gap-2">
+            <ThemedText size="base" weight="bold">
+              {displayTitle}
+            </ThemedText>
+            <SymbolView
+              name="chevron.down"
+              size={14}
+              tintColor={
+                colorScheme === "dark" ? Colors.dark.text : Colors.light.text
+              }
+            />
+          </View>
+        </HeaderButton>
       ),
       headerLeft: () => (
         <HeaderButton onPress={handleCancel}>
@@ -199,14 +193,14 @@ export default function CreateManualReceiptScreen() {
       headerFields.name !== initialHeader.name ||
       headerFields.merchantName !== initialHeader.merchantName ||
       headerFields.merchantAddressLine1 !==
-        initialHeader.merchantAddressLine1 ||
+      initialHeader.merchantAddressLine1 ||
       headerFields.merchantCity !== initialHeader.merchantCity ||
       headerFields.merchantState !== initialHeader.merchantState ||
       headerFields.merchantPostalCode !== initialHeader.merchantPostalCode ||
       headerFields.merchantCountry !== initialHeader.merchantCountry ||
       headerFields.merchantPhone !== initialHeader.merchantPhone ||
       headerFields.merchantReceiptNumber !==
-        initialHeader.merchantReceiptNumber ||
+      initialHeader.merchantReceiptNumber ||
       headerFields.transactionDate !== initialHeader.transactionDate ||
       headerFields.transactionTime !== initialHeader.transactionTime ||
       headerFields.currency !== initialHeader.currency;
@@ -245,7 +239,7 @@ export default function CreateManualReceiptScreen() {
             {
               text: "Cancel",
               style: "cancel",
-              onPress: () => {},
+              onPress: () => { },
             },
             {
               text: "Discard",

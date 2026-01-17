@@ -155,3 +155,17 @@ export function generateReceiptImageKey(
   const timestamp = Date.now();
   return `receipts/${receiptId}/photo-${timestamp}.${extension}`;
 }
+
+/**
+ * Generate a unique key for user profile pictures
+ * @param userId User ID
+ * @param extension File extension (e.g., 'jpg', 'png')
+ * @returns S3 key
+ */
+export function generateUserProfileKey(
+  userId: string,
+  extension: string
+): string {
+  const timestamp = Date.now();
+  return `users/${userId}/profile-${timestamp}.${extension}`;
+}

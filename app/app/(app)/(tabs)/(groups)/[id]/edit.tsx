@@ -14,7 +14,7 @@ import {
   ActivityIndicator,
   Pressable,
 } from "react-native";
-import { PlatformPressable } from "@react-navigation/elements";
+import { HeaderButton } from "@react-navigation/elements";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useForm, Controller } from "react-hook-form";
 import { useLocalSearchParams, router, useNavigation } from "expo-router";
@@ -148,9 +148,8 @@ export default function EditGroupScreen() {
           // Get file extension from URI
           const extension =
             selectedImage.split(".").pop()?.toLowerCase() || "jpg";
-          const contentType = `image/${
-            extension === "jpg" ? "jpeg" : extension
-          }`;
+          const contentType = `image/${extension === "jpg" ? "jpeg" : extension
+            }`;
 
           // Get presigned upload URL
           const uploadUrlResult = await getGroupIconUploadUrl(id, extension);
@@ -216,23 +215,14 @@ export default function EditGroupScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
-        <PlatformPressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          className="p-2 min-w-[44px] min-h-[44px] justify-center items-center"
-        >
-          <SymbolView
-            name="xmark"
-            tintColor={isDark ? Colors.dark.text : Colors.light.text}
-          />
-        </PlatformPressable>
+        <HeaderButton onPress={() => router.back()}>
+          <SymbolView name="xmark" />
+        </HeaderButton>
       ),
       headerRight: () => (
-        <PlatformPressable
+        <HeaderButton
           onPress={handleSavePress}
           disabled={isSubmitting}
-          hitSlop={8}
-          className={`p-2 min-w-[44px] min-h-[44px] justify-center items-center ${isSubmitting ? "opacity-50" : ""}`}
         >
           {isSubmitting ? (
             <ActivityIndicator
@@ -249,7 +239,7 @@ export default function EditGroupScreen() {
               Save
             </ThemedText>
           )}
-        </PlatformPressable>
+        </HeaderButton>
       ),
     });
   }, [navigation, isDark, isSubmitting, handleSavePress]);

@@ -18,7 +18,6 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Image,
-  Share,
 } from "react-native";
 import * as Linking from "expo-linking";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -40,12 +39,14 @@ import {
   ReceiptHeader,
   SplitSummaryCard,
   ShareReceiptCard,
+  ShareReceiptBottomSheet,
   NotesCard,
   useScannedBarcode,
   shouldShowReturnInfo,
   BarcodeModal,
   formatMerchantAddress,
   useAddressHandler,
+  MerchantDetailsSheet,
 } from "@/components/receipt-detail";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import type { StoredReceipt, Friend } from "@/utils/storage";
@@ -54,8 +55,8 @@ import { Toolbar, ToolbarButton } from "@/components/toolbar";
 import { SymbolView } from "expo-symbols";
 import { AppleMaps } from "expo-maps";
 import * as Location from "expo-location";
-import { WEB_BASE_URL } from "@/utils/config";
 import { getCategoryName, getCategoryEmoji } from "@/utils/categories";
+import moment from "moment";
 
 // ============================================================================
 // Toolbar Setup Hook
@@ -64,6 +65,7 @@ import { getCategoryName, getCategoryEmoji } from "@/utils/categories";
 function useReceiptToolbar({
   receipt,
   colorScheme,
+  hasPhoto,
   onViewPhoto,
   onEdit,
   onShare,
@@ -71,9 +73,11 @@ function useReceiptToolbar({
   onScanBarcode,
   onShowBarcode,
   onDelete,
+  onSetVisibility,
 }: {
   receipt: StoredReceipt | null;
   colorScheme: "light" | "dark" | null | undefined;
+  hasPhoto: boolean;
   onViewPhoto: () => void;
   onEdit: () => void;
   onShare: () => void;
@@ -81,6 +85,7 @@ function useReceiptToolbar({
   onScanBarcode: () => void;
   onShowBarcode: () => void;
   onDelete: () => void;
+  onSetVisibility: (visibility: "public" | "private") => void;
 }) {
   const navigation = useNavigation();
 
@@ -89,6 +94,7 @@ function useReceiptToolbar({
       ReceiptHeader({
         receipt,
         colorScheme: colorScheme || "light",
+        hasPhoto,
         onViewPhoto,
         onEdit,
         onShare,
@@ -96,12 +102,14 @@ function useReceiptToolbar({
         onScanBarcode,
         onShowBarcode,
         onDelete,
+        onSetVisibility,
       })
     );
   }, [
     navigation,
     colorScheme,
     receipt,
+    hasPhoto,
     onViewPhoto,
     onEdit,
     onShare,
@@ -109,6 +117,7 @@ function useReceiptToolbar({
     onScanBarcode,
     onShowBarcode,
     onDelete,
+    onSetVisibility,
   ]);
 }
 
@@ -239,9 +248,10 @@ function AddressMap({ address, isDark }: AddressMapProps) {
 interface HeroSectionProps {
   receipt: StoredReceipt;
   isDark: boolean;
+  onMerchantPress: () => void;
 }
 
-function HeroSection({ receipt, isDark }: HeroSectionProps) {
+function HeroSection({ receipt, isDark, onMerchantPress }: HeroSectionProps) {
   const handleAddressPress = useAddressHandler();
   const merchantAddress = formatMerchantAddress(receipt.merchant.address);
   const hasAddress = Boolean(receipt.merchant.address?.line1);
@@ -254,7 +264,11 @@ function HeroSection({ receipt, isDark }: HeroSectionProps) {
     <View
       className={`px-4 pt-6 pb-4 ${merchantLogo && !logoError ? "gap-4" : "gap-0"}`}
     >
-      <View className="flex flex-row items-center gap-4">
+      <TouchableOpacity
+        onPress={onMerchantPress}
+        activeOpacity={0.7}
+        className="flex flex-row items-center gap-4"
+      >
         {merchantLogo && !logoError ? (
           <Image
             source={{ uri: merchantLogo }}
@@ -264,10 +278,15 @@ function HeroSection({ receipt, isDark }: HeroSectionProps) {
           />
         ) : null}
         {/* Merchant Name */}
-        <ThemedText size="xl" weight="bold" family="sans" className="text-left">
+        <ThemedText size="xl" weight="bold" family="sans" className="text-left flex-1">
           {receiptTitle || merchantName}
         </ThemedText>
-      </View>
+        <SymbolView
+          name="chevron.right"
+          tintColor={isDark ? Colors.dark.subtle : Colors.light.icon}
+          style={{ width: 16, height: 16 }}
+        />
+      </TouchableOpacity>
       {/* Address */}
       {hasAddress ? (
         <TouchableOpacity
@@ -277,7 +296,7 @@ function HeroSection({ receipt, isDark }: HeroSectionProps) {
         >
           <ThemedText
             size="base"
-            className="text-center"
+            className="text-left"
             style={{
               color: isDark ? Colors.dark.subtle : Colors.light.icon,
             }}
@@ -415,6 +434,27 @@ function MetadataGrid({ receipt, isDark }: MetadataGridProps) {
 }
 
 // ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Check if the return period has expired
+ */
+function isReturnPeriodExpired(returnByDate?: string): boolean {
+  if (!returnByDate) {
+    return false;
+  }
+
+  const returnDate = moment(returnByDate);
+  if (!returnDate.isValid()) {
+    return false;
+  }
+
+  const now = moment();
+  return returnDate.isBefore(now, "day");
+}
+
+// ============================================================================
 // Receipt Content Component
 // ============================================================================
 
@@ -426,6 +466,7 @@ function ReceiptContent({
   onShare,
   onScanBarcode,
   isDark,
+  onMerchantPress,
 }: {
   receipt: StoredReceipt;
   friends: Friend[];
@@ -434,6 +475,7 @@ function ReceiptContent({
   onShare: () => void;
   onScanBarcode: () => void;
   isDark: boolean;
+  onMerchantPress: () => void;
 }) {
   return (
     <ScrollView
@@ -461,7 +503,7 @@ function ReceiptContent({
           ) : null}
 
           {/* Hero Section */}
-          <HeroSection receipt={receipt} isDark={isDark} />
+          <HeroSection receipt={receipt} isDark={isDark} onMerchantPress={onMerchantPress} />
 
           {/* Separator */}
           <View
@@ -477,6 +519,99 @@ function ReceiptContent({
           <MetadataGrid receipt={receipt} isDark={isDark} />
         </View>
       </View>
+
+      {/* Return Period Expired Card */}
+      {isReturnPeriodExpired(receipt.returnInfo?.returnByDate) ? (
+        <View className="px-6 mb-4">
+          <View
+            className="rounded-[20px] p-4 border"
+            style={{
+              backgroundColor: isDark
+                ? "rgba(234, 179, 8, 0.15)"
+                : "rgba(234, 179, 8, 0.08)",
+              borderColor: "rgba(234, 179, 8, 0.4)",
+              borderWidth: 1,
+            }}
+          >
+            <View className="flex-row items-start gap-3">
+              <View
+                className="w-10 h-10 rounded-full items-center justify-center flex-shrink-0"
+                style={{
+                  backgroundColor: isDark
+                    ? "rgba(234, 179, 8, 0.2)"
+                    : "rgba(234, 179, 8, 0.15)",
+                }}
+              >
+                <SymbolView
+                  name="exclamationmark.triangle.fill"
+                  tintColor="#EAB308"
+                  style={{ width: 24, height: 24 }}
+                />
+              </View>
+              <View className="flex-1">
+                <ThemedText size="base" weight="semibold">
+                  Return Period Expired
+                </ThemedText>
+                <ThemedText
+                  size="sm"
+                  style={{
+                    color: isDark
+                      ? "rgba(255, 255, 255, 0.8)"
+                      : "rgba(0, 0, 0, 0.7)",
+                  }}
+                >
+                  The return period for this purchase has expired.
+                </ThemedText>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : receipt.returnInfo?.shouldKeepPhysicalReceipt ? (
+        <View className="px-6 mb-4">
+          <View
+            className="rounded-[20px] p-4 border"
+            style={{
+              backgroundColor: isDark
+                ? "rgba(255, 149, 0, 0.15)"
+                : "rgba(255, 149, 0, 0.08)",
+              borderColor: "rgba(255, 149, 0, 0.4)",
+              borderWidth: 1,
+            }}
+          >
+            <View className="flex-row items-start gap-3">
+              <View
+                className="w-10 h-10 rounded-full items-center justify-center flex-shrink-0"
+                style={{
+                  backgroundColor: isDark
+                    ? "rgba(255, 149, 0, 0.2)"
+                    : "rgba(255, 149, 0, 0.15)",
+                }}
+              >
+                <SymbolView
+                  name="doc.text"
+                  tintColor="#FF9500"
+                  style={{ width: 24, height: 24 }}
+                />
+              </View>
+              <View className="flex-1">
+                <ThemedText size="base" weight="semibold">
+                  Keep Your Physical Receipt
+                </ThemedText>
+                <ThemedText
+                  size="sm"
+                  style={{
+                    color: isDark
+                      ? "rgba(255, 255, 255, 0.8)"
+                      : "rgba(0, 0, 0, 0.7)",
+                  }}
+                >
+                  You&apos;ll need to show the physical receipt to return items.
+                </ThemedText>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : null}
 
       {/* Share Receipt Card */}
       <View className="px-6 mb-4">
@@ -512,9 +647,8 @@ function ReceiptContent({
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={onScanBarcode}
-            className={`rounded-[20px] p-4 gap-1 ${
-              isDark ? "bg-[#1A1D1E]" : "bg-white"
-            }`}
+            className={`rounded-[20px] p-4 gap-1 ${isDark ? "bg-[#1A1D1E]" : "bg-white"
+              }`}
             style={{
               borderWidth: 1,
               borderStyle: "dashed",
@@ -599,6 +733,8 @@ export default function ReceiptDetailScreen() {
   const [showRawReturnText, setShowRawReturnText] = useState(false);
   const colorScheme = useColorScheme();
   const barcodeModalRef = useRef<TrueSheet>(null);
+  const shareBottomSheetRef = useRef<TrueSheet>(null);
+  const merchantDetailsSheetRef = useRef<TrueSheet>(null);
   const insets = useSafeAreaInsets();
 
   // React Query hooks
@@ -717,21 +853,19 @@ export default function ReceiptDetailScreen() {
     if (!receipt) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
+      // Make receipt public before showing share sheet
       await updateReceiptMutation.mutateAsync({
         id: receipt.id,
         updates: { visibility: "public" },
       });
-      const shareUrl = `${WEB_BASE_URL}/receipts/${receipt.id}`;
-      await Share.share({
-        url: shareUrl,
-        title: "Share Receipt",
-      });
+      // Open the share bottom sheet
+      shareBottomSheetRef.current?.present();
     } catch (error) {
       Alert.alert(
         "Error",
         error instanceof Error
           ? error.message
-          : "Failed to share receipt. Please try again."
+          : "Failed to prepare receipt for sharing. Please try again."
       );
     }
   }, [receipt, updateReceiptMutation]);
@@ -749,10 +883,39 @@ export default function ReceiptDetailScreen() {
     setShowRawReturnText((prev) => !prev);
   }, []);
 
+  const handleMerchantPress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    merchantDetailsSheetRef.current?.present();
+  }, []);
+
+  const handleSetVisibility = useCallback(
+    async (visibility: "public" | "private") => {
+      if (!receipt) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        await updateReceiptMutation.mutateAsync({
+          id: receipt.id,
+          updates: { visibility },
+        });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (error) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          "Error",
+          error instanceof Error
+            ? error.message
+            : "Failed to update visibility. Please try again."
+        );
+      }
+    },
+    [receipt, updateReceiptMutation]
+  );
+
   // Setup toolbar
   useReceiptToolbar({
     receipt: receipt || null,
     colorScheme,
+    hasPhoto,
     onViewPhoto: handleViewPhoto,
     onEdit: handleEdit,
     onShare: handleShare,
@@ -760,6 +923,7 @@ export default function ReceiptDetailScreen() {
     onScanBarcode: handleScanBarcode,
     onShowBarcode: handleShowBarcode,
     onDelete: handleDelete,
+    onSetVisibility: handleSetVisibility,
   });
 
   // Loading state
@@ -785,6 +949,7 @@ export default function ReceiptDetailScreen() {
           onShare={handleShare}
           onScanBarcode={handleScanBarcode}
           isDark={isDark}
+          onMerchantPress={handleMerchantPress}
         />
       </ThemedView>
       <Toolbar bottom={insets.bottom}>
@@ -792,13 +957,13 @@ export default function ReceiptDetailScreen() {
           onPress={handleEdit}
           label="Edit"
           icon="square.and.pencil"
-          variant="secondary"
+          variant="glass"
         />
         <ToolbarButton
           onPress={handleSplit}
           label="Split"
           icon="person.2.fill"
-          variant="secondary"
+          variant="glass"
         />
         <ToolbarButton onPress={handleDelete} icon="trash" variant="danger" />
       </Toolbar>
@@ -809,6 +974,16 @@ export default function ReceiptDetailScreen() {
           barcodeFormat={receipt.returnInfo.returnBarcodeFormat}
         />
       )}
+      <ShareReceiptBottomSheet
+        bottomSheetRef={shareBottomSheetRef}
+        receiptId={receipt.id}
+        receiptName={receipt.name || receipt.merchant.name}
+      />
+      <MerchantDetailsSheet
+        bottomSheetRef={merchantDetailsSheetRef}
+        receipt={receipt}
+        onClose={() => { }}
+      />
     </View>
   );
 }
