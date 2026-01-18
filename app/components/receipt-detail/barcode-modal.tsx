@@ -48,7 +48,7 @@ export function BarcodeModal({
       backgroundColor={
         isDark ? Colors.dark.background : Colors.light.background
       }
-      cornerRadius={24}
+
     >
       <View style={styles.contentContainer}>
         <View style={styles.header} className="mt-8">

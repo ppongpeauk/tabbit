@@ -17,6 +17,7 @@ import { SplitStrategy } from "@/utils/split";
 import { formatCurrency } from "@/utils/format";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SplitModeChoices } from "@/components/split/split-mode-choices";
+import { SplitProgressBar } from "@/components/split-progress-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
@@ -187,6 +188,11 @@ export default function ChooseSplitModeScreen() {
           : Colors.light.background,
       }}
     >
+      <SplitProgressBar
+        currentStage={1}
+        totalStages={4}
+        stageLabels={["Method", "People", "Amounts", "Review"]}
+      />
       <ScrollView
         contentContainerClassName="px-5 py-4 gap-4"
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}

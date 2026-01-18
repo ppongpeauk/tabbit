@@ -3,8 +3,9 @@
  * @description General settings screen with default split mode configuration
  */
 
-import { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, Modal } from "react-native";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { View, ScrollView, TouchableOpacity } from "react-native";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { ThemedText } from "@/components/themed-text";
@@ -13,14 +14,14 @@ import { Button } from "@/components/button";
 import {
   SettingsSection,
   SettingsItem,
-  SettingsModalHeader,
-  SettingsModalFooter,
 } from "@/components/settings";
 import { SplitModeChoices } from "@/components/split/split-mode-choices";
 import { SplitStrategy } from "@/utils/split";
 import { getDefaultSplitMode, setDefaultSplitMode } from "@/utils/storage";
 import { getSplitModeLabel } from "@/utils/split-constants";
+import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
+import type React from "react";
 
 export default function GeneralScreen() {
   const colorScheme = useColorScheme();
@@ -29,10 +30,10 @@ export default function GeneralScreen() {
     SplitStrategy.EQUAL
   );
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
   const [tempSelectedMode, setTempSelectedMode] = useState<SplitStrategy>(
     SplitStrategy.EQUAL
   );
+  const bottomSheetRef = useRef<TrueSheet | null>(null);
 
   useEffect(() => {
     loadDefaultSplitMode();
@@ -54,11 +55,12 @@ export default function GeneralScreen() {
   const handleOpenModal = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setTempSelectedMode(selectedMode);
-    setShowModal(true);
+    bottomSheetRef.current?.present();
   }, [selectedMode]);
 
   const handleCloseModal = useCallback(() => {
-    setShowModal(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    bottomSheetRef.current?.dismiss();
   }, []);
 
   const handleModeSelect = useCallback((mode: SplitStrategy) => {
@@ -71,7 +73,7 @@ export default function GeneralScreen() {
     try {
       await setDefaultSplitMode(tempSelectedMode);
       setSelectedMode(tempSelectedMode);
-      setShowModal(false);
+      bottomSheetRef.current?.dismiss();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       console.error("Error saving default split mode:", error);
@@ -97,27 +99,40 @@ export default function GeneralScreen() {
         </ScrollView>
       </ThemedView>
 
-      <Modal
-        visible={showModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={handleCloseModal}
+      <TrueSheet
+        ref={bottomSheetRef}
+        backgroundColor={
+          isDark ? Colors.dark.background : Colors.light.background
+        }
+        detents={[1]}
       >
-        <ThemedView className="flex-1">
-          <SettingsModalHeader
-            title="Default Split Mode"
-            onClose={handleCloseModal}
-          />
-          <ScrollView
-            className="flex-1"
-            contentContainerClassName="px-5 pt-6 pb-5"
-            showsVerticalScrollIndicator={false}
-          >
+        <View
+          className="px-6 py-8"
+        >
+          {/* Header */}
+          <View className="flex-row justify-between items-center">
+            <ThemedText size="xl" weight="bold">
+              Default Split Mode
+            </ThemedText>
+            <TouchableOpacity
+              onPress={handleCloseModal}
+              className="p-1"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <SymbolView
+                name="xmark.circle.fill"
+                tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
+                size={28}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Content */}
+          <View className="gap-4">
             <ThemedText
               size="sm"
               style={{
                 color: isDark ? Colors.dark.icon : Colors.light.icon,
-                marginBottom: 16,
               }}
             >
               Choose the default split mode that will be pre-selected when
@@ -127,25 +142,27 @@ export default function GeneralScreen() {
               selectedStrategy={tempSelectedMode}
               onSelect={handleModeSelect}
             />
-          </ScrollView>
-          <SettingsModalFooter>
+          </View>
+
+          {/* Footer Buttons */}
+          <View className="flex-row gap-3 mt-6">
             <Button
               variant="secondary"
               onPress={handleCloseModal}
-              className="flex-1"
+              style={{ flex: 1 }}
             >
               Cancel
             </Button>
             <Button
               variant="primary"
               onPress={handleSave}
-              className="flex-1"
+              style={{ flex: 1 }}
             >
               Save
             </Button>
-          </SettingsModalFooter>
-        </ThemedView>
-      </Modal>
+          </View>
+        </View>
+      </TrueSheet>
     </>
   );
 }

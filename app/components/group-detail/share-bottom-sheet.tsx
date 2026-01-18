@@ -67,7 +67,7 @@ export function ShareBottomSheet({
       backgroundColor={
         isDark ? Colors.dark.background : Colors.light.background
       }
-      cornerRadius={24}
+
     >
       <View style={styles.contentContainer}>
         <View style={styles.qrContainer}>

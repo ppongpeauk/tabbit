@@ -5,6 +5,7 @@ import { Colors, Fonts } from "@/constants/theme";
 import { formatCurrency } from "@/utils/format";
 import type { Friend } from "@/utils/storage";
 import type { SplitData } from "@/utils/split";
+import { useAuth } from "@/contexts/auth-context";
 
 interface SplitSummaryProps {
   splitData: SplitData;
@@ -21,6 +22,7 @@ export function SplitSummary({
 }: SplitSummaryProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { user } = useAuth();
 
   const calculatedTotal = Object.values(splitData.totals).reduce(
     (sum, amount) => sum + amount,
@@ -29,7 +31,13 @@ export function SplitSummary({
   const isValid = Math.abs(calculatedTotal - receiptTotal) < 0.01;
 
   const getPersonName = (personId: string): string => {
+    // Check if this is the current user
+    if (user && personId === user.id) {
+      return user.name || "You";
+    }
+    // Check splitData.people first
     if (splitData.people?.[personId]) return splitData.people[personId];
+    // Otherwise, look up in friends list
     const friend = friends.find((f) => f.id === personId);
     return friend?.name || "Unknown";
   };

@@ -1,19 +1,18 @@
 import { View, TouchableOpacity } from "react-native";
-import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
-import type { StoredReceipt } from "@/utils/storage";
-import type { Friend } from "@/utils/api";
+import type { StoredReceipt, Friend as StorageFriend } from "@/utils/storage";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 
 interface SplitSummaryCardProps {
   receipt: StoredReceipt;
-  friends: Friend[];
+  friends: StorageFriend[];
+  onPress?: () => void;
 }
 
-export function SplitSummaryCard({ receipt, friends }: SplitSummaryCardProps) {
+export function SplitSummaryCard({ receipt, friends, onPress }: SplitSummaryCardProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -23,10 +22,7 @@ export function SplitSummaryCard({ receipt, friends }: SplitSummaryCardProps) {
 
   const handleViewSplit = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({
-      pathname: "/split/details",
-      params: { receiptId: receipt.id },
-    });
+    onPress?.();
   };
 
   const iconColor = isDark ? Colors.dark.tint : Colors.light.tint;
@@ -36,9 +32,8 @@ export function SplitSummaryCard({ receipt, friends }: SplitSummaryCardProps) {
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={handleViewSplit}
-      className={`rounded-[20px] p-4 gap-1 border ${
-        isDark ? "bg-[#1A1D1E] border-white/5" : "bg-white border-black/5"
-      }`}
+      className={`rounded-[20px] p-4 gap-1 border ${isDark ? "bg-[#1A1D1E] border-white/5" : "bg-white border-black/5"
+        }`}
       style={{
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },

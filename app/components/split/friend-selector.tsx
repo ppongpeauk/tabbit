@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { View, StyleSheet, TextInput } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
 import { CheckboxButton } from "@/components/ui/checkbox-button";
 import type { Friend } from "@/utils/storage";
+import { useAuth } from "@/contexts/auth-context";
 
 interface FriendSelectorProps {
   friends: Friend[];
@@ -11,6 +13,7 @@ interface FriendSelectorProps {
   onToggleFriend: (friendId: string) => void;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  tempPeople?: Record<string, string>;
 }
 
 export function FriendSelector({
@@ -19,12 +22,40 @@ export function FriendSelector({
   onToggleFriend,
   searchQuery = "",
   onSearchChange,
+  tempPeople = {},
 }: FriendSelectorProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { user } = useAuth();
 
-  const filteredFriends = friends.filter((friend) =>
-    friend.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const allPeople = useMemo(() => {
+    const people: Array<{ id: string; name: string; phoneNumber?: string; email?: string }> = [...friends];
+
+    if (user && selectedFriendIds.includes(user.id)) {
+      const userInFriends = friends.some((f) => f.id === user.id);
+      if (!userInFriends) {
+        people.unshift({
+          id: user.id,
+          name: user.name || "You",
+          email: user.email,
+        });
+      }
+    }
+
+    Object.entries(tempPeople).forEach(([tempId, name]) => {
+      if (selectedFriendIds.includes(tempId)) {
+        people.push({
+          id: tempId,
+          name,
+        });
+      }
+    });
+
+    return people;
+  }, [friends, user, selectedFriendIds, tempPeople]);
+
+  const filteredFriends = allPeople.filter((person) =>
+    person.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const hasResults = filteredFriends.length > 0;
@@ -75,16 +106,16 @@ export function FriendSelector({
               >
                 People
               </ThemedText>
-              {filteredFriends.map((friend) => {
-                const isSelected = selectedFriendIds.includes(friend.id);
+              {filteredFriends.map((person) => {
+                const isSelected = selectedFriendIds.includes(person.id);
                 return (
                   <CheckboxButton
-                    key={friend.id}
-                    id={friend.id}
-                    label={friend.name}
-                    subtitle={friend.phoneNumber || friend.email}
+                    key={person.id}
+                    id={person.id}
+                    label={person.name}
+                    subtitle={person.phoneNumber || person.email}
                     isSelected={isSelected}
-                    onPress={() => onToggleFriend(friend.id)}
+                    onPress={() => onToggleFriend(person.id)}
                   />
                 );
               })}

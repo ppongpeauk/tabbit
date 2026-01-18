@@ -1,12 +1,12 @@
-import { View, StyleSheet, type ViewStyle } from "react-native";
+import { View, type ViewStyle } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
-import { SymbolView } from "expo-symbols";
+import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import type { ReactNode } from "react";
 
 interface EmptyStateProps {
-  icon?: string | ReactNode;
+  icon?: SymbolViewProps["name"] | ReactNode;
   title: string;
   subtitle?: string;
   action?: ReactNode;
@@ -24,12 +24,12 @@ export function EmptyState({
   const isDark = colorScheme === "dark";
 
   return (
-    <View style={[styles.container, style]}>
+    <View className="flex-1 justify-center items-center py-10 px-5" style={style}>
       {icon && (
-        <View style={styles.iconContainer}>
+        <View className="mb-4">
           {typeof icon === "string" ? (
             <SymbolView
-              name={icon}
+              name={icon as SymbolViewProps["name"]}
               tintColor={isDark ? Colors.dark.icon : Colors.light.icon}
               size={48}
             />
@@ -38,50 +38,22 @@ export function EmptyState({
           )}
         </View>
       )}
-      <ThemedText size="lg" weight="semibold" style={styles.title}>
+      <ThemedText size="lg" weight="semibold" className="text-center mb-0">
         {title}
       </ThemedText>
       {subtitle && (
         <ThemedText
           size="base"
-          style={[
-            styles.subtitle,
-            {
-              color: isDark ? Colors.dark.icon : Colors.light.icon,
-            },
-          ]}
+          className="text-center opacity-70"
+          style={{
+            color: isDark ? Colors.dark.icon : Colors.light.icon,
+          }}
         >
           {subtitle}
         </ThemedText>
       )}
-      {action && <View style={styles.actionContainer}>{action}</View>}
+      {action && <View className="mt-6 w-full max-w-[300px]">{action}</View>}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-  },
-  iconContainer: {
-    marginBottom: 16,
-  },
-  title: {
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  subtitle: {
-    textAlign: "center",
-    opacity: 0.7,
-  },
-  actionContainer: {
-    marginTop: 24,
-    width: "100%",
-    maxWidth: 300,
-  },
-});
 

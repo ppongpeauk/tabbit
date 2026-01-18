@@ -177,7 +177,7 @@ export default function CreateReceiptScreen() {
   // Handle back button with confirmation if form is dirty
   useFocusEffect(
     useCallback(() => {
-      const onBeforeRemove = (e: any) => {
+      const onBeforeRemove = (e: { preventDefault: () => void; data: { action: unknown } }) => {
         // Allow navigation if we're saving (intentional navigation)
         if (isSavingRef.current) {
           isSavingRef.current = false;

@@ -58,7 +58,7 @@
     "posthog-react-native-session-replay": "^1.2.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-hook-form": "^7.66.1",
+    "react-hook-form": "^7.71.1",
     "react-native": "0.81.5",
     "react-native-barcode-creator": "^0.1.8",
     "react-native-context-menu-view": "^1.20.0",

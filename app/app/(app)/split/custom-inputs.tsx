@@ -22,7 +22,9 @@ import { useFriends } from "@/hooks/use-friends";
 import { formatCurrency } from "@/utils/format";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { calculateProportionalTaxTip } from "@/utils/split";
+import { SplitProgressBar } from "@/components/split-progress-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/contexts/auth-context";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
 
@@ -30,6 +32,7 @@ export default function CustomInputsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
@@ -41,6 +44,8 @@ export default function CustomInputsScreen() {
     groupId?: string;
     strategy: string;
     selectedFriendIds: string[];
+    includeYourself?: boolean;
+    tempPeople?: Record<string, string>;
   } | null>(null);
   const [receiptId, setReceiptId] = useState<string | undefined>(undefined);
 
@@ -91,8 +96,14 @@ export default function CustomInputsScreen() {
   const isLoading = loading || isLoadingReceipt || isLoadingFriends;
 
   const getPersonName = (friendId: string): string => {
-    const friend = friends.find((f) => f.id === friendId);
-    return friend?.name || "Unknown";
+    if (user && friendId === user.id) {
+      return user.name || "You";
+    }
+    if (splitData?.tempPeople && splitData.tempPeople[friendId]) {
+      return splitData.tempPeople[friendId];
+    }
+    const friend = friends.find((f) => f.friendId === friendId);
+    return friend?.friendName || "Unknown";
   };
 
   const validateAmounts = (): boolean => {
@@ -220,6 +231,11 @@ export default function CustomInputsScreen() {
           : Colors.light.background,
       }}
     >
+      <SplitProgressBar
+        currentStage={3}
+        totalStages={4}
+        stageLabels={["Method", "People", "Amounts", "Review"]}
+      />
       <ScrollView
         contentContainerClassName="px-5 py-4 gap-4"
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}

@@ -20,7 +20,6 @@ import {
   Image,
 } from "react-native";
 import * as Linking from "expo-linking";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -48,11 +47,11 @@ import {
   useAddressHandler,
   MerchantDetailsSheet,
 } from "@/components/receipt-detail";
+import { SplitDetailsSheet } from "@/app/(app)/split/details";
+import { SplitFlowSheet } from "@/components/split/split-flow-sheet";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
-import type { StoredReceipt } from "@/utils/storage";
-import type { Friend } from "@/utils/api";
+import type { StoredReceipt, Friend as StorageFriend } from "@/utils/storage";
 import { getReceiptPhotoUrl } from "@/utils/storage";
-import { Toolbar, ToolbarButton } from "@/components/toolbar";
 import { SymbolView } from "expo-symbols";
 import { AppleMaps } from "expo-maps";
 import * as Location from "expo-location";
@@ -468,15 +467,17 @@ function ReceiptContent({
   onScanBarcode,
   isDark,
   onMerchantPress,
+  onViewSplit,
 }: {
   receipt: StoredReceipt;
-  friends: Friend[];
+  friends: StorageFriend[];
   showRawReturnText: boolean;
   onToggleFormat: () => void;
   onShare: () => void;
   onScanBarcode: () => void;
   isDark: boolean;
   onMerchantPress: () => void;
+  onViewSplit?: () => void;
 }) {
   return (
     <ScrollView
@@ -638,7 +639,11 @@ function ReceiptContent({
       {/* Split Summary */}
       {receipt.splitData ? (
         <View className="px-6 mb-4">
-          <SplitSummaryCard receipt={receipt} friends={friends} />
+          <SplitSummaryCard
+            receipt={receipt}
+            friends={friends}
+            onPress={onViewSplit}
+          />
         </View>
       ) : null}
 
@@ -736,7 +741,8 @@ export default function ReceiptDetailScreen() {
   const barcodeModalRef = useRef<TrueSheet>(null);
   const shareBottomSheetRef = useRef<TrueSheet>(null);
   const merchantDetailsSheetRef = useRef<TrueSheet>(null);
-  const insets = useSafeAreaInsets();
+  const splitDetailsSheetRef = useRef<TrueSheet>(null);
+  const splitFlowSheetRef = useRef<TrueSheet>(null);
 
   // React Query hooks
   const {
@@ -873,11 +879,8 @@ export default function ReceiptDetailScreen() {
 
   const handleSplit = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({
-      pathname: "/split/details",
-      params: { receiptId: id },
-    });
-  }, [id]);
+    splitDetailsSheetRef.current?.present();
+  }, []);
 
   const toggleReturnTextFormat = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -952,6 +955,7 @@ export default function ReceiptDetailScreen() {
           onScanBarcode={handleScanBarcode}
           isDark={isDark}
           onMerchantPress={handleMerchantPress}
+          onViewSplit={() => splitDetailsSheetRef.current?.present()}
         />
       </ThemedView>
       {/* <Toolbar bottom={insets.bottom}>
@@ -986,6 +990,20 @@ export default function ReceiptDetailScreen() {
         receipt={receipt}
         onClose={() => { }}
       />
+      {receipt && (
+        <>
+          <SplitDetailsSheet
+            bottomSheetRef={splitDetailsSheetRef}
+            receiptId={receipt.id}
+            onEdit={() => splitFlowSheetRef.current?.present()}
+          />
+          <SplitFlowSheet
+            bottomSheetRef={splitFlowSheetRef}
+            receiptId={receipt.id}
+            onComplete={() => { }}
+          />
+        </>
+      )}
     </View>
   );
 }

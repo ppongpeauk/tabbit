@@ -13,7 +13,7 @@ import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import { useReceipt, useUpdateReceipt } from "@/hooks/use-receipts";
 import { useFriends } from "@/hooks/use-friends";
-import type { Friend } from "@/utils/storage";
+import type { Friend } from "@/utils/api";
 import {
   SplitStrategy,
   validateSplit,
@@ -22,20 +22,32 @@ import {
   type ItemAssignment,
 } from "@/utils/split";
 import { SplitSummary } from "@/components/split/split-summary";
+import { SplitProgressBar } from "@/components/split-progress-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/contexts/auth-context";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
 
 function buildPeopleMap(
   friendIds: string[],
-  friends: Friend[]
+  friends: Friend[],
+  currentUser?: { id: string; name: string } | null,
+  tempPeople?: Record<string, string>
 ): Record<string, string> {
   const map: Record<string, string> = {};
   friendIds.forEach((friendId) => {
-    const friend = friends.find((item) => item.id === friendId);
+    if (currentUser && friendId === currentUser.id) {
+      map[friendId] = currentUser.name || "You";
+      return;
+    }
+    if (tempPeople && tempPeople[friendId]) {
+      map[friendId] = tempPeople[friendId];
+      return;
+    }
+    const friend = friends.find((item) => item.friendId === friendId);
     if (friend) {
-      map[friendId] = friend.name;
+      map[friendId] = friend.friendName;
     }
   });
   return map;
@@ -45,6 +57,7 @@ export default function ReviewScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [splitData, setSplitData] = useState<{
@@ -52,7 +65,9 @@ export default function ReviewScreen() {
     groupId?: string;
     strategy: SplitStrategy | string;
     selectedFriendIds: string[];
+    includeYourself?: boolean;
     assignments?: ItemAssignment[];
+    tempPeople?: Record<string, string>;
     calculatedSplit?: {
       friendShares: Record<string, number>;
       taxDistribution: Record<string, number>;
@@ -64,7 +79,6 @@ export default function ReviewScreen() {
     useState<SplitData | null>(null);
   const [receiptId, setReceiptId] = useState<string | undefined>(undefined);
 
-  // Use React Query hooks
   const { data: receipt, isLoading: isLoadingReceipt } = useReceipt(receiptId);
   const { data: friends = [], isLoading: isLoadingFriends } = useFriends();
   const updateReceiptMutation = useUpdateReceipt();
@@ -98,7 +112,9 @@ export default function ReviewScreen() {
           totals: tempData.calculatedSplit.totals,
           people: buildPeopleMap(
             tempData.selectedFriendIds || [],
-            friends
+            friends,
+            user,
+            tempData.tempPeople
           ),
         };
         setCalculatedSplitData(completeSplit);
@@ -109,13 +125,12 @@ export default function ReviewScreen() {
     } finally {
       setLoading(false);
     }
-  }, [friends]);
+  }, [friends, user]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Calculate split for EQUAL strategy if not already calculated
   useEffect(() => {
     const calculateEqualSplit = async () => {
       if (
@@ -139,11 +154,12 @@ export default function ReviewScreen() {
           );
           const people = buildPeopleMap(
             splitData.selectedFriendIds,
-            friends
+            friends,
+            user,
+            splitData.tempPeople
           );
           setCalculatedSplitData({ ...calculatedSplit, people });
 
-          // Save the calculated split back to AsyncStorage for consistency
           await AsyncStorage.setItem(
             SPLIT_DATA_KEY,
             JSON.stringify({
@@ -162,7 +178,7 @@ export default function ReviewScreen() {
     };
 
     calculateEqualSplit();
-  }, [receipt, splitData, calculatedSplitData, friends]);
+  }, [receipt, splitData, calculatedSplitData, friends, user]);
 
   const handleSend = useCallback(async () => {
     if (!receipt || !calculatedSplitData || !splitData) {
@@ -186,8 +202,6 @@ export default function ReviewScreen() {
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    if (!receipt) return;
 
     updateReceiptMutation.mutate(
       {
@@ -267,6 +281,11 @@ export default function ReviewScreen() {
           : Colors.light.background,
       }}
     >
+      <SplitProgressBar
+        currentStage={4}
+        totalStages={4}
+        stageLabels={["Method", "People", "Amounts", "Review"]}
+      />
       <ScrollView
         contentContainerClassName="px-5 py-4 gap-4"
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
@@ -285,7 +304,6 @@ export default function ReviewScreen() {
         </View>
       </ScrollView>
 
-      {/* Send Button */}
       <View
         className="absolute bottom-0 left-0 right-0 px-5 pt-4 border-t"
         style={{
@@ -305,5 +323,3 @@ export default function ReviewScreen() {
     </View>
   );
 }
-
-// Styles removed in favor of Tailwind CSS (NativeWind)

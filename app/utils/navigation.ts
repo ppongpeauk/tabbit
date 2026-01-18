@@ -60,7 +60,6 @@ export const AppRoutes = {
   splitCustomInputs: "/(app)/split/custom-inputs",
   splitItemizedAssign: "/(app)/split/itemized-assign",
   splitReview: "/(app)/split/review",
-  splitSent: "/(app)/split/sent",
   groupDetail: (id: string) => `/(app)/(tabs)/(groups)/${id}`,
   groupEdit: (id: string) => `/(app)/(tabs)/(groups)/${id}/edit`,
   groupDetails: (id: string) => `/(app)/(tabs)/(groups)/${id}/details`,

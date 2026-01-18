@@ -12,6 +12,7 @@ export default function SplitLayout() {
       screenOptions={{
         ...getHeaderScreenOptions(colorScheme),
         presentation: "formSheet",
+        headerShadowVisible: false,
       }}
     >
       <Stack.Screen
@@ -84,20 +85,6 @@ export default function SplitLayout() {
               <SymbolView name="xmark" />
             </HeaderButton>
           ),
-        }}
-      />
-      <Stack.Screen
-        name="sending"
-        options={{
-          title: "Sending",
-          presentation: "card",
-        }}
-      />
-      <Stack.Screen
-        name="sent"
-        options={{
-          title: "Sent",
-          presentation: "card",
         }}
       />
     </Stack>

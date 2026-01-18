@@ -19,6 +19,7 @@ import {
   calculateSplit,
 } from "@/utils/split";
 import { ItemAssignment as ItemAssignmentComponent } from "@/components/split/item-assignment";
+import { SplitProgressBar } from "@/components/split-progress-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -37,6 +38,7 @@ export default function ItemizedAssignScreen() {
     groupId?: string;
     strategy: SplitStrategy | string;
     selectedFriendIds: string[];
+    tempPeople?: Record<string, string>;
   } | null>(null);
   const [receiptId, setReceiptId] = useState<string | undefined>(undefined);
 
@@ -191,6 +193,11 @@ export default function ItemizedAssignScreen() {
           : Colors.light.background,
       }}
     >
+      <SplitProgressBar
+        currentStage={3}
+        totalStages={4}
+        stageLabels={["Method", "People", "Amounts", "Review"]}
+      />
       <ScrollView
         contentContainerClassName="px-5 py-4 gap-4"
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
@@ -235,6 +242,7 @@ export default function ItemizedAssignScreen() {
                   )
                 }
                 currency={receipt.totals.currency}
+                tempPeople={splitData?.tempPeople}
               />
             );
           })}

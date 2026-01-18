@@ -98,7 +98,7 @@ export const FormTextInput = forwardRef<TextInput, FormTextInputProps>(
     );
 
     const handleBlur = useCallback(
-      (e: any) => {
+      () => {
         // Validate min/max only on blur
         if (numericOnly && value !== undefined && value !== "") {
           const numValue = parseFloat(value);

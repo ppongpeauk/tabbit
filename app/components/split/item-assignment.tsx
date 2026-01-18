@@ -8,6 +8,7 @@ import { formatCurrency } from "@/utils/format";
 import { FriendSelector } from "./friend-selector";
 import type { Friend } from "@/utils/storage";
 import type { ReceiptItem } from "@/utils/api";
+import { useAuth } from "@/contexts/auth-context";
 
 interface ItemAssignmentProps {
   item: ReceiptItem;
@@ -18,6 +19,7 @@ interface ItemAssignmentProps {
   onFriendIdsChange: (friendIds: string[]) => void;
   onQuantitiesChange?: (quantities: number[]) => void;
   currency: string;
+  tempPeople?: Record<string, string>;
 }
 
 export function ItemAssignment({
@@ -29,9 +31,11 @@ export function ItemAssignment({
   onFriendIdsChange,
   onQuantitiesChange,
   currency,
+  tempPeople = {},
 }: ItemAssignmentProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { user } = useAuth();
   const [showDetails, setShowDetails] = useState(false);
 
   const canSplitQuantities = item.quantity > 1 && onQuantitiesChange;
@@ -130,6 +134,7 @@ export function ItemAssignment({
             friends={friends}
             selectedFriendIds={selectedFriendIds}
             onToggleFriend={handleToggleFriend}
+            tempPeople={tempPeople}
           />
 
           {selectedFriendIds.length > 0 && (
@@ -142,8 +147,15 @@ export function ItemAssignment({
                 Split breakdown
               </ThemedText>
               {selectedFriendIds.map((friendId, index) => {
-                const friend = friends.find((f) => f.id === friendId);
-                const personName = friend?.name || "Unknown";
+                let personName = "Unknown";
+                if (user && friendId === user.id) {
+                  personName = user.name || "You";
+                } else if (tempPeople && tempPeople[friendId]) {
+                  personName = tempPeople[friendId];
+                } else {
+                  const friend = friends.find((f) => f.id === friendId);
+                  personName = friend?.name || "Unknown";
+                }
                 const quantity = quantities?.[index] || 1;
                 const share = calculateShare(index);
 

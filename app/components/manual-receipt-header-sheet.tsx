@@ -40,7 +40,7 @@ export function ManualReceiptHeaderSheet({
       backgroundColor={
         isDark ? Colors.dark.background : Colors.light.background
       }
-      cornerRadius={24}
+
       scrollable
     >
       <ScrollView

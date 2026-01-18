@@ -11,6 +11,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
 import { CheckboxButton } from "@/components/ui/checkbox-button";
 import { useFriends } from "@/hooks/use-friends";
+import { EmptyState } from "@/components/empty-state";
 
 export interface PersonItem {
   id: string;
@@ -21,10 +22,11 @@ export interface PersonItem {
 }
 
 export interface AddPeopleSelectorProps {
-  name: string; // React Hook Form field name
+  name: string;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
   control?: Control;
+  tempPeople?: Record<string, string>;
 }
 
 export function AddPeopleSelector({
@@ -32,6 +34,7 @@ export function AddPeopleSelector({
   searchQuery = "",
   onSearchChange,
   control: externalControl,
+  tempPeople = {},
 }: AddPeopleSelectorProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -52,14 +55,35 @@ export function AddPeopleSelector({
     [storedFriends]
   );
 
+  const tempPeopleItems = useMemo<PersonItem[]>(
+    () =>
+      Object.entries(tempPeople).map(([tempId, name]) => ({
+        id: tempId,
+        name,
+        type: "person",
+      })),
+    [tempPeople]
+  );
+
   const sections = useMemo(() => {
-    return [
-      {
-        title: "People",
+    const sectionsList = [];
+
+    if (peopleItems.length > 0) {
+      sectionsList.push({
+        title: "Contacts",
         data: peopleItems,
-      },
-    ].filter((section) => section.data.length > 0);
-  }, [peopleItems]);
+      });
+    }
+
+    if (tempPeopleItems.length > 0) {
+      sectionsList.push({
+        title: "Manual",
+        data: tempPeopleItems,
+      });
+    }
+
+    return sectionsList.filter((section) => section.data.length > 0);
+  }, [peopleItems, tempPeopleItems]);
 
   // Filter items by search query
   const filteredSections = useMemo(() => {
@@ -163,9 +187,37 @@ export function AddPeopleSelector({
   if (filteredSections.length === 0) {
     return (
       <View style={styles.container}>
-        <ThemedText size="sm" style={{ opacity: 0.7 }}>
-          {searchQuery ? "No people found" : "No people yet"}
-        </ThemedText>
+        {onSearchChange && (
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={[
+                styles.searchInput,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.05)"
+                    : "rgba(0, 0, 0, 0.02)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)",
+                  color: isDark ? Colors.dark.text : Colors.light.text,
+                },
+              ]}
+              placeholder="Search people..."
+              placeholderTextColor={isDark ? Colors.dark.icon : Colors.light.icon}
+              value={searchQuery}
+              onChangeText={onSearchChange}
+            />
+          </View>
+        )}
+        <EmptyState
+          icon="person.2.fill"
+          title={searchQuery ? "No people found" : "No people yet"}
+          subtitle={
+            searchQuery
+              ? "Try a different search term"
+              : "Add people to split the bill with"
+          }
+        />
       </View>
     );
   }
@@ -195,15 +247,17 @@ export function AddPeopleSelector({
         </View>
       )}
 
-      <SectionList
-        sections={filteredSections}
-        renderItem={renderItem}
-        renderSectionHeader={renderSectionHeader}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        stickySectionHeadersEnabled={false}
-      />
+      <View style={styles.listContainer}>
+        <SectionList
+          sections={filteredSections}
+          renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled={false}
+        />
+      </View>
     </View>
   );
 }
@@ -212,7 +266,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  searchContainer: {},
+  searchContainer: {
+    paddingBottom: 12,
+  },
   searchInput: {
     borderRadius: 8,
     paddingVertical: 10,
@@ -220,6 +276,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.sans,
     borderWidth: 1,
+  },
+  listContainer: {
+    flex: 1,
   },
   listContent: {
     paddingTop: 16,
