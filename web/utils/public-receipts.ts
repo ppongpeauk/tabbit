@@ -101,6 +101,8 @@ export interface SplitData {
   tipDistribution?: Record<string, number>;
   totals: Record<string, number>;
   people?: Record<string, string>;
+  statuses?: Record<string, string>; // "pending" | "settled" | "partial"
+  settledAmounts?: Record<string, number>;
 }
 
 export interface StoredReceipt {

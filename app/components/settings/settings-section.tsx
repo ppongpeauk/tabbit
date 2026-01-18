@@ -37,7 +37,7 @@ export function SettingsSection({ children }: SettingsSectionProps) {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 12,
+    borderRadius: 24,
     overflow: "hidden",
   },
 });

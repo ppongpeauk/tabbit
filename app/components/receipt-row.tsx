@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { ThemedText } from "@/components/themed-text";
 import {
   Pressable,
@@ -181,6 +181,27 @@ export function ReceiptRow({
 
   const returnDateInfo = getReturnDateInfo(receipt.returnInfo?.returnByDate);
 
+  // Calculate split settlement progress
+  const splitSettlementInfo = useMemo(() => {
+    if (!receipt.splitData) return null;
+
+    const totalOwed = Object.values(receipt.splitData.totals).reduce(
+      (sum, amount) => sum + amount,
+      0
+    );
+    const settledAmount = Object.values(
+      receipt.splitData.settledAmounts || {}
+    ).reduce((sum, amount) => sum + amount, 0);
+    const remaining = Math.max(0, totalOwed - settledAmount);
+    const progress = totalOwed > 0 ? settledAmount / totalOwed : 1;
+
+    return {
+      remaining,
+      progress,
+      totalOwed,
+    };
+  }, [receipt.splitData]);
+
   return (
     <View>
       {!isFirstInSection && (
@@ -328,6 +349,41 @@ export function ReceiptRow({
                   >
                     {returnDateInfo.text}
                   </ThemedText>
+                </View>
+              )}
+              {splitSettlementInfo && splitSettlementInfo.remaining > 0 && (
+                <View>
+                  <View className="flex-row items-center justify-between mb-2">
+                    <ThemedText
+                      size="sm"
+                      lightColor={Colors.light.icon}
+                      darkColor={Colors.dark.icon}
+                    >
+                      {formatCurrency(
+                        splitSettlementInfo.remaining,
+                        receipt.totals.currency
+                      )}{" "}
+                      left to settle up
+                    </ThemedText>
+                  </View>
+                  <View
+                    className="h-1 rounded-full overflow-hidden"
+                    style={{
+                      backgroundColor: isDark
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(0, 0, 0, 0.1)",
+                    }}
+                  >
+                    <View
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${splitSettlementInfo.progress * 100}%`,
+                        backgroundColor: isDark
+                          ? Colors.dark.tint
+                          : Colors.light.tint,
+                      }}
+                    />
+                  </View>
                 </View>
               )}
             </View>

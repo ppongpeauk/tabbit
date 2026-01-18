@@ -1,9 +1,9 @@
 /**
  * @author Pete Pongpeauk <ppongpeauk@gmail.com>
- * @description Split details bottom sheet with totals and per-item breakdowns
+ * @description Split details bottom sheet with list of people in the split
  */
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useRef, useState, useEffect } from "react";
 import { View, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { router } from "expo-router";
@@ -14,25 +14,20 @@ import { Colors } from "@/constants/theme";
 import { useReceipt } from "@/hooks/use-receipts";
 import { useFriends } from "@/hooks/use-friends";
 import { formatCurrency } from "@/utils/format";
-import { SplitStrategy, type SplitData } from "@/utils/split";
-import type { ReceiptItem } from "@/utils/api";
+import { SplitStatus } from "@/utils/split";
 import type { StoredReceipt, Friend as StorageFriend } from "@/utils/storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
-import { CircularProgress } from "@/components/circular-progress";
 import { PersonAvatar } from "@/components/avatar";
 import { useAuth } from "@/contexts/auth-context";
 import { EmptyState } from "@/components/empty-state";
+import { CircularProgress } from "@/components/circular-progress";
+import { PersonSplitDetailsSheet } from "@/components/split/person-split-details-sheet";
 import type React from "react";
 
-type ItemBreakdown = {
-  item: ReceiptItem;
-  shares: Record<string, number>;
-};
-
 function buildPeopleLookup(
-  splitData: SplitData,
+  splitData: { people?: Record<string, string> },
   friends: StorageFriend[],
   currentUser?: { id: string; name: string } | null
 ): Record<string, string> {
@@ -49,69 +44,6 @@ function buildPeopleLookup(
   });
 
   return map;
-}
-
-function buildItemBreakdowns(
-  receipt: StoredReceipt,
-  splitData: SplitData
-): ItemBreakdown[] {
-  const peopleIds = Object.keys(splitData.totals);
-  if (peopleIds.length === 0) return [];
-
-  const baseShares = splitData.friendShares;
-  const totalBase = Object.values(baseShares).reduce(
-    (sum, amount) => sum + amount,
-    0
-  );
-
-  return receipt.items.map((item, index) => {
-    const itemId = item.id || index.toString();
-    const assignment = splitData.assignments.find(
-      (entry) => entry.itemId === itemId
-    );
-    const shares: Record<string, number> = {};
-
-    if (
-      splitData.strategy === SplitStrategy.ITEMIZED &&
-      assignment &&
-      assignment.friendIds.length > 0
-    ) {
-      const friendIds = assignment.friendIds;
-      if (
-        assignment.quantities &&
-        assignment.quantities.length === friendIds.length
-      ) {
-        const totalQuantity = assignment.quantities.reduce(
-          (sum, qty) => sum + qty,
-          0
-        );
-        friendIds.forEach((friendId, friendIndex) => {
-          const quantity = assignment.quantities![friendIndex] || 0;
-          shares[friendId] =
-            totalQuantity > 0
-              ? (item.totalPrice * quantity) / totalQuantity
-              : 0;
-        });
-      } else {
-        const perFriend = item.totalPrice / friendIds.length;
-        friendIds.forEach((friendId) => {
-          shares[friendId] = perFriend;
-        });
-      }
-    } else if (totalBase > 0) {
-      peopleIds.forEach((personId) => {
-        const ratio = (baseShares[personId] || 0) / totalBase;
-        shares[personId] = item.totalPrice * ratio;
-      });
-    } else {
-      const perPerson = item.totalPrice / peopleIds.length;
-      peopleIds.forEach((personId) => {
-        shares[personId] = perPerson;
-      });
-    }
-
-    return { item, shares };
-  });
 }
 
 interface SplitDetailsSheetProps {
@@ -132,17 +64,15 @@ export function SplitDetailsSheet({
 
   const { data: receipt, isLoading } = useReceipt(receiptId);
   const { data: friends = [], isLoading: isLoadingFriends } = useFriends();
+  const personDetailsSheetRef = useRef<TrueSheet | null>(null);
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const lastPresentedPersonIdRef = useRef<string | null>(null);
 
   const splitData = receipt?.splitData;
 
   const peopleLookup = useMemo(
     () => (splitData ? buildPeopleLookup(splitData, friends, user) : {}),
     [splitData, friends, user]
-  );
-
-  const itemBreakdowns = useMemo(
-    () => (receipt && splitData ? buildItemBreakdowns(receipt, splitData) : []),
-    [receipt, splitData]
   );
 
   const progress = useMemo(() => {
@@ -152,7 +82,10 @@ export function SplitDetailsSheet({
       (sum, amount) => sum + amount,
       0
     );
-    const settledAmount = 0;
+    const settledAmount = Object.values(splitData.settledAmounts || {}).reduce(
+      (sum, amount) => sum + amount,
+      0
+    );
     const remaining = Math.max(0, totalOwed - settledAmount);
     return totalOwed > 0 ? 1 - remaining / totalOwed : 1;
   }, [splitData, receipt]);
@@ -163,7 +96,10 @@ export function SplitDetailsSheet({
       (sum, amount) => sum + amount,
       0
     );
-    const settledAmount = 0;
+    const settledAmount = Object.values(splitData.settledAmounts || {}).reduce(
+      (sum, amount) => sum + amount,
+      0
+    );
     return Math.max(0, totalOwed - settledAmount);
   }, [splitData]);
 
@@ -193,6 +129,38 @@ export function SplitDetailsSheet({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     bottomSheetRef.current?.dismiss();
   }, [bottomSheetRef]);
+
+  const handlePersonPress = useCallback(
+    (personId: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setSelectedPersonId(personId);
+
+      if (personId === lastPresentedPersonIdRef.current) {
+        lastPresentedPersonIdRef.current = null;
+        personDetailsSheetRef.current?.dismiss();
+        requestAnimationFrame(() => {
+          lastPresentedPersonIdRef.current = personId;
+          personDetailsSheetRef.current?.present();
+        });
+      } else {
+        lastPresentedPersonIdRef.current = personId;
+        requestAnimationFrame(() => {
+          personDetailsSheetRef.current?.present();
+        });
+      }
+    },
+    []
+  );
+
+  const handlePersonDetailsStatusChange = useCallback(() => {
+    // Don't clear selectedPersonId - just let React Query refetch update the data
+    // The sheet should stay open and show updated data
+  }, []);
+
+  const handlePersonDetailsDismiss = useCallback(() => {
+    setSelectedPersonId(null);
+    lastPresentedPersonIdRef.current = null;
+  }, []);
 
   return (
     <TrueSheet
@@ -254,6 +222,7 @@ export function SplitDetailsSheet({
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled
           >
+            {/* Progress Card */}
             <View
               className="rounded-[20px] p-5 border items-center gap-4"
               style={{
@@ -283,244 +252,141 @@ export function SplitDetailsSheet({
               </View>
             </View>
 
-            <View
-              className="rounded-[20px] p-5 border"
-              style={{
-                backgroundColor: isDark ? Colors.dark.surface : "#FFFFFF",
-                borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : "rgba(0, 0, 0, 0.05)",
-              }}
-            >
-              <ThemedText size="base" weight="semibold" className="mb-3">
-                Who owes how much
-              </ThemedText>
+            {/* People List */}
+            {splitData ? (
+              <View className="gap-3">
+                {Object.keys(splitData.totals).map((personId) => {
+                  const total = splitData.totals[personId] || 0;
+                  const status = splitData.statuses?.[personId] || SplitStatus.PENDING;
+                  const settledAmount = splitData.settledAmounts?.[personId] || 0;
+                  const isSettled = status === SplitStatus.SETTLED;
+                  const isPartial = status === SplitStatus.PARTIAL;
+                  const personName = peopleLookup[personId] || "Unknown";
 
-              {splitData ? (
-                <View className="gap-4">
-                  {Object.keys(splitData.totals).map((personId) => {
-                    const baseAmount = splitData.friendShares[personId] || 0;
-                    const taxAmount = splitData.taxDistribution[personId] || 0;
-                    const tipAmount = splitData.tipDistribution?.[personId] || 0;
-                    const total = splitData.totals[personId] || 0;
+                  const statusColor =
+                    isSettled
+                      ? "#10b981"
+                      : isPartial
+                        ? "#f59e0b"
+                        : "#eab308";
 
-                    return (
-                      <View
-                        key={personId}
-                        className="border-b pb-4 last:border-b-0"
-                        style={{
-                          borderBottomColor: isDark
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "rgba(0, 0, 0, 0.1)",
-                        }}
-                      >
-                        <View className="flex-row items-center justify-between mb-2">
-                          <View className="flex-row items-center gap-3 flex-1">
-                            <PersonAvatar
-                              personId={personId}
-                              name={peopleLookup[personId] || "Unknown"}
-                              friends={friends}
-                              size={40}
-                            />
-                            <ThemedText size="base" weight="semibold">
-                              {peopleLookup[personId] || "Unknown"}
-                            </ThemedText>
-                          </View>
-                          <ThemedText size="base" weight="bold">
-                            {formatCurrency(total, receipt.totals.currency)}
-                          </ThemedText>
-                        </View>
-                        <View className="gap-1">
-                          <View className="flex-row items-center justify-between">
-                            <ThemedText
-                              size="sm"
-                              style={{
-                                color: isDark
-                                  ? Colors.dark.icon
-                                  : Colors.light.icon,
-                              }}
-                            >
-                              Base
-                            </ThemedText>
-                            <ThemedText
-                              size="sm"
-                              style={{
-                                color: isDark
-                                  ? Colors.dark.icon
-                                  : Colors.light.icon,
-                              }}
-                            >
-                              {formatCurrency(baseAmount, receipt.totals.currency)}
-                            </ThemedText>
-                          </View>
-                          {taxAmount > 0 && (
-                            <View className="flex-row items-center justify-between">
-                              <ThemedText
-                                size="sm"
-                                style={{
-                                  color: isDark
-                                    ? Colors.dark.icon
-                                    : Colors.light.icon,
-                                }}
-                              >
-                                Tax
-                              </ThemedText>
-                              <ThemedText
-                                size="sm"
-                                style={{
-                                  color: isDark
-                                    ? Colors.dark.icon
-                                    : Colors.light.icon,
-                                }}
-                              >
-                                {formatCurrency(taxAmount, receipt.totals.currency)}
-                              </ThemedText>
-                            </View>
-                          )}
-                          {tipAmount > 0 && (
-                            <View className="flex-row items-center justify-between">
-                              <ThemedText
-                                size="sm"
-                                style={{
-                                  color: isDark
-                                    ? Colors.dark.icon
-                                    : Colors.light.icon,
-                                }}
-                              >
-                                Tip
-                              </ThemedText>
-                              <ThemedText
-                                size="sm"
-                                style={{
-                                  color: isDark
-                                    ? Colors.dark.icon
-                                    : Colors.light.icon,
-                                }}
-                              >
-                                {formatCurrency(tipAmount, receipt.totals.currency)}
-                              </ThemedText>
-                            </View>
-                          )}
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              ) : (
-                <View className="gap-2">
-                  <ThemedText size="sm" style={{ opacity: 0.7 }}>
-                    The split isn&apos;t configured yet.
-                  </ThemedText>
-                  <Button variant="primary" onPress={handleConfigureSplit}>
-                    Configure Split
-                  </Button>
-                </View>
-              )}
-            </View>
+                  const statusLabel =
+                    isSettled
+                      ? "SETTLED"
+                      : isPartial
+                        ? "PARTIAL"
+                        : "PENDING";
 
-            <View
-              className="rounded-[20px] p-5 border"
-              style={{
-                backgroundColor: isDark ? Colors.dark.surface : "#FFFFFF",
-                borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : "rgba(0, 0, 0, 0.05)",
-              }}
-            >
-              <ThemedText size="base" weight="semibold" className="mb-3">
-                Per-item breakdown
-              </ThemedText>
-
-              {splitData ? (
-                <View className="gap-4">
-                  {itemBreakdowns.map((breakdown, index) => (
-                    <View
-                      key={breakdown.item.id || `${breakdown.item.name}-${index}`}
-                      className="border-b pb-4 last:border-b-0"
+                  return (
+                    <TouchableOpacity
+                      key={personId}
+                      activeOpacity={0.7}
+                      onPress={() => handlePersonPress(personId)}
+                      className="rounded-[20px] p-4 border"
                       style={{
-                        borderBottomColor: isDark
-                          ? "rgba(255, 255, 255, 0.1)"
-                          : "rgba(0, 0, 0, 0.1)",
+                        backgroundColor: isDark ? Colors.dark.surface : "#FFFFFF",
+                        borderColor: isDark
+                          ? "rgba(255, 255, 255, 0.05)"
+                          : "rgba(0, 0, 0, 0.05)",
                       }}
                     >
-                      <View className="flex-row items-center justify-between mb-2">
-                        <View className="flex-1 pr-4">
+                      <View className="flex-row items-center gap-3">
+                        <View className="relative">
+                          <PersonAvatar
+                            personId={personId}
+                            name={personName}
+                            friends={friends}
+                            size={48}
+                          />
+                          <View
+                            className="absolute bottom-0 right-0 w-5 h-5 rounded-full items-center justify-center border-2"
+                            style={{
+                              backgroundColor: statusColor,
+                              borderColor: isDark
+                                ? Colors.dark.surface
+                                : "#FFFFFF",
+                            }}
+                          >
+                            <SymbolView
+                              name={isSettled ? "checkmark" : "clock"}
+                              tintColor="#FFFFFF"
+                              size={10}
+                            />
+                          </View>
+                        </View>
+                        <View className="flex-1">
                           <ThemedText size="base" weight="semibold">
-                            {breakdown.item.name}
+                            {personName}
                           </ThemedText>
+                          <View className="flex-row items-center gap-2 mt-1">
+                            <View
+                              className="px-2 py-0.5 rounded-full"
+                              style={{ backgroundColor: statusColor }}
+                            >
+                              <ThemedText
+                                size="xs"
+                                weight="semibold"
+                                style={{ color: "#FFFFFF" }}
+                              >
+                                {statusLabel}
+                              </ThemedText>
+                            </View>
+                          </View>
                           <ThemedText
                             size="sm"
+                            className="mt-1"
                             style={{
                               color: isDark ? Colors.dark.icon : Colors.light.icon,
                             }}
                           >
-                            {breakdown.item.quantity} ×{" "}
-                            {formatCurrency(
-                              breakdown.item.unitPrice,
-                              receipt.totals.currency
-                            )}
+                            {isSettled
+                              ? `Paid ${formatCurrency(total, receipt.totals.currency)}`
+                              : `Owes ${formatCurrency(total, receipt.totals.currency)}`}
                           </ThemedText>
                         </View>
-                        <ThemedText size="base" weight="bold">
-                          {formatCurrency(
-                            breakdown.item.totalPrice,
-                            receipt.totals.currency
-                          )}
-                        </ThemedText>
+                        <View className="flex-row items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant={isSettled ? "secondary" : "primary"}
+                            onPress={() => handlePersonPress(personId)}
+                          >
+                            {isSettled ? "Details" : "Remind"}
+                          </Button>
+                          <SymbolView
+                            name="chevron.down"
+                            tintColor={
+                              isDark ? Colors.dark.icon : Colors.light.icon
+                            }
+                            size={16}
+                          />
+                        </View>
                       </View>
-                      <View className="gap-2">
-                        {Object.entries(breakdown.shares).map(
-                          ([personId, amount]) => (
-                            <View
-                              key={`${breakdown.item.name}-${personId}`}
-                              className="flex-row items-center justify-between"
-                            >
-                              <View className="flex-row items-center gap-2 flex-1">
-                                <PersonAvatar
-                                  personId={personId}
-                                  name={peopleLookup[personId] || "Unknown"}
-                                  friends={friends}
-                                  size={24}
-                                />
-                                <ThemedText
-                                  size="sm"
-                                  style={{
-                                    color: isDark
-                                      ? Colors.dark.icon
-                                      : Colors.light.icon,
-                                  }}
-                                >
-                                  {peopleLookup[personId] || "Unknown"}
-                                </ThemedText>
-                              </View>
-                              <ThemedText
-                                size="sm"
-                                style={{
-                                  color: isDark
-                                    ? Colors.dark.icon
-                                    : Colors.light.icon,
-                                }}
-                              >
-                                {formatCurrency(amount, receipt.totals.currency)}
-                              </ThemedText>
-                            </View>
-                          )
-                        )}
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <View className="gap-2">
-                  <ThemedText size="sm" style={{ opacity: 0.7 }}>
-                    Configure a split to see item-by-item details.
-                  </ThemedText>
-                </View>
-              )}
-            </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : (
+              <View className="gap-2">
+                <ThemedText size="sm" style={{ opacity: 0.7 }}>
+                  The split isn&apos;t configured yet.
+                </ThemedText>
+                <Button variant="primary" onPress={handleConfigureSplit}>
+                  Configure Split
+                </Button>
+              </View>
+            )}
           </ScrollView>
         )}
       </View>
+      {receipt && (
+        <PersonSplitDetailsSheet
+          bottomSheetRef={personDetailsSheetRef}
+          receiptId={receipt.id}
+          personId={selectedPersonId || ""}
+          onStatusChange={handlePersonDetailsStatusChange}
+          onDismiss={handlePersonDetailsDismiss}
+        />
+      )}
     </TrueSheet>
   );
 }

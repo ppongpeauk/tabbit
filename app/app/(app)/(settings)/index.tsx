@@ -280,7 +280,7 @@ export default function SettingsScreen() {
 
     return (
       <View
-        className="rounded-xl overflow-hidden"
+        className="rounded-3xl overflow-hidden"
         style={{
           backgroundColor:
             colorScheme === "dark"

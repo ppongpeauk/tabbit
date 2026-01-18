@@ -13,6 +13,12 @@ export interface ItemAssignment {
   quantities?: number[]; // Optional: quantities per friend (for partial quantities)
 }
 
+export enum SplitStatus {
+  PENDING = "pending",
+  SETTLED = "settled",
+  PARTIAL = "partial",
+}
+
 export interface SplitData {
   strategy: SplitStrategy;
   assignments: ItemAssignment[];
@@ -21,6 +27,8 @@ export interface SplitData {
   tipDistribution?: Record<string, number>; // friendId -> tip amount
   totals: Record<string, number>; // friendId -> total owed
   people?: Record<string, string>; // friendId -> display name
+  statuses?: Record<string, SplitStatus>; // friendId -> status
+  settledAmounts?: Record<string, number>; // friendId -> amount settled
 }
 
 /**

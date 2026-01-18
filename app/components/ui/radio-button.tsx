@@ -9,7 +9,6 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  withSpring,
   interpolateColor,
   Easing,
 } from "react-native-reanimated";
@@ -68,20 +67,11 @@ export function RadioButton({
         duration: AnimationConfig.fast,
         easing: Easing.out(Easing.ease),
       });
-      // Collapse immediately when deselected, expand smoothly when selected
-      // This prevents the layout bump when switching selections
-      if (isSelected) {
-        expandProgress.value = withSpring(1, {
-          damping: 18,
-          stiffness: 150,
-          mass: 0.5,
-        });
-      } else {
-        expandProgress.value = withTiming(0, {
-          duration: 200,
-          easing: Easing.out(Easing.ease),
-        });
-      }
+      // Use consistent timing for both expand and collapse to prevent layout shifts
+      expandProgress.value = withTiming(isSelected ? 1 : 0, {
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+      });
     }
   }, [isSelected, selectionProgress, expandProgress]);
 
@@ -140,8 +130,24 @@ export function RadioButton({
     const base = baseHeight.value > 0 ? baseHeight.value : 56;
     const desc = descriptionHeight.value > 0 ? descriptionHeight.value : 0;
 
+    // Use maxHeight with a small buffer to prevent clipping while maintaining smooth animation
+    const totalHeight = description ? base + progress * desc : base;
     return {
-      maxHeight: description ? base + progress * desc : base,
+      maxHeight: totalHeight,
+      minHeight: base,
+    };
+  });
+
+  const descriptionContainerStyle = useAnimatedStyle(() => {
+    const progress = expandProgress.value;
+    return {
+      opacity: progress,
+      transform: [
+        {
+          translateY: (1 - progress) * -4,
+        },
+      ],
+      pointerEvents: progress > 0.01 ? "auto" : "none",
     };
   });
 
@@ -174,7 +180,11 @@ export function RadioButton({
         </View>
       )}
       <Animated.View
-        style={[styles.optionButton, borderAnimatedStyle, buttonContainerStyle]}
+        style={[
+          styles.optionButton,
+          borderAnimatedStyle,
+          buttonContainerStyle,
+        ]}
       >
         <Pressable
           cssInterop={false}
@@ -194,7 +204,8 @@ export function RadioButton({
             style={styles.pressableContent}
             onLayout={(event) => {
               const { height } = event.nativeEvent.layout;
-              if (height > 0 && baseHeight.value === 0) {
+              if (height > 0) {
+                // Always update to ensure consistency, especially when content changes
                 baseHeight.value = height;
               }
             }}
@@ -247,7 +258,9 @@ export function RadioButton({
             </Animated.View>
           </View>
           {description && (
-            <View style={styles.descriptionContainer}>
+            <Animated.View
+              style={[styles.descriptionContainer, descriptionContainerStyle]}
+            >
               <ThemedText
                 size="sm"
                 style={[
@@ -264,7 +277,7 @@ export function RadioButton({
               {example && (
                 <View style={styles.exampleContainer}>{example}</View>
               )}
-            </View>
+            </Animated.View>
           )}
         </Pressable>
       </Animated.View>
@@ -278,6 +291,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     overflow: "hidden",
     backgroundColor: "transparent",
+    minHeight: 56,
   },
   pressableContainer: {
     width: "100%",
@@ -318,7 +332,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 4,
     paddingBottom: 16,
   },
   descriptionContainer: {

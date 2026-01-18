@@ -8,6 +8,9 @@ import Animated, {
   interpolateColor,
 } from "react-native-reanimated";
 import { useEffect } from "react";
+import { ThemedText } from "./themed-text";
+
+const AnimatedText = Animated.createAnimatedComponent(ThemedText)
 
 interface SplitProgressBarProps {
   currentStage: number;
@@ -54,7 +57,7 @@ export function SplitProgressBar({
         })}
       </View>
       <View
-        className="h-1 rounded-full overflow-hidden"
+        className="h-1.5 rounded-full overflow-hidden"
         style={{
           backgroundColor: isDark
             ? "rgba(255, 255, 255, 0.1)"
@@ -141,32 +144,27 @@ function StageIndicator({
         className="w-8 h-8 rounded-full items-center justify-center"
         style={circleBgAnimatedStyle}
       >
-        <Animated.Text
+        <AnimatedText
+          size="sm"
+          weight="semibold"
+          className="text-center"
           style={[
-            {
-              fontSize: 14,
-              fontWeight: "600",
-              fontFamily: Fonts.sans,
-            },
             circleTextAnimatedStyle,
           ]}
         >
           {stageNumber}
-        </Animated.Text>
+        </AnimatedText>
       </Animated.View>
-      <Animated.Text
+      <AnimatedText
+        size="sm"
+        weight="semibold"
+        className="text-center mt-1"
         style={[
-          {
-            fontSize: 12,
-            marginTop: 4,
-            textAlign: "center",
-            fontFamily: Fonts.sans,
-          },
           labelAnimatedStyle,
         ]}
       >
         {label}
-      </Animated.Text>
+      </AnimatedText>
     </View>
   );
 }

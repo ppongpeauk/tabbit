@@ -1,4 +1,11 @@
-import { TextInput, TextInputProps, StyleSheet, View } from "react-native";
+import {
+  TextInput,
+  TextInputProps,
+  TextInputFocusEventData,
+  NativeSyntheticEvent,
+  StyleSheet,
+  View,
+} from "react-native";
 import {
   ReactNode,
   ReactElement,
@@ -98,7 +105,7 @@ export const FormTextInput = forwardRef<TextInput, FormTextInputProps>(
     );
 
     const handleBlur = useCallback(
-      () => {
+      (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
         // Validate min/max only on blur
         if (numericOnly && value !== undefined && value !== "") {
           const numValue = parseFloat(value);

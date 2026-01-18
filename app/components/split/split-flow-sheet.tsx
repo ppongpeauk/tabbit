@@ -37,6 +37,7 @@ import {
   type ItemAssignment,
   calculateProportionalTaxTip,
 } from "@/utils/split";
+import { getDefaultSplitMode } from "@/utils/storage";
 import { SplitModeChoices } from "./split-mode-choices";
 import { AddPeopleSelector } from "@/components/add-people-selector";
 import { ItemAssignment as ItemAssignmentComponent } from "./item-assignment";
@@ -189,6 +190,17 @@ export function SplitFlowSheet({
         })
       );
       setValue("assignments", initialAssignments);
+
+      // Load and set default split mode from settings
+      getDefaultSplitMode()
+        .then((defaultMode) => {
+          if (!strategy) {
+            setValue("strategy", defaultMode);
+          }
+        })
+        .catch((error) => {
+          console.error("Error loading default split mode:", error);
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [receipt?.id, setValue, slideProgress]);
@@ -728,7 +740,7 @@ export function SplitFlowSheet({
           </View>
 
           {/* Progress Bar */}
-          <View className="px-6 pb-4">
+          <View className="pb-4">
             <SplitProgressBar
               currentStage={stepIndex + 1}
               totalStages={4}
