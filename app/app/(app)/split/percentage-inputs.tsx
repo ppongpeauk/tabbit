@@ -98,7 +98,7 @@ export default function PercentageInputsScreen() {
 
   const getPersonName = (friendId: string): string => {
     if (user && friendId === user.id) {
-      return user.name || "You";
+      return "Me";
     }
     if (splitData?.tempPeople && splitData.tempPeople[friendId]) {
       return splitData.tempPeople[friendId];

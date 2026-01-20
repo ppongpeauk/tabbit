@@ -97,13 +97,13 @@ export default function CustomInputsScreen() {
 
   const getPersonName = (friendId: string): string => {
     if (user && friendId === user.id) {
-      return user.name || "You";
+      return "Me";
     }
     if (splitData?.tempPeople && splitData.tempPeople[friendId]) {
       return splitData.tempPeople[friendId];
     }
-    const friend = friends.find((f) => f.friendId === friendId);
-    return friend?.friendName || "Unknown";
+    const friend = friends.find((f) => f.id === friendId);
+    return friend?.name || "Unknown";
   };
 
   const validateAmounts = (): boolean => {

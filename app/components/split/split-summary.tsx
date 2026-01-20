@@ -33,7 +33,7 @@ export function SplitSummary({
   const getPersonName = (personId: string): string => {
     // Check if this is the current user
     if (user && personId === user.id) {
-      return user.name || "You";
+      return "Me";
     }
     // Check splitData.people first
     if (splitData.people?.[personId]) return splitData.people[personId];

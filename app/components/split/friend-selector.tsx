@@ -36,7 +36,7 @@ export function FriendSelector({
       if (!userInFriends) {
         people.unshift({
           id: user.id,
-          name: user.name || "You",
+          name: "Me",
           email: user.email,
         });
       }

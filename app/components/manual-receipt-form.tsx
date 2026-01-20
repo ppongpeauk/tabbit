@@ -258,6 +258,7 @@ export const ManualReceiptForm = forwardRef<
             }
             : undefined,
           phone: headerFields.merchantPhone || undefined,
+          category: headerFields.category ? [headerFields.category] : undefined,
         },
         transaction: {
           datetime,

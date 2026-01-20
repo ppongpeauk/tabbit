@@ -82,7 +82,7 @@ export default function PlaidPage() {
     onExit: (err, metadata) => {
       if (err) {
         setError(`Plaid Link error: ${err.error_message || "Unknown error"}`);
-      } else if (metadata.exit_status === "user_cancelled") {
+      } else if (metadata.status === "user_cancelled") {
         setError(null); // User cancelled, not an error
       }
     },
@@ -193,11 +193,11 @@ export default function PlaidPage() {
         <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
           <h3 className="text-sm font-semibold mb-2">Test Instructions</h3>
           <ul className="text-xs text-gray-600 space-y-1 list-disc list-inside">
-            <li>Click "Connect Bank Account" to open Plaid Link</li>
+            <li>Click &quot;Connect Bank Account&quot; to open Plaid Link</li>
             <li>In sandbox mode, use test credentials</li>
-            <li>Select a test institution (e.g., "First Platypus Bank")</li>
+            <li>Select a test institution (e.g., &quot;First Platypus Bank&quot;)</li>
             <li>
-              Use test credentials: username "user_good", password "pass_good"
+              Use test credentials: username &quot;user_good&quot;, password &quot;pass_good&quot;
             </li>
             <li>After linking, you can view accounts and transactions</li>
           </ul>

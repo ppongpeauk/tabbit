@@ -4,7 +4,7 @@
  */
 
 import { useMemo, useCallback, useRef, useState, useEffect } from "react";
-import { View, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
+import { View, ScrollView, ActivityIndicator, TouchableOpacity, Pressable } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
@@ -34,7 +34,7 @@ function buildPeopleLookup(
   const map: Record<string, string> = { ...(splitData.people || {}) };
 
   if (currentUser) {
-    map[currentUser.id] = currentUser.name || "You";
+    map[currentUser.id] = "Me";
   }
 
   friends.forEach((friend) => {
@@ -254,8 +254,11 @@ export function SplitDetailsSheet({
 
             {/* People List */}
             {splitData ? (
-              <View className="gap-3">
-                {Object.keys(splitData.totals).map((personId) => {
+              <View
+                className={`rounded-3xl overflow-hidden border ${isDark ? "bg-[#1A1D1E] border-white/5" : "bg-white border-black/5"
+                  }`}
+              >
+                {Object.keys(splitData.totals).map((personId, index) => {
                   const total = splitData.totals[personId] || 0;
                   const status = splitData.statuses?.[personId] || SplitStatus.PENDING;
                   const settledAmount = splitData.settledAmounts?.[personId] || 0;
@@ -277,72 +280,89 @@ export function SplitDetailsSheet({
                         ? "PARTIAL"
                         : "PENDING";
 
+                  const separatorColor =
+                    colorScheme === "dark"
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 0, 0, 0.1)";
+                  const pressedBg =
+                    colorScheme === "dark"
+                      ? "rgba(255, 255, 255, 0.08)"
+                      : "rgba(0, 0, 0, 0.03)";
+
                   return (
-                    <TouchableOpacity
-                      key={personId}
-                      activeOpacity={0.7}
-                      onPress={() => handlePersonPress(personId)}
-                      className="rounded-[20px] p-4 border"
-                      style={{
-                        backgroundColor: isDark ? Colors.dark.surface : "#FFFFFF",
-                        borderColor: isDark
-                          ? "rgba(255, 255, 255, 0.05)"
-                          : "rgba(0, 0, 0, 0.05)",
-                      }}
-                    >
-                      <View className="flex-row items-center gap-3">
-                        <View className="relative">
-                          <PersonAvatar
-                            personId={personId}
-                            name={personName}
-                            friends={friends}
-                            size={48}
-                          />
-                          <View
-                            className="absolute bottom-0 right-0 w-5 h-5 rounded-full items-center justify-center border-2"
-                            style={{
-                              backgroundColor: statusColor,
-                              borderColor: isDark
-                                ? Colors.dark.surface
-                                : "#FFFFFF",
-                            }}
-                          >
-                            <SymbolView
-                              name={isSettled ? "checkmark" : "clock"}
-                              tintColor="#FFFFFF"
-                              size={10}
+                    <View key={personId}>
+                      {index > 0 && (
+                        <View
+                          className="h-[1px] mx-4"
+                          style={{ backgroundColor: separatorColor }}
+                        />
+                      )}
+                      <Pressable
+                        cssInterop={false}
+                        onPress={() => handlePersonPress(personId)}
+                        style={({ pressed }) => ({
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          paddingVertical: 16,
+                          paddingHorizontal: 16,
+                          backgroundColor: pressed ? pressedBg : "transparent",
+                        })}
+                      >
+                        <View className="flex-row items-center gap-3 flex-1">
+                          <View className="relative">
+                            <PersonAvatar
+                              personId={personId}
+                              name={personName}
+                              friends={friends}
+                              size={48}
                             />
-                          </View>
-                        </View>
-                        <View className="flex-1">
-                          <ThemedText size="base" weight="semibold">
-                            {personName}
-                          </ThemedText>
-                          <View className="flex-row items-center gap-2 mt-1">
                             <View
-                              className="px-2 py-0.5 rounded-full"
-                              style={{ backgroundColor: statusColor }}
+                              className="absolute bottom-0 right-0 w-5 h-5 rounded-full items-center justify-center border-2"
+                              style={{
+                                backgroundColor: statusColor,
+                                borderColor: isDark
+                                  ? Colors.dark.surface
+                                  : "#FFFFFF",
+                              }}
                             >
-                              <ThemedText
-                                size="xs"
-                                weight="semibold"
-                                style={{ color: "#FFFFFF" }}
-                              >
-                                {statusLabel}
-                              </ThemedText>
+                              <SymbolView
+                                name={isSettled ? "checkmark" : "clock"}
+                                tintColor="#FFFFFF"
+                                size={10}
+                              />
                             </View>
                           </View>
-                          <ThemedText
-                            size="sm"
-                            className="mt-1"
-                            style={{
-                              color: isDark ? Colors.dark.icon : Colors.light.icon,
-                            }}
-                          >
-                            {isSettled
-                              ? `Paid ${formatCurrency(total, receipt.totals.currency)}`
-                              : `Owes ${formatCurrency(total, receipt.totals.currency)}`}
-                          </ThemedText>
+                          <View className="flex-1">
+                            <ThemedText size="base" weight="semibold">
+                              {personName}
+                            </ThemedText>
+                            <View className="flex-row items-center gap-2 mt-1">
+                              <View
+                                className="px-2 py-0.5 rounded-full"
+                                style={{ backgroundColor: statusColor }}
+                              >
+                                <ThemedText
+                                  size="xs"
+                                  weight="semibold"
+                                  style={{ color: "#FFFFFF" }}
+                                >
+                                  {statusLabel}
+                                </ThemedText>
+                              </View>
+                            </View>
+                            <ThemedText
+                              size="sm"
+                              className="mt-1"
+                              style={{
+                                color: isDark ? Colors.dark.icon : Colors.light.icon,
+                              }}
+                            >
+                              {isSettled
+                                ? `Paid ${formatCurrency(total, receipt.totals.currency)}`
+                                : `Owes ${formatCurrency(total, receipt.totals.currency)}`}
+                            </ThemedText>
+                          </View>
                         </View>
                         <View className="flex-row items-center gap-2">
                           <Button
@@ -360,8 +380,8 @@ export function SplitDetailsSheet({
                             size={16}
                           />
                         </View>
-                      </View>
-                    </TouchableOpacity>
+                      </Pressable>
+                    </View>
                   );
                 })}
               </View>

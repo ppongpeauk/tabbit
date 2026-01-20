@@ -67,9 +67,6 @@ function getReturnDateInfo(returnByDate?: string): {
   };
 }
 
-/**
- * Receipt source icons component
- */
 function ReceiptSourceIcons({ receipt }: { receipt: StoredReceipt }) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -77,78 +74,30 @@ function ReceiptSourceIcons({ receipt }: { receipt: StoredReceipt }) {
   const iconSize = 14;
 
   const isCollaborative = !!receipt.splitData;
-  const isFromBank =
-    receipt.technical?.plaidEnrich?.status === "success" ||
-    receipt.technical?.source === "bank" ||
-    receipt.technical?.source === "plaid";
-  const isFromEmail =
-    receipt.technical?.source === "email" ||
-    receipt.technical?.source === "gmail";
 
-  if (!isCollaborative && !isFromBank && !isFromEmail) {
+  if (!isCollaborative) {
     return null;
   }
 
   return (
     <View className="flex-row items-center gap-1.5 ml-2">
-      {isCollaborative && (
-        <>
-          {Platform.OS === "ios" ? (
-            <SymbolView
-              name="person.2.fill"
-              tintColor={iconColor}
-              style={{ width: iconSize, height: iconSize }}
-            />
-          ) : (
-            <MaterialIcons
-              name="people"
-              size={iconSize}
-              color={iconColor}
-            />
-          )}
-        </>
-      )}
-      {isFromBank && (
-        <>
-          {Platform.OS === "ios" ? (
-            <SymbolView
-              name="dollarsign.bank.building"
-              tintColor={iconColor}
-              style={{ width: iconSize, height: iconSize }}
-            />
-          ) : (
-            <MaterialIcons
-              name="account-balance"
-              size={iconSize}
-              color={iconColor}
-            />
-          )}
-        </>
-      )}
-      {isFromEmail && (
-        <>
-          {Platform.OS === "ios" ? (
-            <SymbolView
-              name="envelope.fill"
-              tintColor={iconColor}
-              style={{ width: iconSize, height: iconSize }}
-            />
-          ) : (
-            <MaterialIcons
-              name="email"
-              size={iconSize}
-              color={iconColor}
-            />
-          )}
-        </>
+      {Platform.OS === "ios" ? (
+        <SymbolView
+          name="person.2.fill"
+          tintColor={iconColor}
+          style={{ width: iconSize, height: iconSize }}
+        />
+      ) : (
+        <MaterialIcons
+          name="people"
+          size={iconSize}
+          color={iconColor}
+        />
       )}
     </View>
   );
 }
 
-/**
- * ReceiptRow component - displays a single receipt row in the receipts list
- */
 export function ReceiptRow({
   receipt,
   isFirstInSection,
@@ -351,7 +300,7 @@ export function ReceiptRow({
                   </ThemedText>
                 </View>
               )}
-              {splitSettlementInfo && splitSettlementInfo.remaining > 0 && (
+              {splitSettlementInfo && (
                 <View>
                   <View className="flex-row items-center justify-between mb-2">
                     <ThemedText

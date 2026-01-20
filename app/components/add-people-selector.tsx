@@ -12,6 +12,7 @@ import { Colors, Fonts } from "@/constants/theme";
 import { CheckboxButton } from "@/components/ui/checkbox-button";
 import { useFriends } from "@/hooks/use-friends";
 import { EmptyState } from "@/components/empty-state";
+import { useAuth } from "@/contexts/auth-context";
 
 export interface PersonItem {
   id: string;
@@ -40,6 +41,7 @@ export function AddPeopleSelector({
   const isDark = colorScheme === "dark";
   const formContext = useFormContext();
   const control = externalControl || formContext?.control;
+  const { user } = useAuth();
 
   const { data: storedFriends = [], isLoading: loading } = useFriends();
 
@@ -65,8 +67,26 @@ export function AddPeopleSelector({
     [tempPeople]
   );
 
+  const meItem = useMemo<PersonItem | null>(() => {
+    if (!user) return null;
+    return {
+      id: user.id,
+      name: "Me",
+      email: user.email,
+      type: "person",
+    };
+  }, [user]);
+
   const sections = useMemo(() => {
     const sectionsList = [];
+
+    // Always add "Me" section first if user exists
+    if (meItem) {
+      sectionsList.push({
+        title: "Me",
+        data: [meItem],
+      });
+    }
 
     if (peopleItems.length > 0) {
       sectionsList.push({
@@ -83,7 +103,7 @@ export function AddPeopleSelector({
     }
 
     return sectionsList.filter((section) => section.data.length > 0);
-  }, [peopleItems, tempPeopleItems]);
+  }, [meItem, peopleItems, tempPeopleItems]);
 
   // Filter items by search query
   const filteredSections = useMemo(() => {
@@ -93,15 +113,25 @@ export function AddPeopleSelector({
 
     const query = searchQuery.toLowerCase();
     return sections
-      .map((section) => ({
-        ...section,
-        data: section.data.filter(
-          (item) =>
-            item.name.toLowerCase().includes(query)
-        ),
-      }))
-      .filter((section) => section.data.length > 0);
-  }, [sections, searchQuery]);
+      .map((section) => {
+        // Always include "Me" section even when searching
+        if (section.title === "Me" && meItem) {
+          const matches = meItem.name.toLowerCase().includes(query) ||
+            meItem.email?.toLowerCase().includes(query);
+          return matches ? section : null;
+        }
+        return {
+          ...section,
+          data: section.data.filter(
+            (item) =>
+              item.name.toLowerCase().includes(query) ||
+              item.phoneNumber?.toLowerCase().includes(query) ||
+              item.email?.toLowerCase().includes(query)
+          ),
+        };
+      })
+      .filter((section) => section && section.data.length > 0) as typeof sections;
+  }, [sections, searchQuery, meItem]);
 
   const renderItem = useCallback(
     ({ item }: { item: PersonItem }) => {

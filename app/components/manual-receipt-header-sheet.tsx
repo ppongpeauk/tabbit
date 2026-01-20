@@ -10,6 +10,7 @@ import { FormTextInput } from "@/components/form-text-input";
 import { FormDatePicker } from "@/components/form-date-picker";
 import { FormTimePicker } from "@/components/form-time-picker";
 import { FormCurrencyPicker } from "@/components/form-currency-picker";
+import { FormCategoryPicker } from "@/components/form-category-picker";
 import { Button } from "@/components/button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
@@ -83,6 +84,12 @@ export function ManualReceiptHeaderSheet({
             value={headerFields.currency}
             onChange={(value) => onHeaderFieldsChange({ currency: value })}
             placeholder="Select currency"
+          />
+          <FormCategoryPicker
+            label="Category"
+            value={headerFields.category}
+            onChange={(value) => onHeaderFieldsChange({ category: value })}
+            placeholder="Select category"
           />
         </View>
 

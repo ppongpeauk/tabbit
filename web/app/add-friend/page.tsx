@@ -5,10 +5,10 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function AddFriendPage() {
+function AddFriendContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const [attempted, setAttempted] = useState(false);
@@ -71,5 +71,23 @@ export default function AddFriendPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AddFriendPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+          <div className="text-center p-8">
+            <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+              Loading...
+            </h1>
+          </div>
+        </div>
+      }
+    >
+      <AddFriendContent />
+    </Suspense>
   );
 }

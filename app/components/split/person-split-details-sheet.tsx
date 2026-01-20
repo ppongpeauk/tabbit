@@ -113,7 +113,7 @@ export function PersonSplitDetailsSheet({
     const map: Record<string, string> = { ...(splitData.people || {}) };
 
     if (user) {
-      map[user.id] = user.name || "You";
+      map[user.id] = "Me";
     }
 
     friends.forEach((friend) => {

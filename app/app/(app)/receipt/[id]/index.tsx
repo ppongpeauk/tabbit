@@ -522,99 +522,6 @@ function ReceiptContent({
         </View>
       </View>
 
-      {/* Return Period Expired Card */}
-      {isReturnPeriodExpired(receipt.returnInfo?.returnByDate) ? (
-        <View className="px-6 mb-4">
-          <View
-            className="rounded-[20px] p-4 border"
-            style={{
-              backgroundColor: isDark
-                ? "rgba(234, 179, 8, 0.15)"
-                : "rgba(234, 179, 8, 0.08)",
-              borderColor: "rgba(234, 179, 8, 0.4)",
-              borderWidth: 1,
-            }}
-          >
-            <View className="flex-row items-start gap-3">
-              <View
-                className="w-10 h-10 rounded-full items-center justify-center flex-shrink-0"
-                style={{
-                  backgroundColor: isDark
-                    ? "rgba(234, 179, 8, 0.2)"
-                    : "rgba(234, 179, 8, 0.15)",
-                }}
-              >
-                <SymbolView
-                  name="exclamationmark.triangle.fill"
-                  tintColor="#EAB308"
-                  style={{ width: 24, height: 24 }}
-                />
-              </View>
-              <View className="flex-1">
-                <ThemedText size="base" weight="semibold">
-                  Return Period Passed
-                </ThemedText>
-                <ThemedText
-                  size="sm"
-                  style={{
-                    color: isDark
-                      ? "rgba(255, 255, 255, 0.8)"
-                      : "rgba(0, 0, 0, 0.7)",
-                  }}
-                >
-                  The return period for this purchase has passed.
-                </ThemedText>
-              </View>
-            </View>
-          </View>
-        </View>
-      ) : receipt.returnInfo?.shouldKeepPhysicalReceipt ? (
-        <View className="px-6 mb-4">
-          <View
-            className="rounded-[20px] p-4 border"
-            style={{
-              backgroundColor: isDark
-                ? "rgba(255, 149, 0, 0.15)"
-                : "rgba(255, 149, 0, 0.08)",
-              borderColor: "rgba(255, 149, 0, 0.4)",
-              borderWidth: 1,
-            }}
-          >
-            <View className="flex-row items-start gap-3">
-              <View
-                className="w-10 h-10 rounded-full items-center justify-center flex-shrink-0"
-                style={{
-                  backgroundColor: isDark
-                    ? "rgba(255, 149, 0, 0.2)"
-                    : "rgba(255, 149, 0, 0.15)",
-                }}
-              >
-                <SymbolView
-                  name="doc.text"
-                  tintColor="#FF9500"
-                  style={{ width: 24, height: 24 }}
-                />
-              </View>
-              <View className="flex-1">
-                <ThemedText size="base" weight="semibold">
-                  Keep Your Physical Receipt
-                </ThemedText>
-                <ThemedText
-                  size="sm"
-                  style={{
-                    color: isDark
-                      ? "rgba(255, 255, 255, 0.8)"
-                      : "rgba(0, 0, 0, 0.7)",
-                  }}
-                >
-                  You&apos;ll need to show the physical receipt to return items.
-                </ThemedText>
-              </View>
-            </View>
-          </View>
-        </View>
-      ) : null}
-
       {/* Share Receipt Card */}
       <View className="px-6 mb-4">
         <ShareReceiptCard onShare={onShare} />
@@ -707,12 +614,15 @@ function ReceiptContent({
       ) : null}
 
       {/* Return Info */}
-      {shouldShowReturnInfo(receipt.returnInfo) ? (
+      {shouldShowReturnInfo(receipt.returnInfo) ||
+        isReturnPeriodExpired(receipt.returnInfo?.returnByDate) ||
+        receipt.returnInfo?.shouldKeepPhysicalReceipt ? (
         <View className="px-6 mb-4">
           <ReturnInfoCard
             receipt={receipt}
             showRawReturnText={showRawReturnText}
             onToggleFormat={onToggleFormat}
+            isDark={isDark}
           />
         </View>
       ) : null}

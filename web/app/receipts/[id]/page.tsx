@@ -11,6 +11,7 @@ import {
   type StoredReceipt,
 } from "@/utils/public-receipts";
 import { MerchantLogo } from "@/components/merchant-logo";
+import { getCategoryName, getCategoryEmoji } from "@/utils/categories";
 
 export const dynamic = "force-dynamic";
 
@@ -67,23 +68,6 @@ function formatReturnByDate(value: string): string {
   });
 }
 
-function getCategoryEmoji(category: string): string {
-  const categoryMap: Record<string, string> = {
-    Shopping: "🛍️",
-    Groceries: "🛒",
-    "Food & Drink": "🍽️",
-    Dining: "🍽️",
-    Transportation: "🚗",
-    Entertainment: "🎬",
-    Travel: "✈️",
-    Health: "🏥",
-    Services: "🔧",
-    Other: "📋",
-  };
-
-  return categoryMap[category] || "🛍️";
-}
-
 function getReturnPolicyLines(returnInfo?: ReturnInfo): string[] {
   if (!returnInfo) return [];
   const policyText = returnInfo.returnPolicyText;
@@ -116,9 +100,9 @@ function hasReturnInfo(returnInfo?: ReturnInfo): boolean {
   const policyLines = getReturnPolicyLines(returnInfo);
   return Boolean(
     policyLines.length > 0 ||
-      returnInfo.returnByDate ||
-      returnInfo.exchangeByDate ||
-      returnInfo.returnBarcode
+    returnInfo.returnByDate ||
+    returnInfo.exchangeByDate ||
+    returnInfo.returnBarcode
   );
 }
 
@@ -219,9 +203,9 @@ function ItemsCard({ receipt }: { receipt: StoredReceipt }) {
                     {item.category?.trim() && item.quantity > 1 ? " • " : ""}
                     {item.quantity > 1
                       ? `${item.quantity} × ${formatCurrency(
-                          item.unitPrice,
-                          receipt.totals.currency
-                        )}`
+                        item.unitPrice,
+                        receipt.totals.currency
+                      )}`
                       : ""}
                   </div>
                 ) : null}
@@ -284,44 +268,108 @@ function TotalsCard({ receipt }: { receipt: StoredReceipt }) {
   );
 }
 
+function isReturnPeriodExpired(returnByDate?: string): boolean {
+  if (!returnByDate) {
+    return false;
+  }
+
+  const returnDate = new Date(returnByDate);
+  if (Number.isNaN(returnDate.getTime())) {
+    return false;
+  }
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  returnDate.setHours(0, 0, 0, 0);
+  return returnDate < now;
+}
+
 function ReturnInfoCard({ receipt }: { receipt: StoredReceipt }) {
   if (!hasReturnInfo(receipt.returnInfo)) return null;
 
   const lines = getReturnPolicyLines(receipt.returnInfo);
+  const showReturnPeriodExpired = isReturnPeriodExpired(
+    receipt.returnInfo?.returnByDate
+  );
+  const showKeepPhysicalReceipt =
+    receipt.returnInfo?.shouldKeepPhysicalReceipt && !showReturnPeriodExpired;
 
   return (
-    <div className="rounded-[20px] p-6 border bg-white border-black/5 shadow-sm">
-      <div className="text-lg font-bold mb-3">Return Information</div>
-      {lines.length > 0 ? (
-        <ul className="text-sm text-black/70 space-y-1 mb-4 list-disc pl-5">
-          {lines.map((line, index) => (
-            <li key={`${line}-${index}`}>{line}</li>
-          ))}
-        </ul>
-      ) : null}
-      {receipt.returnInfo?.returnByDate ? (
-        <div className="flex items-center justify-between text-sm py-1">
-          <span className="text-black/60">Return By</span>
-          <span className="font-semibold">
-            {formatReturnByDate(receipt.returnInfo.returnByDate)}
-          </span>
-        </div>
-      ) : null}
-      {receipt.returnInfo?.exchangeByDate ? (
-        <div className="flex items-center justify-between text-sm py-1">
-          <span className="text-black/60">Exchange By</span>
-          <span className="font-semibold">
-            {formatReturnByDate(receipt.returnInfo.exchangeByDate)}
-          </span>
-        </div>
-      ) : null}
-      {receipt.returnInfo?.returnBarcode ? (
-        <div className="mt-4">
-          <div className="text-sm text-black/60 mb-1">Return Code</div>
-          <div className="font-mono text-sm border border-black/10 rounded-md px-3 py-2 bg-black/5">
-            {receipt.returnInfo.returnBarcode}
+    <div className="rounded-[20px] overflow-hidden border bg-white border-black/5 shadow-sm">
+      <div className="p-6">
+        <div className="text-lg font-bold mb-3">Return Information</div>
+        {lines.length > 0 ? (
+          <ul className="text-sm text-black/70 space-y-1 mb-4 list-disc pl-5">
+            {lines.map((line, index) => (
+              <li key={`${line}-${index}`}>{line}</li>
+            ))}
+          </ul>
+        ) : null}
+        {receipt.returnInfo?.returnByDate ? (
+          <div className="flex items-center justify-between text-sm py-1">
+            <span className="text-black/60">Return By</span>
+            <span className="font-semibold">
+              {formatReturnByDate(receipt.returnInfo.returnByDate)}
+            </span>
           </div>
-        </div>
+        ) : null}
+        {receipt.returnInfo?.exchangeByDate ? (
+          <div className="flex items-center justify-between text-sm py-1">
+            <span className="text-black/60">Exchange By</span>
+            <span className="font-semibold">
+              {formatReturnByDate(receipt.returnInfo.exchangeByDate)}
+            </span>
+          </div>
+        ) : null}
+        {receipt.returnInfo?.returnBarcode ? (
+          <div className="mt-4">
+            <div className="text-sm text-black/60 mb-1">Return Code</div>
+            <div className="font-mono text-sm border border-black/10 rounded-md px-3 py-2 bg-black/5">
+              {receipt.returnInfo.returnBarcode}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Return Period Expired Section */}
+      {showReturnPeriodExpired ? (
+        <>
+          <div className="h-px bg-black/10" />
+          <div className="p-4 bg-yellow-500/8">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-yellow-500/15 flex items-center justify-center shrink-0">
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <div className="flex-1">
+                <div className="text-base font-semibold">
+                  Return Period Passed
+                </div>
+                <div className="text-sm text-black/70 mt-1">
+                  The return period for this purchase has passed.
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : showKeepPhysicalReceipt ? (
+        <>
+          <div className="h-px bg-black/10" />
+          <div className="p-4 bg-orange-500/8">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-orange-500/15 flex items-center justify-center shrink-0">
+                <span className="text-2xl">📄</span>
+              </div>
+              <div className="flex-1">
+                <div className="text-base font-semibold">
+                  Keep Your Physical Receipt
+                </div>
+                <div className="text-sm text-black/70 mt-1">
+                  You&apos;ll need to show the physical receipt to return items.
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       ) : null}
     </div>
   );
@@ -375,10 +423,11 @@ function MetadataGrid({ receipt }: { receipt: StoredReceipt }) {
   const dateValue = receipt.transaction.datetime || receipt.createdAt;
   const date = formatReceiptDate(dateValue);
   const time = formatReceiptTime(dateValue);
-  const category = receipt.merchant.category?.[0] || "Shopping";
+  const categoryRaw = receipt.merchant.category?.[0] || "OTHER";
+  const category = getCategoryName(categoryRaw);
+  const categoryEmoji = getCategoryEmoji(categoryRaw);
   const total = receipt.totals.total || 0;
   const currency = receipt.totals.currency || "USD";
-  const categoryEmoji = getCategoryEmoji(category);
 
   return (
     <div className="px-6 pt-5 pb-6">

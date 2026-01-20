@@ -11,6 +11,8 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  TextInput,
+  StyleSheet,
 } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { useForm, FormProvider, Controller } from "react-hook-form";
@@ -29,6 +31,7 @@ import * as Haptics from "expo-haptics";
 import { useReceipt, useUpdateReceipt } from "@/hooks/use-receipts";
 import { useFriends, useCreateFriend } from "@/hooks/use-friends";
 import { formatCurrency } from "@/utils/format";
+import { Fonts } from "@/constants/theme";
 import {
   SplitStrategy,
   calculateSplit,
@@ -45,6 +48,7 @@ import { SplitSummary } from "./split-summary";
 import { SplitProgressBar } from "@/components/split-progress-bar";
 import { FormTextInput } from "@/components/form-text-input";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/contexts/auth-context";
 import type React from "react";
 
 type SplitStep = "method" | "people" | "amounts" | "review";
@@ -73,6 +77,7 @@ export function SplitFlowSheet({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
 
   const [currentStep, setCurrentStep] = useState<SplitStep>("method");
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,6 +85,7 @@ export function SplitFlowSheet({
   const addPersonSheetRef = useRef<TrueSheet | null>(null);
   const addTempPersonSheetRef = useRef<TrueSheet | null>(null);
   const receiptIdRef = useRef<string | null>(null);
+  const wasDismissedRef = useRef<boolean>(false);
   const createFriendMutation = useCreateFriend();
 
   const addPersonForm = useForm<{ name: string }>({
@@ -117,12 +123,15 @@ export function SplitFlowSheet({
   useEffect(() => {
     if (!receipt) return;
 
-    // Only reset step and animation when receiptId changes (sheet opens with new receipt)
+    // Reset step and animation when receiptId changes OR when sheet was dismissed and is reopening
     const isNewReceipt = receiptIdRef.current !== receipt.id;
-    if (isNewReceipt) {
+    const isReopening = wasDismissedRef.current && receiptIdRef.current === receipt.id;
+
+    if (isNewReceipt || isReopening) {
       setCurrentStep("method");
       slideProgress.value = 0;
       receiptIdRef.current = receipt.id;
+      wasDismissedRef.current = false;
     }
 
     if (receipt.splitData) {
@@ -182,6 +191,11 @@ export function SplitFlowSheet({
         }
       }
     } else if (isNewReceipt) {
+      // For new splits, automatically include the current user
+      if (user && (selectedFriendIds.length === 0 || !selectedFriendIds.includes(user.id))) {
+        setValue("selectedFriendIds", user.id ? [user.id] : []);
+      }
+
       // Initialize empty assignments for new split
       const initialAssignments: ItemAssignment[] = receipt.items.map(
         (item, index) => ({
@@ -447,7 +461,9 @@ export function SplitFlowSheet({
 
     const peopleMap: Record<string, string> = {};
     selectedFriendIds.forEach((friendId) => {
-      if (tempPeople[friendId]) {
+      if (user && friendId === user.id) {
+        peopleMap[friendId] = "Me";
+      } else if (tempPeople[friendId]) {
         peopleMap[friendId] = tempPeople[friendId];
       } else {
         const friend = friends.find((f) => f.id === friendId);
@@ -470,6 +486,10 @@ export function SplitFlowSheet({
       {
         onSuccess: () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          // Reset step before dismissing
+          setCurrentStep("method");
+          slideProgress.value = 0;
+          wasDismissedRef.current = true;
           bottomSheetRef.current?.dismiss();
           onComplete?.();
         },
@@ -556,8 +576,12 @@ export function SplitFlowSheet({
 
   const handleClose = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Reset step before dismissing
+    setCurrentStep("method");
+    slideProgress.value = 0;
+    wasDismissedRef.current = true;
     bottomSheetRef.current?.dismiss();
-  }, [bottomSheetRef]);
+  }, [bottomSheetRef, slideProgress]);
 
   const getExampleAmounts = useCallback(
     (strategy: SplitStrategy): string[] => {
@@ -601,13 +625,17 @@ export function SplitFlowSheet({
 
   const getPersonName = useCallback(
     (friendId: string): string => {
+      // Check if this is the current user
+      if (user && friendId === user.id) {
+        return "Me";
+      }
       if (tempPeople[friendId]) {
         return tempPeople[friendId];
       }
       const friend = friends.find((f) => f.id === friendId);
       return friend?.name || "Unknown";
     },
-    [friends, tempPeople]
+    [friends, tempPeople, user]
   );
 
   const screenWidth = Dimensions.get("window").width;
@@ -759,7 +787,10 @@ export function SplitFlowSheet({
               {/* Step 1: Method */}
               <ScrollView
                 style={{ width: screenWidth }}
-                contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 200 }}
+                contentContainerStyle={{
+                  paddingHorizontal: 24,
+                  paddingBottom: 150 + Math.max(insets.bottom, 24),
+                }}
                 showsVerticalScrollIndicator={false}
               >
                 <View className="gap-4">
@@ -831,7 +862,10 @@ export function SplitFlowSheet({
               {/* Step 3: Amounts */}
               <ScrollView
                 style={{ width: screenWidth }}
-                contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 200 }}
+                contentContainerStyle={{
+                  paddingHorizontal: 24,
+                  paddingBottom: 150 + Math.max(insets.bottom, 24),
+                }}
                 showsVerticalScrollIndicator={false}
               >
                 <View className="gap-4">
@@ -853,38 +887,82 @@ export function SplitFlowSheet({
                         )}
                         )
                       </ThemedText>
-                      {selectedFriendIds.map((friendId) => {
-                        const personName = getPersonName(friendId);
-                        return (
-                          <View
-                            key={friendId}
-                            className="p-4 rounded-lg border"
-                            style={{
-                              backgroundColor: isDark
-                                ? "rgba(255, 255, 255, 0.05)"
-                                : "rgba(0, 0, 0, 0.02)",
-                              borderColor: isDark
-                                ? "rgba(255, 255, 255, 0.1)"
-                                : "rgba(0, 0, 0, 0.1)",
-                            }}
-                          >
-                            <FormTextInput
-                              label={personName}
-                              value={customAmounts[friendId] || ""}
-                              onChangeText={(text) =>
-                                setValue("customAmounts", {
-                                  ...customAmounts,
-                                  [friendId]: text,
-                                })
-                              }
-                              numericOnly
-                              min={0}
-                              placeholder="0.00"
-                              style={{ textAlign: "right" }}
-                            />
-                          </View>
-                        );
-                      })}
+                      <View
+                        className="rounded-[20px] overflow-hidden border"
+                        style={{
+                          backgroundColor: isDark
+                            ? Colors.dark.surface
+                            : "#FFFFFF",
+                          borderColor: isDark
+                            ? "rgba(255, 255, 255, 0.05)"
+                            : "rgba(0, 0, 0, 0.05)",
+                        }}
+                      >
+                        {selectedFriendIds.map((friendId, index) => {
+                          const personName = getPersonName(friendId);
+                          const isFirst = index === 0;
+                          const isLast = index === selectedFriendIds.length - 1;
+                          return (
+                            <View
+                              key={friendId}
+                              style={{
+                                borderTopWidth: isFirst ? 0 : StyleSheet.hairlineWidth,
+                                borderTopColor: isDark
+                                  ? "rgba(255, 255, 255, 0.1)"
+                                  : "rgba(0, 0, 0, 0.1)",
+                                borderBottomLeftRadius: isLast ? 20 : 0,
+                                borderBottomRightRadius: isLast ? 20 : 0,
+                                borderTopLeftRadius: isFirst ? 20 : 0,
+                                borderTopRightRadius: isFirst ? 20 : 0,
+                                paddingHorizontal: 20,
+                                paddingVertical: 16,
+                              }}
+                            >
+                              <View className="flex-row items-center justify-between">
+                                <ThemedText size="base" weight="semibold">
+                                  {personName}
+                                </ThemedText>
+                                <View className="flex-row items-center gap-2" style={{ flex: 0 }}>
+                                  <TextInput
+                                    value={customAmounts[friendId] || ""}
+                                    onChangeText={(text) => {
+                                      const cleaned = text.replace(/[^0-9.-]/g, "");
+                                      const parts = cleaned.split(".");
+                                      const finalText = parts.length > 2
+                                        ? parts[0] + "." + parts.slice(1).join("")
+                                        : cleaned;
+                                      setValue("customAmounts", {
+                                        ...customAmounts,
+                                        [friendId]: finalText,
+                                      });
+                                    }}
+                                    keyboardType="decimal-pad"
+                                    placeholder="0.00"
+                                    style={{
+                                      width: 100,
+                                      textAlign: "right",
+                                      fontSize: 16,
+                                      fontFamily: Fonts.sans,
+                                      color: isDark ? Colors.dark.text : Colors.light.text,
+                                      paddingVertical: 8,
+                                      paddingHorizontal: 12,
+                                      borderRadius: 8,
+                                      backgroundColor: isDark
+                                        ? "rgba(255, 255, 255, 0.05)"
+                                        : "rgba(0, 0, 0, 0.02)",
+                                      borderWidth: 1,
+                                      borderColor: isDark
+                                        ? "rgba(255, 255, 255, 0.1)"
+                                        : "rgba(0, 0, 0, 0.1)",
+                                    }}
+                                    placeholderTextColor={isDark ? Colors.dark.icon : Colors.light.icon}
+                                  />
+                                </View>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
                     </>
                   )}
 
@@ -902,62 +980,109 @@ export function SplitFlowSheet({
                         Enter the percentage each person should pay (must sum
                         to 100%)
                       </ThemedText>
-                      {selectedFriendIds.map((friendId) => {
-                        const personName = getPersonName(friendId);
-                        const percentage = percentages[friendId] || "0";
-                        const amount =
-                          (receipt.totals.subtotal *
-                            (parseFloat(percentage) || 0)) /
-                          100;
-
-                        return (
-                          <View
-                            key={friendId}
-                            className="p-4 rounded-lg border"
-                            style={{
-                              backgroundColor: isDark
-                                ? "rgba(255, 255, 255, 0.05)"
-                                : "rgba(0, 0, 0, 0.02)",
-                              borderColor: isDark
-                                ? "rgba(255, 255, 255, 0.1)"
-                                : "rgba(0, 0, 0, 0.1)",
-                            }}
-                          >
-                            <View className="flex-row items-center justify-between mb-2">
-                              <ThemedText size="base" weight="semibold">
-                                {personName}
-                              </ThemedText>
-                              <View className="flex-row items-center gap-2">
-                                <FormTextInput
-                                  value={percentages[friendId] || ""}
-                                  onChangeText={(text) =>
-                                    setValue("percentages", {
-                                      ...percentages,
-                                      [friendId]: text,
-                                    })
-                                  }
-                                  numericOnly
-                                  min={0}
-                                  max={100}
-                                  placeholder="0"
-                                  style={{ width: 100, textAlign: "right" }}
-                                />
-                                <ThemedText size="base">%</ThemedText>
-                              </View>
-                            </View>
-                            <ThemedText
-                              size="sm"
+                      <View
+                        className="rounded-[20px] overflow-hidden border"
+                        style={{
+                          backgroundColor: isDark
+                            ? Colors.dark.surface
+                            : "#FFFFFF",
+                          borderColor: isDark
+                            ? "rgba(255, 255, 255, 0.05)"
+                            : "rgba(0, 0, 0, 0.05)",
+                        }}
+                      >
+                        {selectedFriendIds.map((friendId, index) => {
+                          const personName = getPersonName(friendId);
+                          const percentage = percentages[friendId] || "0";
+                          const amount =
+                            (receipt.totals.subtotal *
+                              (parseFloat(percentage) || 0)) /
+                            100;
+                          const isFirst = index === 0;
+                          const isLast = index === selectedFriendIds.length - 1;
+                          return (
+                            <View
+                              key={friendId}
                               style={{
-                                color: isDark
-                                  ? Colors.dark.icon
-                                  : Colors.light.icon,
+                                borderTopWidth: isFirst ? 0 : StyleSheet.hairlineWidth,
+                                borderTopColor: isDark
+                                  ? "rgba(255, 255, 255, 0.1)"
+                                  : "rgba(0, 0, 0, 0.1)",
+                                borderBottomLeftRadius: isLast ? 20 : 0,
+                                borderBottomRightRadius: isLast ? 20 : 0,
+                                borderTopLeftRadius: isFirst ? 20 : 0,
+                                borderTopRightRadius: isFirst ? 20 : 0,
+                                paddingHorizontal: 20,
+                                paddingVertical: 16,
                               }}
                             >
-                              ≈ {formatCurrency(amount, receipt.totals.currency)}
-                            </ThemedText>
-                          </View>
-                        );
-                      })}
+                              <View className="flex-row items-center justify-between mb-2">
+                                <ThemedText size="base" weight="semibold">
+                                  {personName}
+                                </ThemedText>
+                                <View className="flex-row items-center gap-2" style={{ flex: 0 }}>
+                                  <TextInput
+                                    value={percentages[friendId] || ""}
+                                    onChangeText={(text) => {
+                                      const cleaned = text.replace(/[^0-9.-]/g, "");
+                                      const parts = cleaned.split(".");
+                                      const finalText = parts.length > 2
+                                        ? parts[0] + "." + parts.slice(1).join("")
+                                        : cleaned;
+                                      const numValue = parseFloat(finalText);
+                                      if (!isNaN(numValue)) {
+                                        const clampedValue = Math.max(0, Math.min(100, numValue));
+                                        if (clampedValue !== numValue) {
+                                          setValue("percentages", {
+                                            ...percentages,
+                                            [friendId]: clampedValue.toString(),
+                                          });
+                                          return;
+                                        }
+                                      }
+                                      setValue("percentages", {
+                                        ...percentages,
+                                        [friendId]: finalText,
+                                      });
+                                    }}
+                                    keyboardType="decimal-pad"
+                                    placeholder="0"
+                                    style={{
+                                      width: 80,
+                                      textAlign: "right",
+                                      fontSize: 16,
+                                      fontFamily: Fonts.sans,
+                                      color: isDark ? Colors.dark.text : Colors.light.text,
+                                      paddingVertical: 8,
+                                      paddingHorizontal: 12,
+                                      borderRadius: 8,
+                                      backgroundColor: isDark
+                                        ? "rgba(255, 255, 255, 0.05)"
+                                        : "rgba(0, 0, 0, 0.02)",
+                                      borderWidth: 1,
+                                      borderColor: isDark
+                                        ? "rgba(255, 255, 255, 0.1)"
+                                        : "rgba(0, 0, 0, 0.1)",
+                                    }}
+                                    placeholderTextColor={isDark ? Colors.dark.icon : Colors.light.icon}
+                                  />
+                                  <ThemedText size="base">%</ThemedText>
+                                </View>
+                              </View>
+                              <ThemedText
+                                size="sm"
+                                style={{
+                                  color: isDark
+                                    ? Colors.dark.icon
+                                    : Colors.light.icon,
+                                }}
+                              >
+                                ≈ {formatCurrency(amount, receipt.totals.currency)}
+                              </ThemedText>
+                            </View>
+                          );
+                        })}
+                      </View>
                     </>
                   )}
 
@@ -974,17 +1099,22 @@ export function SplitFlowSheet({
                       >
                         Tap each item to assign it to specific people
                       </ThemedText>
-                      {receipt.items.map((item, index) => {
+                      <View style={{ paddingBottom: 50 }}>
+                        {receipt.items.map((item, index) => {
                         const itemId = item.id || index.toString();
                         const assignment = assignments.find(
                           (a) => a.itemId === itemId
                         );
+                        // Include current user in friends list if they're selected
+                        const availableFriends = user && selectedFriendIds.includes(user.id)
+                          ? [{ id: user.id, name: "Me" } as typeof friends[number], ...friends.filter((f) => selectedFriendIds.includes(f.id))]
+                          : friends.filter((f) => selectedFriendIds.includes(f.id));
                         return (
                           <ItemAssignmentComponent
                             key={itemId}
                             item={item}
                             itemIndex={index}
-                            friends={friends}
+                            friends={availableFriends}
                             selectedFriendIds={assignment?.friendIds || []}
                             quantities={assignment?.quantities}
                             tempPeople={tempPeople}
@@ -1026,6 +1156,7 @@ export function SplitFlowSheet({
                           />
                         );
                       })}
+                      </View>
                     </>
                   )}
 
@@ -1053,7 +1184,10 @@ export function SplitFlowSheet({
               {/* Step 4: Review */}
               <ScrollView
                 style={{ width: screenWidth }}
-                contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 200 }}
+                contentContainerStyle={{
+                  paddingHorizontal: 24,
+                  paddingBottom: 150 + Math.max(insets.bottom, 24),
+                }}
                 showsVerticalScrollIndicator={false}
               >
                 <View className="gap-4">

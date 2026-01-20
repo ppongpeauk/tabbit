@@ -1,6 +1,6 @@
-export interface Category {
-  code: string;
-}
+/**
+ * @description Category utilities matching the app's category system
+ */
 
 const CATEGORY_NAME_MAP: Record<string, string> = {
   INCOME: "Income",
@@ -43,27 +43,6 @@ const CATEGORY_EMOJI_MAP: Record<string, string> = {
   "Rent & Utilities": "🏠",
   Other: "📋",
 };
-
-export const CATEGORIES: Category[] = [
-  { code: "INCOME" },
-  { code: "LOAN_DISBURSEMENTS" },
-  { code: "LOAN_PAYMENTS" },
-  { code: "TRANSFER_IN" },
-  { code: "TRANSFER_OUT" },
-  { code: "BANK_FEES" },
-  { code: "ENTERTAINMENT" },
-  { code: "FOOD_AND_DRINK" },
-  { code: "GENERAL_MERCHANDISE" },
-  { code: "HOME_IMPROVEMENT" },
-  { code: "MEDICAL" },
-  { code: "PERSONAL_CARE" },
-  { code: "GENERAL_SERVICES" },
-  { code: "GOVERNMENT_AND_NON_PROFIT" },
-  { code: "TRANSPORTATION" },
-  { code: "TRAVEL" },
-  { code: "RENT_AND_UTILITIES" },
-  { code: "OTHER" },
-];
 
 export function getCategoryName(category: string): string {
   if (!category) return "Other";

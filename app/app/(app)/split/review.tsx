@@ -38,7 +38,7 @@ function buildPeopleMap(
   const map: Record<string, string> = {};
   friendIds.forEach((friendId) => {
     if (currentUser && friendId === currentUser.id) {
-      map[friendId] = currentUser.name || "You";
+      map[friendId] = "Me";
       return;
     }
     if (tempPeople && tempPeople[friendId]) {

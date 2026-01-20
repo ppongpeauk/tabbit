@@ -149,7 +149,7 @@ export function ItemAssignment({
               {selectedFriendIds.map((friendId, index) => {
                 let personName = "Unknown";
                 if (user && friendId === user.id) {
-                  personName = user.name || "You";
+                  personName = "Me";
                 } else if (tempPeople && tempPeople[friendId]) {
                   personName = tempPeople[friendId];
                 } else {

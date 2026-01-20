@@ -106,6 +106,7 @@ export default function EditReceiptScreen() {
       transactionDate,
       transactionTime,
       currency: receipt.totals.currency || "USD",
+      category: receipt.merchant.category?.[0] || undefined,
     });
     setUserNotes(receipt.appData?.userNotes || "");
   }, [receipt, headerFields]);

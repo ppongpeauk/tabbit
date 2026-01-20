@@ -11,4 +11,5 @@ export interface ManualReceiptHeaderFields {
   transactionDate: string;
   transactionTime: string;
   currency: string;
+  category?: string;
 }
