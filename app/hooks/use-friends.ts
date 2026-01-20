@@ -44,6 +44,7 @@ export function useFriends() {
             id: apiFriend.friendId,
             name: apiFriend.friendName,
             email: apiFriend.friendEmail || undefined,
+            image: apiFriend.friendImage,
             createdAt: apiFriend.createdAt,
           });
         }

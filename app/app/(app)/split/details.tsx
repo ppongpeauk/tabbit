@@ -16,6 +16,7 @@ import { useFriends } from "@/hooks/use-friends";
 import { formatCurrency } from "@/utils/format";
 import { SplitStatus } from "@/utils/split";
 import type { Friend as StorageFriend } from "@/utils/storage";
+import { isCollaborator } from "@/utils/storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
@@ -71,7 +72,7 @@ export function SplitDetailsSheet({
   const lastPresentedPersonIdRef = useRef<string | null>(null);
 
   const splitData = receipt?.splitData;
-  const isOwner = receipt?.ownerId && currentUserId && receipt.ownerId === currentUserId;
+  const isCollaboratorValue = isCollaborator(receipt, currentUserId);
 
   const peopleLookup = useMemo(
     () => (splitData ? buildPeopleLookup(splitData, friends, user) : {}),
@@ -180,7 +181,7 @@ export function SplitDetailsSheet({
             Split Details
           </ThemedText>
           <View className="flex-row items-center gap-4">
-            {splitData?.totals && isOwner && (
+            {splitData?.totals && isCollaboratorValue && (
               <Button size="sm" variant="secondary" onPress={handleEditSplit}>Edit</Button>
             )}
             <TouchableOpacity
@@ -212,12 +213,12 @@ export function SplitDetailsSheet({
             icon="person.2.fill"
             title="No Split Configured"
             subtitle={
-              isOwner
+              isCollaboratorValue
                 ? "Set up how you want to split this receipt with your friends."
                 : "The owner hasn't set up a split for this receipt yet."
             }
             action={
-              isOwner ? (
+              isCollaboratorValue ? (
                 <Button variant="primary" onPress={handleEditSplit} fullWidth>
                   Configure Split
                 </Button>

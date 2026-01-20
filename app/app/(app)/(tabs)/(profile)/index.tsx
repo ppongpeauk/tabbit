@@ -219,7 +219,7 @@ export default function ProfileScreen() {
               className="flex-1"
               leftIcon={
                 <SymbolView
-                  name="pencil"
+                  name="square.and.pencil"
                   size={18}
                   tintColor={isDark ? Colors.dark.text : Colors.light.text}
                 />

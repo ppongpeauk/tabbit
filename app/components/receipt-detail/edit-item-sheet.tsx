@@ -1,155 +1,119 @@
 /**
- * @description Bottom sheet for adding/editing receipt items
+ * @description Bottom sheet for editing a single receipt item
  */
 
-import { useEffect, useCallback, useRef } from "react";
-import { ScrollView, View, TouchableOpacity, TextInput } from "react-native";
+import { useCallback, useEffect } from "react";
+import { View, TouchableOpacity, ScrollView } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { useForm, Controller } from "react-hook-form";
 import { ThemedText } from "@/components/themed-text";
 import { FormTextInput } from "@/components/form-text-input";
 import { FormQuantityInput } from "@/components/form-quantity-input";
+import { Button } from "@/components/button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
-import type React from "react";
+import { SymbolView } from "expo-symbols";
+import * as Haptics from "expo-haptics";
 import type { ReceiptItem } from "@/utils/storage";
 
-interface ItemFormData {
+interface EditItemFormData {
   name: string;
-  price: string;
   quantity: number;
+  unitPrice: string;
 }
 
-interface ItemEditSheetProps {
+interface EditItemSheetProps {
   bottomSheetRef: React.RefObject<TrueSheet | null>;
-  item?: ReceiptItem | null; // null for new item, ReceiptItem for editing
-  onSave: (item: ReceiptItem) => void;
+  item: ReceiptItem | null;
+  currency: string;
+  onSave: (updatedItem: ReceiptItem) => void;
   onClose: () => void;
 }
 
-export function ItemEditSheet({
+export function EditItemSheet({
   bottomSheetRef,
   item,
+  currency,
   onSave,
   onClose,
-}: ItemEditSheetProps) {
+}: EditItemSheetProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-
-  const nameInputRef = useRef<TextInput>(null);
-  const shouldAutoFocus = useRef(false);
 
   const {
     control,
     handleSubmit,
     reset,
-    formState: { isValid },
-  } = useForm<ItemFormData>({
+  } = useForm<EditItemFormData>({
     defaultValues: {
       name: "",
-      price: "",
       quantity: 1,
+      unitPrice: "0",
     },
-    mode: "onChange",
   });
-
-  const isEditing = item !== null && item !== undefined;
 
   useEffect(() => {
     if (item) {
       reset({
-        name: item.name || "",
-        price: item.unitPrice?.toFixed(2) || "",
-        quantity: item.quantity || 1,
+        name: item.name,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice.toString(),
       });
-      shouldAutoFocus.current = false;
-    } else {
-      reset({
-        name: "",
-        price: "",
-        quantity: 1,
-      });
-      shouldAutoFocus.current = true;
     }
   }, [item, reset]);
 
-  const handleNameInputLayout = useCallback(() => {
-    if (shouldAutoFocus.current && nameInputRef.current) {
-      shouldAutoFocus.current = false;
-      setTimeout(() => {
-        nameInputRef.current?.focus();
-      }, 100);
-    }
-  }, []);
-
-  const handleSave = handleSubmit((data) => {
-    const priceNum = parseFloat(data.price) || 0;
-    const totalPrice = data.quantity * priceNum;
-
-    const newItem: ReceiptItem = {
-      name: data.name.trim(),
-      quantity: data.quantity,
-      unitPrice: priceNum,
-      totalPrice,
-    };
-
-    onSave(newItem);
+  const handleClose = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     bottomSheetRef.current?.dismiss();
     onClose();
+  }, [bottomSheetRef, onClose]);
+
+  const handleSave = handleSubmit((data) => {
+    const price = parseFloat(data.unitPrice) || 0;
+
+    const updatedItem: ReceiptItem = {
+      ...item!,
+      name: data.name.trim(),
+      quantity: data.quantity,
+      unitPrice: price,
+      totalPrice: data.quantity * price,
+    };
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onSave(updatedItem);
+    bottomSheetRef.current?.dismiss();
   });
+
+  const iconColor = isDark ? Colors.dark.icon : Colors.light.icon;
 
   return (
     <TrueSheet
       ref={bottomSheetRef}
+      detents={["auto"]}
       backgroundColor={
         isDark ? Colors.dark.background : Colors.light.background
       }
-
       scrollable
     >
       <ScrollView
         contentContainerClassName="px-6 py-8"
+        showsVerticalScrollIndicator={true}
         keyboardShouldPersistTaps="handled"
-        nestedScrollEnabled
       >
         <View className="flex-row items-center justify-between mb-6">
-          <View>
-            <ThemedText size="lg" weight="semibold">
-              {isEditing ? "Edit Item" : "Add Item"}
-            </ThemedText>
-          </View>
-
+          <ThemedText size="xl" weight="bold">
+            Edit Item
+          </ThemedText>
           <TouchableOpacity
-            onPress={handleSave}
-            disabled={!isValid}
+            onPress={handleClose}
             activeOpacity={0.7}
-            className="px-4 py-2 rounded-lg"
-            style={{
-              backgroundColor: isValid
-                ? isDark
-                  ? Colors.dark.tint
-                  : Colors.light.tint
-                : isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.1)",
-              opacity: isValid ? 1 : 0.5,
-            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ThemedText
-              size="base"
-              weight="semibold"
-              style={{
-                color: isValid
-                  ? isDark
-                    ? "#000000"
-                    : "#FFFFFF"
-                  : isDark
-                    ? "rgba(255, 255, 255, 0.5)"
-                    : "rgba(0, 0, 0, 0.5)",
-              }}
-            >
-              Save
-            </ThemedText>
+            <SymbolView
+              name="xmark.circle.fill"
+              tintColor={iconColor}
+              size={28}
+            />
           </TouchableOpacity>
         </View>
 
@@ -159,18 +123,16 @@ export function ItemEditSheet({
           rules={{ required: true }}
           render={({ field: { onChange, onBlur, value } }) => (
             <FormTextInput
-              ref={nameInputRef}
-              label="Item Name *"
+              label="Item Name"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
               placeholder="Enter item name"
-              onLayout={handleNameInputLayout}
             />
           )}
         />
 
-        <View className="flex-row gap-3">
+        <View className="flex-row gap-4">
           <View className="flex-1">
             <Controller
               control={control}
@@ -188,10 +150,10 @@ export function ItemEditSheet({
           <View className="flex-1">
             <Controller
               control={control}
-              name="price"
+              name="unitPrice"
               render={({ field: { onChange, onBlur, value } }) => (
                 <FormTextInput
-                  label="Price"
+                  label={`Price (${currency})`}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -202,6 +164,15 @@ export function ItemEditSheet({
               )}
             />
           </View>
+        </View>
+
+        <View className="flex-row gap-4 mt-6">
+          <Button variant="secondary" onPress={handleClose} style={{ flex: 1 }}>
+            Cancel
+          </Button>
+          <Button variant="primary" onPress={handleSave} style={{ flex: 1 }}>
+            Save Changes
+          </Button>
         </View>
       </ScrollView>
     </TrueSheet>

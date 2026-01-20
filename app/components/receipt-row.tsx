@@ -10,6 +10,7 @@ import { router } from "expo-router";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { StoredReceipt } from "@/utils/storage";
+import { isCollaborator } from "@/utils/storage";
 import { formatCurrency, formatReceiptDateTime } from "@/utils/format";
 import * as Haptics from "expo-haptics";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
@@ -110,7 +111,7 @@ export function ReceiptRow({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const isToday = sectionTitle === "Today";
-  const isOwner = receipt.ownerId && currentUserId && receipt.ownerId === currentUserId;
+  const isCollaboratorValue = isCollaborator(receipt, currentUserId);
 
   const separatorColor =
     colorScheme === "dark"
@@ -167,7 +168,7 @@ export function ReceiptRow({
         friction={2}
         overshootRight={false}
         childrenContainerStyle={{ backgroundColor: rowBaseBg }}
-        renderRightActions={isOwner ? (_, __, swipeableMethods) => (
+        renderRightActions={isCollaboratorValue ? (_, __, swipeableMethods) => (
           <View
             className="h-full justify-center items-center"
             style={{

@@ -8,6 +8,7 @@ import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
+import * as Haptics from "expo-haptics";
 import { CURRENCIES, type Currency } from "@/utils/currencies";
 import type React from "react";
 
@@ -29,6 +30,7 @@ export function CurrencyPickerSheet({
 
   const handleSelect = useCallback(
     (currency: Currency) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onSelect(currency.code);
       bottomSheetRef.current?.dismiss();
       onClose();

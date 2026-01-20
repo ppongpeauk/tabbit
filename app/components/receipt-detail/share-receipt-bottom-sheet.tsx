@@ -34,6 +34,7 @@ import {
 } from "@/utils/api";
 import type { Friend } from "@/utils/storage";
 import { Alert } from "react-native";
+import { Avatar } from "@/components/avatar";
 
 interface ShareReceiptBottomSheetProps {
   bottomSheetRef: React.RefObject<TrueSheet | null>;
@@ -128,9 +129,7 @@ function FriendGridItem({
             initialAnimatedStyle,
           ]}
         >
-          <ThemedText size="lg" weight="semibold">
-            {friend.name?.charAt(0).toUpperCase() || "?"}
-          </ThemedText>
+          <Avatar name={friend.name} imageUrl={friend.image} size={80} />
         </Animated.View>
         <Animated.View
           style={[

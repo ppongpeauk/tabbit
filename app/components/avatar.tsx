@@ -74,10 +74,9 @@ export function PersonAvatar({
   if (user && personId === user.id) {
     imageUrl = user.image || null;
   } else {
-    // StorageFriend uses 'id' instead of 'friendId'
+    // Check if this is a friend
     const friend = friends.find((f) => f.id === personId);
-    // StorageFriend doesn't have friendImage, so we use null
-    imageUrl = null;
+    imageUrl = friend?.image || null;
   }
 
   return <Avatar name={name} imageUrl={imageUrl} size={size} />;

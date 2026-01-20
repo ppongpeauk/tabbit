@@ -78,7 +78,6 @@ export default function ChooseSplitModeScreen() {
   }, [receiptId, receipt, isLoadingReceipt]);
 
   const handleStrategySelect = useCallback((strategy: SplitStrategy) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedStrategy(strategy);
   }, []);
 

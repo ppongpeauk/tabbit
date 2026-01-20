@@ -33,20 +33,20 @@ import { useAuth } from "@/contexts/auth-context";
 import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import {
+  MerchantInfoCard,
   ItemsCard,
   TotalsCard,
   ReturnInfoCard,
   ReceiptHeader,
   SplitSummaryCard,
-  ShareReceiptCard,
   ShareReceiptBottomSheet,
   NotesCard,
   useScannedBarcode,
   shouldShowReturnInfo,
   BarcodeModal,
-  formatMerchantAddress,
-  useAddressHandler,
   MerchantDetailsSheet,
+  EditItemSheet,
+  EditTotalsSheet,
 } from "@/components/receipt-detail";
 import { SplitDetailsSheet } from "@/app/(app)/split/details";
 import { SplitFlowSheet } from "@/components/split/split-flow-sheet";
@@ -57,6 +57,7 @@ import { SymbolView } from "expo-symbols";
 import { AppleMaps } from "expo-maps";
 import * as Location from "expo-location";
 import { getCategoryName, getCategoryEmoji } from "@/utils/categories";
+import { isCollaborator } from "@/utils/storage";
 import moment from "moment";
 
 // ============================================================================
@@ -146,297 +147,7 @@ function ReceiptNotFoundState() {
   );
 }
 
-// ============================================================================
-// Map Component
-// ============================================================================
-
-interface AddressMapProps {
-  address: StoredReceipt["merchant"]["address"];
-  isDark: boolean;
-}
-
-function AddressMap({ address, isDark }: AddressMapProps) {
-  const [coordinates, setCoordinates] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const handleAddressPress = useAddressHandler();
-
-  useEffect(() => {
-    if (!address?.line1) {
-      setIsLoading(false);
-      return;
-    }
-
-    const geocodeAddress = async () => {
-      try {
-        const addressString = [
-          address.line1,
-          address.city,
-          address.state,
-          address.postalCode,
-        ]
-          .filter(Boolean)
-          .join(", ");
-
-        const results = await Location.geocodeAsync(addressString);
-        if (results.length > 0) {
-          setCoordinates({
-            latitude: results[0].latitude,
-            longitude: results[0].longitude,
-          });
-        }
-      } catch (error) {
-        console.error("Geocoding error:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    geocodeAddress();
-  }, [address]);
-
-  if (!address?.line1 || isLoading || !coordinates) {
-    return null;
-  }
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={() => handleAddressPress(address)}
-      className="h-32 overflow-hidden"
-      style={{
-        backgroundColor: isDark
-          ? "rgba(255, 255, 255, 0.05)"
-          : "rgba(0, 0, 0, 0.05)",
-      }}
-    >
-      <View pointerEvents="none" style={{ flex: 1 }}>
-        <AppleMaps.View
-          style={{ flex: 1 }}
-          cameraPosition={{
-            coordinates: {
-              latitude: coordinates.latitude,
-              longitude: coordinates.longitude,
-            },
-            zoom: 16,
-          }}
-          markers={[
-            {
-              id: "merchant-location",
-              coordinates: {
-                latitude: coordinates.latitude,
-                longitude: coordinates.longitude,
-              },
-            },
-          ]}
-          uiSettings={{
-            compassEnabled: false,
-            myLocationButtonEnabled: false,
-            scaleBarEnabled: false,
-            togglePitchEnabled: false,
-          }}
-          properties={{
-            mapType: AppleMaps.MapType.STANDARD,
-          }}
-        />
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-// ============================================================================
-// Hero Section with Merchant Info
-// ============================================================================
-
-interface HeroSectionProps {
-  receipt: StoredReceipt;
-  isDark: boolean;
-  onMerchantPress: () => void;
-}
-
-function HeroSection({ receipt, isDark, onMerchantPress }: HeroSectionProps) {
-  const handleAddressPress = useAddressHandler();
-  const merchantAddress = formatMerchantAddress(receipt.merchant.address);
-  const hasAddress = Boolean(receipt.merchant.address?.line1);
-  const receiptTitle = receipt.name?.trim() || "";
-  const merchantName = receipt.merchant.name?.trim() || "";
-  const merchantLogo = receipt.merchant.logo;
-  const [logoError, setLogoError] = useState(false);
-
-  return (
-    <View
-      className={`px-4 pt-6 pb-4 ${merchantLogo && !logoError ? "gap-4" : "gap-0"}`}
-    >
-      <TouchableOpacity
-        onPress={onMerchantPress}
-        activeOpacity={0.7}
-        className="flex flex-row items-center gap-4"
-      >
-        {merchantLogo && !logoError ? (
-          <Image
-            source={{ uri: merchantLogo }}
-            resizeMode="contain"
-            onError={() => setLogoError(true)}
-            className="w-16 h-16 border-2 border-gray-200 dark:border-gray-800 rounded-2xl"
-          />
-        ) : null}
-        {/* Merchant Name */}
-        <ThemedText size="xl" weight="bold" family="sans" className="text-left flex-1">
-          {receiptTitle || merchantName}
-        </ThemedText>
-        <SymbolView
-          name="chevron.right"
-          tintColor={isDark ? Colors.dark.subtle : Colors.light.icon}
-          style={{ width: 16, height: 16 }}
-        />
-      </TouchableOpacity>
-      {/* Address */}
-      {hasAddress ? (
-        <TouchableOpacity
-          onPress={() => handleAddressPress(receipt.merchant.address!)}
-          activeOpacity={0.7}
-          className="items-start"
-        >
-          <ThemedText
-            size="base"
-            className="text-left"
-            style={{
-              color: isDark ? Colors.dark.subtle : Colors.light.icon,
-            }}
-          >
-            {merchantAddress}
-          </ThemedText>
-        </TouchableOpacity>
-      ) : null}
-    </View>
-  );
-}
-
-// ============================================================================
-// Metadata Grid (Date, Category, Total, Currency)
-// ============================================================================
-
-interface MetadataGridProps {
-  receipt: StoredReceipt;
-  isDark: boolean;
-}
-
-function MetadataGrid({ receipt, isDark }: MetadataGridProps) {
-  const date = new Date(receipt.transaction.datetime || receipt.createdAt);
-  const formattedDate = date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-
-  const categoryRaw = receipt.merchant.category?.[0] || "OTHER";
-  const category = getCategoryName(categoryRaw);
-  const categoryEmoji = getCategoryEmoji(categoryRaw);
-  const total = receipt.totals.total || 0;
-  const currency = receipt.totals.currency || "USD";
-
-  const iconColor = isDark ? Colors.dark.icon : Colors.light.icon;
-  const subtleColor = isDark ? Colors.dark.subtle : Colors.light.icon;
-
-  return (
-    <View className="px-6 pt-5 pb-6">
-      {/* First Row: Date and Category */}
-      <View className="flex-row gap-4 mb-6">
-        {/* Date */}
-        <View className="flex-1">
-          <View className="flex-row items-center gap-2 mb-1">
-            <SymbolView
-              name="calendar"
-              tintColor={iconColor}
-              style={{ width: 20, height: 20 }}
-            />
-            <ThemedText
-              size="sm"
-              weight="semibold"
-              style={{ color: subtleColor }}
-            >
-              Date
-            </ThemedText>
-          </View>
-          <ThemedText size="base" weight="semibold" family="sans">
-            {formattedDate}
-          </ThemedText>
-        </View>
-
-        {/* Category */}
-        <View className="flex-1">
-          <View className="flex-row items-center gap-2 mb-1">
-            <SymbolView
-              name="tag.fill"
-              tintColor={iconColor}
-              style={{ width: 20, height: 20 }}
-            />
-            <ThemedText
-              size="sm"
-              weight="semibold"
-              style={{ color: subtleColor }}
-            >
-              Category
-            </ThemedText>
-          </View>
-          <View className="flex-row items-start gap-2">
-            <ThemedText size="base">{categoryEmoji}</ThemedText>
-            <ThemedText size="base" weight="semibold" family="sans">
-              {category}
-            </ThemedText>
-          </View>
-        </View>
-      </View>
-
-      {/* Second Row: Total Amount and Currency */}
-      <View className="flex-row gap-4">
-        {/* Total Amount */}
-        <View className="flex-1">
-          <View className="flex-row items-center gap-2 mb-1">
-            <SymbolView
-              name="creditcard.fill"
-              tintColor={iconColor}
-              style={{ width: 20, height: 20 }}
-            />
-            <ThemedText
-              size="sm"
-              weight="semibold"
-              style={{ color: subtleColor }}
-            >
-              Total Amount
-            </ThemedText>
-          </View>
-          <ThemedText size="base" weight="semibold" family="sans">
-            ${total.toFixed(2)}
-          </ThemedText>
-        </View>
-
-        {/* Currency */}
-        <View className="flex-1">
-          <View className="flex-row items-center gap-2 mb-1">
-            <SymbolView
-              name="globe"
-              tintColor={iconColor}
-              style={{ width: 20, height: 20 }}
-            />
-            <ThemedText
-              size="sm"
-              weight="semibold"
-              style={{ color: subtleColor }}
-            >
-              Currency
-            </ThemedText>
-          </View>
-          <ThemedText size="base" weight="semibold" family="sans">
-            {currency}
-          </ThemedText>
-        </View>
-      </View>
-    </View>
-  );
-}
+// Hero card components moved to MerchantInfoCard.tsx
 
 // ============================================================================
 // Helper Functions
@@ -474,6 +185,8 @@ function ReceiptContent({
   onMerchantPress,
   onViewSplit,
   currentUserId,
+  onItemPress,
+  onTotalsPress,
 }: {
   receipt: StoredReceipt;
   friends: StorageFriend[];
@@ -485,8 +198,10 @@ function ReceiptContent({
   onMerchantPress: () => void;
   onViewSplit?: () => void;
   currentUserId?: string | null;
+  onItemPress?: (item: any, index: number) => void;
+  onTotalsPress?: () => void;
 }) {
-  const isOwner = receipt.ownerId && currentUserId && receipt.ownerId === currentUserId;
+  const isCollaboratorValue = isCollaborator(receipt, currentUserId);
   return (
     <ScrollView
       className="flex-1"
@@ -497,44 +212,15 @@ function ReceiptContent({
       automaticallyAdjustContentInsets
       showsVerticalScrollIndicator={false}
     >
-      {/* Hero Card containing merchant info and metadata */}
+      {/* Merchant Info Card */}
       <View className="px-6 mb-4">
-        <View
-          className="rounded-[20px] overflow-hidden border"
-          style={{
-            backgroundColor: isDark ? Colors.dark.surface : "#FFFFFF",
-            borderColor: isDark
-              ? "rgba(255, 255, 255, 0.05)"
-              : "rgba(0, 0, 0, 0.05)",
-          }}
-        >
-          {receipt.merchant.address?.line1 ? (
-            <AddressMap address={receipt.merchant.address} isDark={isDark} />
-          ) : null}
-
-          {/* Hero Section */}
-          <HeroSection receipt={receipt} isDark={isDark} onMerchantPress={onMerchantPress} />
-
-          {/* Separator */}
-          <View
-            className="h-px mx-6"
-            style={{
-              backgroundColor: isDark
-                ? "rgba(255, 255, 255, 0.1)"
-                : "rgba(0, 0, 0, 0.1)",
-            }}
-          />
-
-          {/* Metadata Grid */}
-          <MetadataGrid receipt={receipt} isDark={isDark} />
-        </View>
+        <MerchantInfoCard
+          receipt={receipt}
+          isCollaborator={isCollaboratorValue}
+          onShare={onShare}
+          onMerchantPress={onMerchantPress}
+        />
       </View>
-
-      {isOwner && (
-        <View className="px-6 mb-4">
-          <ShareReceiptCard onShare={onShare} />
-        </View>
-      )}
 
       {/* Items and Totals Card */}
       <View className="px-6 mb-4">
@@ -547,8 +233,16 @@ function ReceiptContent({
               : "rgba(0, 0, 0, 0.05)",
           }}
         >
-          <ItemsCard receipt={receipt} />
-          <TotalsCard receipt={receipt} />
+          <ItemsCard
+            receipt={receipt}
+            onItemPress={onItemPress}
+            isCollaborator={isCollaboratorValue}
+          />
+          <TotalsCard
+            receipt={receipt}
+            onTotalsPress={onTotalsPress}
+            isCollaborator={isCollaboratorValue}
+          />
         </View>
       </View>
 
@@ -563,7 +257,7 @@ function ReceiptContent({
         </View>
       ) : null}
 
-      {!shouldShowReturnInfo(receipt.returnInfo) && isOwner && (
+      {!shouldShowReturnInfo(receipt.returnInfo) && isCollaboratorValue && (
         <View className="px-6 mb-4">
           <TouchableOpacity
             activeOpacity={0.7}
@@ -661,6 +355,13 @@ export default function ReceiptDetailScreen() {
   const merchantDetailsSheetRef = useRef<TrueSheet>(null);
   const splitDetailsSheetRef = useRef<TrueSheet>(null);
   const splitFlowSheetRef = useRef<TrueSheet>(null);
+  const editItemSheetRef = useRef<TrueSheet>(null);
+  const editTotalsSheetRef = useRef<TrueSheet>(null);
+
+  const [editingItem, setEditingItem] = useState<{
+    item: StoredReceipt["items"][0];
+    index: number;
+  } | null>(null);
 
   // React Query hooks
   const {
@@ -835,6 +536,56 @@ export default function ReceiptDetailScreen() {
     [receipt, updateReceiptMutation]
   );
 
+  const handleUpdateItem = useCallback(
+    async (updatedItem: StoredReceipt["items"][0]) => {
+      if (!receipt || editingItem === null) return;
+      const newItems = [...receipt.items];
+      newItems[editingItem.index] = updatedItem;
+
+      // Recalculate subtotal and total
+      const subtotal = newItems.reduce((sum, item) => sum + item.totalPrice, 0);
+      const total = subtotal + receipt.totals.tax + (receipt.totals.fees || 0);
+
+      try {
+        await updateReceiptMutation.mutateAsync({
+          id: receipt.id,
+          updates: {
+            items: newItems,
+            totals: {
+              ...receipt.totals,
+              subtotal,
+              total,
+            },
+          },
+        });
+        setEditingItem(null);
+      } catch (error) {
+        Alert.alert("Error", "Failed to update item");
+      }
+    },
+    [receipt, editingItem, updateReceiptMutation]
+  );
+
+  const handleUpdateTotals = useCallback(
+    async (updates: Partial<StoredReceipt["totals"]>) => {
+      if (!receipt) return;
+      try {
+        await updateReceiptMutation.mutateAsync({
+          id: receipt.id,
+          updates: {
+            totals: {
+              ...receipt.totals,
+              ...updates,
+            },
+          },
+        });
+      } catch (error) {
+        Alert.alert("Error", "Failed to update totals");
+      }
+    },
+    [receipt, updateReceiptMutation]
+  );
+
   // Setup toolbar
   useReceiptToolbar({
     receipt: receipt || null,
@@ -877,6 +628,11 @@ export default function ReceiptDetailScreen() {
           onMerchantPress={handleMerchantPress}
           onViewSplit={() => splitDetailsSheetRef.current?.present()}
           currentUserId={user?.id}
+          onItemPress={(item, index) => {
+            setEditingItem({ item, index });
+            editItemSheetRef.current?.present();
+          }}
+          onTotalsPress={() => editTotalsSheetRef.current?.present()}
         />
       </ThemedView>
       {/* <Toolbar bottom={insets.bottom}>
@@ -926,6 +682,19 @@ export default function ReceiptDetailScreen() {
           />
         </>
       )}
+      <EditItemSheet
+        bottomSheetRef={editItemSheetRef}
+        item={editingItem?.item || null}
+        currency={receipt.totals.currency}
+        onSave={handleUpdateItem}
+        onClose={() => setEditingItem(null)}
+      />
+      <EditTotalsSheet
+        bottomSheetRef={editTotalsSheetRef}
+        receipt={receipt}
+        onSave={handleUpdateTotals}
+        onClose={() => { }}
+      />
     </View>
   );
 }

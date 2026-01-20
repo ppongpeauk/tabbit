@@ -6,6 +6,7 @@
 import { SymbolView } from "expo-symbols";
 import { ThemedText } from "@/components/themed-text";
 import type { StoredReceipt } from "@/utils/storage";
+import { isCollaborator } from "@/utils/storage";
 import type { StackNavigationOptions } from "@react-navigation/stack";
 import ContextMenu from "react-native-context-menu-view";
 import { Colors } from "@/constants/theme";
@@ -43,7 +44,7 @@ export function ReceiptHeader({
   onSetVisibility,
 }: ReceiptHeaderProps): Partial<StackNavigationOptions> {
   const visibility = receipt?.visibility || "private";
-  const isOwner = receipt?.ownerId && currentUserId && receipt.ownerId === currentUserId;
+  const isCollaboratorValue = isCollaborator(receipt, currentUserId);
 
   const menuActions = [
     ...(hasPhoto
@@ -55,7 +56,7 @@ export function ReceiptHeader({
         },
       ]
       : []),
-    ...(isOwner
+    ...(isCollaboratorValue
       ? [
         {
           title: "Edit",
@@ -69,7 +70,7 @@ export function ReceiptHeader({
       systemIcon: "person.2",
       handler: onSplit,
     },
-    ...(isOwner
+    ...(isCollaboratorValue
       ? [
         {
           title: "Share",

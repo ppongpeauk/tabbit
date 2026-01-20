@@ -105,7 +105,7 @@ export const FormTextInput = forwardRef<TextInput, FormTextInputProps>(
     );
 
     const handleBlur = useCallback(
-      (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
+      (e: NativeSyntheticEvent<any>) => {
         // Validate min/max only on blur
         if (numericOnly && value !== undefined && value !== "") {
           const numValue = parseFloat(value);
@@ -122,10 +122,9 @@ export const FormTextInput = forwardRef<TextInput, FormTextInputProps>(
               validatedValue = max;
             }
 
-            // Update value if it was clamped
-            if (validatedValue !== numValue) {
-              onChangeText?.(validatedValue.toString());
-            }
+            // Update value if numericOnly is true
+            // Always format to 2 decimal places for price/numeric inputs
+            onChangeText?.(validatedValue.toFixed(2));
           }
         }
 

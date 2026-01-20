@@ -16,6 +16,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
 import { AnimationConfig } from "@/utils/config";
+import * as Haptics from "expo-haptics";
 
 export interface CheckboxButtonProps {
   id: string;
@@ -104,7 +105,10 @@ export function CheckboxButton({
       ]}
     >
       <Pressable
-        onPress={onPress}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }}
         cssInterop={false}
         style={({ pressed }) => [
           styles.pressableContent,

@@ -15,6 +15,7 @@ import { useFriends } from "@/hooks/use-friends";
 import { formatCurrency } from "@/utils/format";
 import { SplitStrategy, SplitStatus, type SplitData } from "@/utils/split";
 import type { StoredReceipt } from "@/utils/storage";
+import { isCollaborator } from "@/utils/storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
@@ -110,7 +111,7 @@ export function PersonSplitDetailsSheet({
   const updateReceiptMutation = useUpdateReceipt();
 
   const splitData = receipt?.splitData;
-  const isOwner = receipt?.ownerId && currentUserId && receipt.ownerId === currentUserId;
+  const isCollaboratorValue = isCollaborator(receipt, currentUserId);
 
   const peopleLookup = useMemo(() => {
     if (!splitData) return {};
@@ -297,7 +298,7 @@ export function PersonSplitDetailsSheet({
         }}
       >
         <View className="gap-3">
-          {isOwner && currentStatus !== SplitStatus.SETTLED && receipt && splitData && (
+          {isCollaboratorValue && currentStatus !== SplitStatus.SETTLED && receipt && splitData && (
             <Button
               variant="primary"
               onPress={() => handleStatusChange(SplitStatus.SETTLED)}
@@ -307,7 +308,7 @@ export function PersonSplitDetailsSheet({
               Mark as Settled
             </Button>
           )}
-          {isOwner && currentStatus === SplitStatus.SETTLED && receipt && splitData && (
+          {isCollaboratorValue && currentStatus === SplitStatus.SETTLED && receipt && splitData && (
             <Button
               variant="secondary"
               onPress={() => handleStatusChange(SplitStatus.PENDING)}
@@ -317,7 +318,7 @@ export function PersonSplitDetailsSheet({
               Mark as Pending
             </Button>
           )}
-          {isOwner && remainingAmount > 0 && settleRemainingText && receipt && splitData && (
+          {isCollaboratorValue && remainingAmount > 0 && settleRemainingText && receipt && splitData && (
             <Button
               variant="secondary"
               onPress={() => handleSettleAmount(remainingAmount)}

@@ -22,6 +22,7 @@ import type { Friend } from "@/utils/storage";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { FormTextInput } from "@/components/form-text-input";
 import { useForm, FormProvider, Controller } from "react-hook-form";
+import { Avatar } from "@/components/avatar";
 
 interface AddPersonFormData {
   name: string;
@@ -120,21 +121,24 @@ export default function PeopleScreen() {
             : "rgba(0, 0, 0, 0.1)",
         }}
       >
-        <View className="flex-1">
-          <ThemedText size="base" weight="semibold">
-            {item.name}
-          </ThemedText>
-          {item.email && (
-            <ThemedText
-              size="sm"
-              className="mt-1"
-              style={{
-                color: isDark ? Colors.dark.icon : Colors.light.icon,
-              }}
-            >
-              {item.email}
+        <View className="flex-row items-center flex-1">
+          <Avatar name={item.name} imageUrl={item.image} size={44} />
+          <View className="ml-3 flex-1">
+            <ThemedText size="base" weight="semibold">
+              {item.name}
             </ThemedText>
-          )}
+            {item.email && (
+              <ThemedText
+                size="sm"
+                className="mt-0.5"
+                style={{
+                  color: isDark ? Colors.dark.icon : Colors.light.icon,
+                }}
+              >
+                {item.email}
+              </ThemedText>
+            )}
+          </View>
         </View>
         <View className="flex-row gap-3">
           <Pressable onPress={() => handleDeletePerson(item)} className="p-2">

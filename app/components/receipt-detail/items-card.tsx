@@ -1,15 +1,17 @@
-import { View } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatCurrency } from "@/utils/format";
 import { Colors } from "@/constants/theme";
-import type { StoredReceipt } from "@/utils/storage";
+import type { StoredReceipt, ReceiptItem } from "@/utils/storage";
 
 interface ItemsCardProps {
   receipt: StoredReceipt;
+  onItemPress?: (item: ReceiptItem, index: number) => void;
+  isCollaborator?: boolean;
 }
 
-export function ItemsCard({ receipt }: ItemsCardProps) {
+export function ItemsCard({ receipt, onItemPress, isCollaborator = false }: ItemsCardProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   // Theme-friendly background for quantity badge
@@ -19,11 +21,15 @@ export function ItemsCard({ receipt }: ItemsCardProps) {
 
   return (
     <View className="flex flex-col gap-6">
-      {receipt.items.map((item, index) => (
-        <View
-          key={index}
-          className="flex-row justify-between items-start gap-4"
-        >
+      {receipt.items.map((item, index) => {
+        const ItemWrapper = isCollaborator ? TouchableOpacity : View;
+        return (
+          <ItemWrapper
+            key={index}
+            onPress={isCollaborator ? () => onItemPress?.(item, index) : undefined}
+            activeOpacity={isCollaborator ? 0.7 : undefined}
+            className="flex-row justify-between items-start gap-4"
+          >
           <View className="flex-1 flex-row gap-3">
             <View
               className="w-6 h-6 rounded-full items-center justify-center shrink-0"
@@ -60,9 +66,9 @@ export function ItemsCard({ receipt }: ItemsCardProps) {
                     : ""}
                   {item.quantity > 1
                     ? `${item.quantity} × ${formatCurrency(
-                        item.unitPrice,
-                        receipt.totals.currency
-                      )}`
+                      item.unitPrice,
+                      receipt.totals.currency
+                    )}`
                     : ""}
                 </ThemedText>
               ) : null}
@@ -75,8 +81,9 @@ export function ItemsCard({ receipt }: ItemsCardProps) {
           >
             {formatCurrency(item.totalPrice, receipt.totals.currency)}
           </ThemedText>
-        </View>
-      ))}
+          </ItemWrapper>
+        );
+      })}
     </View>
   );
 }

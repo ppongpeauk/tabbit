@@ -3,7 +3,7 @@
  * @description Custom amount split input screen
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   ScrollView,
@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
+import { useForm, Controller } from "react-hook-form";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/button";
 import { FormTextInput } from "@/components/form-text-input";
@@ -28,6 +29,10 @@ import { useAuth } from "@/contexts/auth-context";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
 
+interface CustomAmountsForm {
+  amounts: Record<string, string>;
+}
+
 export default function CustomInputsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -36,9 +41,6 @@ export default function CustomInputsScreen() {
 
   const [loading, setLoading] = useState(true);
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
-  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>(
-    {}
-  );
   const [splitData, setSplitData] = useState<{
     receiptId: string;
     groupId?: string;
@@ -48,6 +50,19 @@ export default function CustomInputsScreen() {
     tempPeople?: Record<string, string>;
   } | null>(null);
   const [receiptId, setReceiptId] = useState<string | undefined>(undefined);
+
+  const {
+    control,
+    handleSubmit,
+    watch,
+    reset,
+  } = useForm<CustomAmountsForm>({
+    defaultValues: {
+      amounts: {},
+    },
+  });
+
+  const watchedAmounts = watch("amounts");
 
   // Use React Query hooks
   const { data: receipt, isLoading: isLoadingReceipt } = useReceipt(receiptId);
@@ -73,14 +88,14 @@ export default function CustomInputsScreen() {
       tempData.selectedFriendIds?.forEach((friendId: string) => {
         amounts[friendId] = "";
       });
-      setCustomAmounts(amounts);
+      reset({ amounts });
     } catch (error) {
       console.error("Error loading data:", error);
       Alert.alert("Error", "Failed to load data");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [reset]);
 
   useEffect(() => {
     loadData();
@@ -106,19 +121,20 @@ export default function CustomInputsScreen() {
     return friend?.name || "Unknown";
   };
 
-  const validateAmounts = (): boolean => {
-    if (!receipt) return false;
-    let totalBase = 0;
-    selectedFriendIds.forEach((friendId) => {
-      const amount = parseFloat(customAmounts[friendId] || "0") || 0;
-      totalBase += amount;
-    });
-    const subtotal = Math.round(receipt.totals.subtotal * 100) / 100;
-    const difference = Math.abs(totalBase - subtotal);
-    return difference <= 0.02;
-  };
+  const currentTotal = useMemo(() => {
+    return Object.values(watchedAmounts || {}).reduce((sum, val) => {
+      return sum + (parseFloat(val) || 0);
+    }, 0);
+  }, [watchedAmounts]);
 
-  const handleContinue = useCallback(async () => {
+  const validateAmounts = useCallback((): boolean => {
+    if (!receipt) return false;
+    const subtotal = Math.round(receipt.totals.subtotal * 100) / 100;
+    const difference = Math.abs(currentTotal - subtotal);
+    return difference <= 0.02;
+  }, [receipt, currentTotal]);
+
+  const handleContinue = handleSubmit(async (data) => {
     if (!receipt || !splitData) {
       Alert.alert("Error", "Missing data");
       return;
@@ -139,7 +155,7 @@ export default function CustomInputsScreen() {
 
     const friendShares: Record<string, number> = {};
     selectedFriendIds.forEach((friendId) => {
-      const amount = parseFloat(customAmounts[friendId] || "0") || 0;
+      const amount = parseFloat(data.amounts[friendId] || "0") || 0;
       friendShares[friendId] = amount;
     });
 
@@ -175,7 +191,7 @@ export default function CustomInputsScreen() {
     );
 
     router.push("/split/review");
-  }, [receipt, splitData, selectedFriendIds, customAmounts]);
+  });
 
   if (loading) {
     return (
@@ -212,14 +228,7 @@ export default function CustomInputsScreen() {
 
   const isValid = validateAmounts();
 
-  const getTotalAmount = (): number => {
-    return selectedFriendIds.reduce((sum, friendId) => {
-      const amount = parseFloat(customAmounts[friendId] || "0") || 0;
-      return sum + amount;
-    }, 0);
-  };
-
-  const totalAmount = getTotalAmount();
+  const totalAmount = currentTotal;
   const remainingAmount = receipt ? receipt.totals.subtotal - totalAmount : 0;
 
   return (
@@ -312,19 +321,21 @@ export default function CustomInputsScreen() {
                     : "rgba(0, 0, 0, 0.1)",
                 }}
               >
-                <FormTextInput
-                  label={personName}
-                  value={customAmounts[friendId] || ""}
-                  onChangeText={(text) =>
-                    setCustomAmounts({
-                      ...customAmounts,
-                      [friendId]: text,
-                    })
-                  }
-                  numericOnly
-                  min={0}
-                  placeholder="0.00"
-                  style={{ textAlign: "right" }}
+                <Controller
+                  control={control}
+                  name={`amounts.${friendId}`}
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <FormTextInput
+                      label={personName}
+                      value={value || ""}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      numericOnly
+                      min={0}
+                      placeholder="0.00"
+                      style={{ textAlign: "right" }}
+                    />
+                  )}
                 />
               </View>
             );

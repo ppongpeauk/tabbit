@@ -46,6 +46,8 @@ export const totalsSchema = t.Object({
   subtotal: t.Number(),
   tax: t.Number(),
   taxBreakdown: t.Optional(t.Array(taxBreakdownItemSchema)),
+  fees: t.Optional(t.Number()),
+  feesBreakdown: t.Optional(t.Array(taxBreakdownItemSchema)),
   total: t.Number(),
   amountPaid: t.Optional(t.Number()),
   changeDue: t.Optional(t.Number()),
@@ -207,6 +209,13 @@ export const defaultReceiptSchema = {
     subtotal: "number",
     tax: "number",
     taxBreakdown: [
+      {
+        label: "string",
+        amount: "number",
+      },
+    ],
+    fees: "number",
+    feesBreakdown: [
       {
         label: "string",
         amount: "number",

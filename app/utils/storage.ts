@@ -21,6 +21,7 @@ export interface Friend {
   name: string;
   phoneNumber?: string;
   email?: string;
+  image?: string | null;
   createdAt: string;
 }
 
@@ -72,8 +73,8 @@ export async function saveReceipt(
     const axiosError = error as AxiosError<{ message?: string }>;
     throw new Error(
       axiosError.response?.data?.message ||
-        axiosError.message ||
-        "Failed to save receipt"
+      axiosError.message ||
+      "Failed to save receipt"
     );
   }
 }
@@ -93,8 +94,8 @@ export async function getReceiptPhotoUrl(id: string): Promise<string> {
     const axiosError = error as AxiosError<{ message?: string }>;
     throw new Error(
       axiosError.response?.data?.message ||
-        axiosError.message ||
-        "Failed to load receipt photo"
+      axiosError.message ||
+      "Failed to load receipt photo"
     );
   }
 }
@@ -114,8 +115,8 @@ export async function getReceipts(): Promise<StoredReceipt[]> {
     const axiosError = error as AxiosError<{ message?: string }>;
     throw new Error(
       axiosError.response?.data?.message ||
-        axiosError.message ||
-        "Failed to fetch receipts"
+      axiosError.message ||
+      "Failed to fetch receipts"
     );
   }
 }
@@ -134,8 +135,8 @@ export async function deleteReceipt(id: string): Promise<void> {
     const axiosError = error as AxiosError<{ message?: string }>;
     throw new Error(
       axiosError.response?.data?.message ||
-        axiosError.message ||
-        "Failed to delete receipt"
+      axiosError.message ||
+      "Failed to delete receipt"
     );
   }
 }
@@ -157,8 +158,8 @@ export async function updateReceipt(
     const axiosError = error as AxiosError<{ message?: string }>;
     throw new Error(
       axiosError.response?.data?.message ||
-        axiosError.message ||
-        "Failed to update receipt"
+      axiosError.message ||
+      "Failed to update receipt"
     );
   }
 }
@@ -266,4 +267,21 @@ export async function setDefaultSplitMode(mode: SplitStrategy): Promise<void> {
     console.error("Error saving default split mode:", error);
     throw error;
   }
+}
+
+/**
+ * Check if a user is a collaborator on a receipt.
+ * For now, this temporarily equals checking if the user is the owner.
+ * In the future, this will check if the user is in the collaborators list.
+ */
+export function isCollaborator(
+  receipt: StoredReceipt | null | undefined,
+  currentUserId?: string | null
+): boolean {
+  if (!receipt || !currentUserId) {
+    return false;
+  }
+  // Temporarily: collaborator equals owner
+  // TODO: In the future, check if user is in receipt.collaborators array
+  return Boolean(receipt.ownerId && receipt.ownerId === currentUserId);
 }

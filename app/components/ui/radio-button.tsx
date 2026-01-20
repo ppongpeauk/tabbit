@@ -17,6 +17,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors, Fonts } from "@/constants/theme";
 import { AnimationConfig } from "@/utils/config";
+import * as Haptics from "expo-haptics";
 
 export interface RadioButtonOption {
   value: string;
@@ -188,7 +189,10 @@ export function RadioButton({
       >
         <Pressable
           cssInterop={false}
-          onPress={onPress}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onPress();
+          }}
           style={({ pressed }) => [
             styles.pressableContainer,
             {

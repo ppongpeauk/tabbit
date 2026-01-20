@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { ScrollView, View, TouchableOpacity, Image, Alert, ActivityIndicator } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
+import { useForm, Controller } from "react-hook-form";
 import { ThemedText } from "@/components/themed-text";
 import { FormTextInput } from "@/components/form-text-input";
 import { Button } from "@/components/button";
@@ -12,6 +13,10 @@ import * as Haptics from "expo-haptics";
 import { getPresignedUrl } from "@/utils/api";
 import type React from "react";
 import type { User } from "@/contexts/auth-context";
+
+interface ProfileFormData {
+  name: string;
+}
 
 interface ProfileEditSheetProps {
   bottomSheetRef: React.RefObject<TrueSheet | null>;
@@ -29,12 +34,25 @@ export function ProfileEditSheet({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const [name, setName] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [originalImageKey, setOriginalImageKey] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [loadingImage, setLoadingImage] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { isDirty, isValid },
+  } = useForm<ProfileFormData>({
+    defaultValues: {
+      name: "",
+    },
+  });
+
+  const watchedName = watch("name");
 
   const loadProfileImage = useCallback(async (imageKey: string) => {
     try {
@@ -58,7 +76,9 @@ export function ProfileEditSheet({
 
   useEffect(() => {
     if (user) {
-      setName(user.name || "");
+      reset({
+        name: user.name || "",
+      });
       const imageKey = user.image || null;
       setOriginalImageKey(imageKey);
       if (imageKey) {
@@ -68,13 +88,13 @@ export function ProfileEditSheet({
         setSelectedImage(null);
       }
     }
-  }, [user, loadProfileImage]);
+  }, [user, loadProfileImage, reset]);
 
   const hasChanges = useCallback(() => {
-    const nameChanged = name.trim() !== (user?.name || "");
+    const nameChanged = watchedName.trim() !== (user?.name || "");
     const imageChanged = selectedImage !== originalImage;
     return nameChanged || imageChanged;
-  }, [name, selectedImage, originalImage, user?.name]);
+  }, [watchedName, selectedImage, originalImage, user?.name]);
 
   const handlePickImage = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -105,7 +125,7 @@ export function ProfileEditSheet({
     setSelectedImage(null);
   }, []);
 
-  const handleSave = useCallback(async () => {
+  const handleSave = handleSubmit(async (data) => {
     if (!hasChanges()) {
       bottomSheetRef.current?.dismiss();
       onClose();
@@ -121,7 +141,7 @@ export function ProfileEditSheet({
       const imageUri = isNewImage ? selectedImage : (isRemoved ? null : undefined);
 
       await onSave({
-        name: name.trim(),
+        name: data.name.trim(),
         imageUri,
       });
 
@@ -137,7 +157,7 @@ export function ProfileEditSheet({
     } finally {
       setIsSaving(false);
     }
-  }, [name, selectedImage, originalImageKey, hasChanges, onSave, bottomSheetRef, onClose]);
+  });
 
   const handleDiscard = useCallback(() => {
     if (hasChanges()) {
@@ -151,7 +171,9 @@ export function ProfileEditSheet({
             style: "destructive",
             onPress: async () => {
               if (user) {
-                setName(user.name || "");
+                reset({
+                  name: user.name || "",
+                });
                 const imageKey = user.image || null;
                 setOriginalImageKey(imageKey);
                 if (imageKey) {
@@ -171,9 +193,8 @@ export function ProfileEditSheet({
       bottomSheetRef.current?.dismiss();
       onClose();
     }
-  }, [hasChanges, user, loadProfileImage, bottomSheetRef, onClose]);
+  }, [hasChanges, user, loadProfileImage, bottomSheetRef, onClose, reset]);
 
-  const isValid = name.trim().length > 0;
   const hasUnsavedChanges = hasChanges();
 
   return (
@@ -266,12 +287,20 @@ export function ProfileEditSheet({
         </View>
 
         {/* Name Input */}
-        <FormTextInput
-          label="Name *"
-          value={name}
-          onChangeText={setName}
-          placeholder="Enter your name"
-          autoFocus={false}
+        <Controller
+          control={control}
+          name="name"
+          rules={{ required: true }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <FormTextInput
+              label="Name *"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Enter your name"
+              autoFocus={false}
+            />
+          )}
         />
 
         <View className="flex-row gap-3 mt-4">

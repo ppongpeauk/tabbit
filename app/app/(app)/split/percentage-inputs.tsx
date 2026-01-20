@@ -3,7 +3,7 @@
  * @description Percentage-based split input screen
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   ScrollView,
@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
+import { useForm, Controller } from "react-hook-form";
 import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/button";
 import { FormTextInput } from "@/components/form-text-input";
@@ -28,6 +29,10 @@ import { useAuth } from "@/contexts/auth-context";
 
 const SPLIT_DATA_KEY = "@tabbit:split_temp_data";
 
+interface PercentageForm {
+  percentages: Record<string, string>;
+}
+
 export default function PercentageInputsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -36,7 +41,6 @@ export default function PercentageInputsScreen() {
 
   const [loading, setLoading] = useState(true);
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
-  const [percentages, setPercentages] = useState<Record<string, string>>({});
   const [splitData, setSplitData] = useState<{
     receiptId: string;
     groupId?: string;
@@ -46,6 +50,19 @@ export default function PercentageInputsScreen() {
     tempPeople?: Record<string, string>;
   } | null>(null);
   const [receiptId, setReceiptId] = useState<string | undefined>(undefined);
+
+  const {
+    control,
+    handleSubmit,
+    watch,
+    reset,
+  } = useForm<PercentageForm>({
+    defaultValues: {
+      percentages: {},
+    },
+  });
+
+  const watchedPercentages = watch("percentages");
 
   // Use React Query hooks
   const { data: receipt, isLoading: isLoadingReceipt } = useReceipt(receiptId);
@@ -74,14 +91,14 @@ export default function PercentageInputsScreen() {
       tempData.selectedFriendIds?.forEach((friendId: string) => {
         initialPercentages[friendId] = defaultPercentage;
       });
-      setPercentages(initialPercentages);
+      reset({ percentages: initialPercentages });
     } catch (error) {
       console.error("Error loading data:", error);
       Alert.alert("Error", "Failed to load data");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [reset]);
 
   useEffect(() => {
     loadData();
@@ -107,19 +124,18 @@ export default function PercentageInputsScreen() {
     return friend?.friendName || "Unknown";
   };
 
-  const getTotalPercentage = (): number => {
+  const totalPercentage = useMemo(() => {
     return selectedFriendIds.reduce((sum, friendId) => {
-      const pct = parseFloat(percentages[friendId] || "0") || 0;
+      const pct = parseFloat(watchedPercentages[friendId] || "0") || 0;
       return sum + pct;
     }, 0);
-  };
+  }, [selectedFriendIds, watchedPercentages]);
 
-  const validatePercentages = (): boolean => {
-    const total = getTotalPercentage();
-    return Math.abs(total - 100) <= 0.1; // Allow 0.1% tolerance
-  };
+  const validatePercentages = useCallback((): boolean => {
+    return Math.abs(totalPercentage - 100) <= 0.1; // Allow 0.1% tolerance
+  }, [totalPercentage]);
 
-  const handleContinue = useCallback(async () => {
+  const handleContinue = handleSubmit(async (data) => {
     if (!receipt || !splitData) {
       Alert.alert("Error", "Missing data");
       return;
@@ -135,7 +151,7 @@ export default function PercentageInputsScreen() {
     // Calculate base shares from percentages
     const friendShares: Record<string, number> = {};
     selectedFriendIds.forEach((friendId) => {
-      const percentage = parseFloat(percentages[friendId] || "0") || 0;
+      const percentage = parseFloat(data.percentages[friendId] || "0") || 0;
       friendShares[friendId] = (receipt.totals.subtotal * percentage) / 100;
     });
 
@@ -171,7 +187,7 @@ export default function PercentageInputsScreen() {
     );
 
     router.push("/split/review");
-  }, [receipt, splitData, selectedFriendIds, percentages]);
+  });
 
   if (loading) {
     return (
@@ -207,7 +223,6 @@ export default function PercentageInputsScreen() {
   }
 
   const isValid = validatePercentages();
-  const totalPercentage = getTotalPercentage();
 
   return (
     <View
@@ -275,7 +290,7 @@ export default function PercentageInputsScreen() {
           {/* Person Input Fields */}
           {selectedFriendIds.map((friendId) => {
             const personName = getPersonName(friendId);
-            const percentage = percentages[friendId] || "0";
+            const percentage = watchedPercentages[friendId] || "0";
             const amount =
               (receipt.totals.subtotal * (parseFloat(percentage) || 0)) / 100;
 
@@ -297,19 +312,21 @@ export default function PercentageInputsScreen() {
                     {personName}
                   </ThemedText>
                   <View className="flex-row items-center gap-2">
-                    <FormTextInput
-                      value={percentages[friendId] || ""}
-                      onChangeText={(text) =>
-                        setPercentages({
-                          ...percentages,
-                          [friendId]: text,
-                        })
-                      }
-                      numericOnly
-                      min={0}
-                      max={100}
-                      placeholder="0"
-                      style={{ width: 100, textAlign: "right" }}
+                    <Controller
+                      control={control}
+                      name={`percentages.${friendId}`}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <FormTextInput
+                          value={value || ""}
+                          onChangeText={onChange}
+                          onBlur={onBlur}
+                          numericOnly
+                          min={0}
+                          max={100}
+                          placeholder="0"
+                          style={{ width: 100, textAlign: "right" }}
+                        />
+                      )}
                     />
                     <ThemedText size="base">%</ThemedText>
                   </View>

@@ -8,6 +8,7 @@ import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
+import * as Haptics from "expo-haptics";
 import {
   getCategoryName,
   getCategoryEmoji,
@@ -34,6 +35,7 @@ export function CategoryPickerSheet({
 
   const handleSelect = useCallback(
     (category: Category) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onSelect(category.code);
       bottomSheetRef.current?.dismiss();
       onClose();

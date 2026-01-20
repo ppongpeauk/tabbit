@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { ThemedText } from "./themed-text";
 import { ThemedView } from "./themed-view";
 import { FormTextInput } from "./form-text-input";
@@ -16,6 +17,13 @@ import { Colors, Fonts } from "@/constants/theme";
 import { SymbolView } from "expo-symbols";
 import { formatCurrency } from "@/utils/format";
 import type { StoredReceipt, ReceiptItem } from "@/utils/storage";
+
+interface ReceiptEditFormData {
+  name: string;
+  merchantName: string;
+  items: ReceiptItem[];
+  userNotes: string;
+}
 
 interface ReceiptEditFormProps {
   receipt: StoredReceipt;
@@ -32,77 +40,50 @@ export function ReceiptEditForm({
   const isDark = colorScheme === "dark";
   const colors = Colors[colorScheme ?? "light"];
 
-  const [name, setName] = useState(receipt.name || receipt.merchant.name);
-  const [merchantName, setMerchantName] = useState(receipt.merchant.name);
-  const [items, setItems] = useState<ReceiptItem[]>(receipt.items);
-  const [userNotes, setUserNotes] = useState(
-    receipt.appData?.userNotes || ""
-  );
-
-  const updateItem = useCallback(
-    (index: number, updates: Partial<ReceiptItem>) => {
-      const newItems = [...items];
-      newItems[index] = { ...newItems[index], ...updates };
-
-      // Recalculate totalPrice if quantity or unitPrice changed
-      if (updates.quantity !== undefined || updates.unitPrice !== undefined) {
-        const item = newItems[index];
-        newItems[index] = {
-          ...item,
-          totalPrice: (item.quantity || 0) * (item.unitPrice || 0),
-        };
-      }
-
-      setItems(newItems);
+  const {
+    control,
+    handleSubmit,
+    watch,
+  } = useForm<ReceiptEditFormData>({
+    defaultValues: {
+      name: receipt.name || receipt.merchant.name,
+      merchantName: receipt.merchant.name,
+      items: receipt.items.map(item => ({
+        ...item,
+        // Ensure string for inputs but keep numeric fields for calculations
+      })),
+      userNotes: receipt.appData?.userNotes || "",
     },
-    [items]
-  );
+  });
 
-  const addItem = useCallback(() => {
-    setItems([
-      ...items,
-      {
-        name: "",
-        quantity: 1,
-        unitPrice: 0,
-        totalPrice: 0,
-      },
-    ]);
-  }, [items]);
+  const { fields, append, remove, update } = useFieldArray({
+    control,
+    name: "items",
+  });
 
-  const removeItem = useCallback(
-    (index: number) => {
-      if (items.length <= 1) {
-        Alert.alert("Error", "At least one item is required");
-        return;
-      }
-      const newItems = items.filter((_, i) => i !== index);
-      setItems(newItems);
-    },
-    [items]
-  );
+  const watchedItems = watch("items");
 
   const recalculateTotals = useCallback(() => {
-    const subtotal = items.reduce(
+    const subtotal = watchedItems.reduce(
       (sum, item) => sum + (item.totalPrice || 0),
       0
     );
     const tax = receipt.totals.tax;
     const total = subtotal + tax;
     return { subtotal, tax, total };
-  }, [items, receipt.totals.tax]);
+  }, [watchedItems, receipt.totals.tax]);
 
-  const handleSave = useCallback(async () => {
+  const handleSave = handleSubmit(async (data) => {
     try {
       const totals = recalculateTotals();
 
       const updatedReceipt: Partial<StoredReceipt> = {
-        name,
+        name: data.name,
         merchant: {
           ...receipt.merchant,
-          name: merchantName,
+          name: data.merchantName,
         },
-        items,
+        items: data.items,
         totals: {
           ...receipt.totals,
           subtotal: totals.subtotal,
@@ -110,7 +91,7 @@ export function ReceiptEditForm({
         },
         appData: {
           ...receipt.appData,
-          userNotes: userNotes.trim() || undefined,
+          userNotes: data.userNotes.trim() || undefined,
         },
       };
 
@@ -123,15 +104,7 @@ export function ReceiptEditForm({
           : "Failed to save changes. Please try again."
       );
     }
-  }, [
-    name,
-    merchantName,
-    items,
-    userNotes,
-    receipt,
-    recalculateTotals,
-    onSave,
-  ]);
+  });
 
   const totals = recalculateTotals();
   const currency = receipt.totals.currency;
@@ -144,19 +117,33 @@ export function ReceiptEditForm({
     >
       <ThemedView style={styles.form}>
         {/* Receipt Name */}
-        <FormTextInput
-          label="Receipt Name"
-          value={name}
-          onChangeText={setName}
-          placeholder="Enter receipt name"
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <FormTextInput
+              label="Receipt Name"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Enter receipt name"
+            />
+          )}
         />
 
         {/* Merchant Name */}
-        <FormTextInput
-          label="Merchant"
-          value={merchantName}
-          onChangeText={setMerchantName}
-          placeholder="Enter merchant name"
+        <Controller
+          control={control}
+          name="merchantName"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <FormTextInput
+              label="Merchant"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Enter merchant name"
+            />
+          )}
         />
 
         {/* Items Section */}
@@ -166,16 +153,21 @@ export function ReceiptEditForm({
             <Button
               variant="secondary"
               size="sm"
-              onPress={addItem}
+              onPress={() => append({
+                name: "",
+                quantity: 1,
+                unitPrice: 0,
+                totalPrice: 0,
+              })}
               leftIcon={<SymbolView name="plus" />}
             >
               Add Item
             </Button>
           </View>
 
-          {items.map((item, index) => (
+          {fields.map((field, index) => (
             <View
-              key={index}
+              key={field.id}
               style={[
                 styles.itemCard,
                 {
@@ -192,11 +184,11 @@ export function ReceiptEditForm({
                 <ThemedText style={styles.itemNumber}>
                   Item {index + 1}
                 </ThemedText>
-                {items.length > 1 && (
+                {fields.length > 1 && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    onPress={() => removeItem(index)}
+                    onPress={() => remove(index)}
                     style={styles.deleteButton}
                   >
                     <SymbolView name="trash" tintColor="#FF3B30" size={16} />
@@ -204,38 +196,71 @@ export function ReceiptEditForm({
                 )}
               </View>
 
-              <FormTextInput
-                label="Name"
-                value={item.name}
-                onChangeText={(text) => updateItem(index, { name: text })}
-                placeholder="Item name"
+              <Controller
+                control={control}
+                name={`items.${index}.name`}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <FormTextInput
+                    label="Name"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="Item name"
+                  />
+                )}
               />
 
               <View style={styles.itemRow}>
                 <View style={styles.itemRowHalf}>
-                  <FormTextInput
-                    label="Quantity"
-                    value={item.quantity.toString()}
-                    onChangeText={(text) => {
-                      const qty = parseFloat(text) || 0;
-                      updateItem(index, { quantity: qty });
-                    }}
-                    numericOnly
-                    min={0}
-                    placeholder="1"
+                  <Controller
+                    control={control}
+                    name={`items.${index}.quantity`}
+                    render={({ field: { onChange, onBlur, value } }) => (
+                      <FormTextInput
+                        label="Quantity"
+                        value={value.toString()}
+                        onChangeText={(text) => {
+                          const qty = parseFloat(text) || 0;
+                          onChange(qty);
+                          const unitPrice = watchedItems[index]?.unitPrice || 0;
+                          update(index, {
+                            ...watchedItems[index],
+                            quantity: qty,
+                            totalPrice: qty * unitPrice,
+                          });
+                        }}
+                        onBlur={onBlur}
+                        numericOnly
+                        min={0}
+                        placeholder="1"
+                      />
+                    )}
                   />
                 </View>
                 <View style={styles.itemRowHalf}>
-                  <FormTextInput
-                    label="Unit Price"
-                    value={item.unitPrice.toString()}
-                    onChangeText={(text) => {
-                      const price = parseFloat(text) || 0;
-                      updateItem(index, { unitPrice: price });
-                    }}
-                    numericOnly
-                    min={0}
-                    placeholder="0.00"
+                  <Controller
+                    control={control}
+                    name={`items.${index}.unitPrice`}
+                    render={({ field: { onChange, onBlur, value } }) => (
+                      <FormTextInput
+                        label="Unit Price"
+                        value={value.toString()}
+                        onChangeText={(text) => {
+                          const price = parseFloat(text) || 0;
+                          onChange(price);
+                          const quantity = watchedItems[index]?.quantity || 0;
+                          update(index, {
+                            ...watchedItems[index],
+                            unitPrice: price,
+                            totalPrice: quantity * price,
+                          });
+                        }}
+                        onBlur={onBlur}
+                        numericOnly
+                        min={0}
+                        placeholder="0.00"
+                      />
+                    )}
                   />
                 </View>
               </View>
@@ -252,7 +277,7 @@ export function ReceiptEditForm({
               >
                 <ThemedText style={styles.itemTotalLabel}>Total:</ThemedText>
                 <ThemedText style={styles.itemTotalValue}>
-                  {formatCurrency(item.totalPrice, currency)}
+                  {formatCurrency(watchedItems[index]?.totalPrice || 0, currency)}
                 </ThemedText>
               </View>
             </View>
@@ -307,26 +332,33 @@ export function ReceiptEditForm({
         {/* User Notes */}
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Notes</ThemedText>
-          <TextInput
-            style={[
-              styles.notesInput,
-              {
-                backgroundColor: isDark
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : colors.background,
-                borderColor: isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.1)",
-                color: colors.text,
-              },
-            ]}
-            value={userNotes}
-            onChangeText={setUserNotes}
-            placeholder="Add notes about this receipt..."
-            placeholderTextColor={colors.icon}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
+          <Controller
+            control={control}
+            name="userNotes"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[
+                  styles.notesInput,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.05)"
+                      : colors.background,
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 0, 0, 0.1)",
+                    color: colors.text,
+                  },
+                ]}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="Add notes about this receipt..."
+                placeholderTextColor={colors.icon}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            )}
           />
         </View>
 

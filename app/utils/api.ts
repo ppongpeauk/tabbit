@@ -93,6 +93,8 @@ export interface Totals {
   subtotal: number;
   tax: number;
   taxBreakdown?: TaxBreakdownItem[];
+  fees: number;
+  feesBreakdown?: TaxBreakdownItem[];
   total: number;
   amountPaid?: number;
   changeDue?: number;
@@ -200,8 +202,7 @@ async function convertHeicToJpeg(uri: string): Promise<string> {
     return result.uri;
   } catch (error) {
     throw new Error(
-      `Failed to convert HEIC image: ${
-        error instanceof Error ? error.message : "Unknown error"
+      `Failed to convert HEIC image: ${error instanceof Error ? error.message : "Unknown error"
       }`
     );
   }
@@ -226,8 +227,7 @@ export async function imageUriToBase64(uri: string): Promise<string> {
     return await file.base64();
   } catch (error) {
     throw new Error(
-      `Failed to read image file: ${
-        error instanceof Error ? error.message : "Unknown error"
+      `Failed to read image file: ${error instanceof Error ? error.message : "Unknown error"
       }`
     );
   }
@@ -308,12 +308,12 @@ export async function scanReceipt(
     // Create a custom axios instance if token is provided
     const client = options?.token
       ? axios.create({
-          baseURL: API_BASE_URL,
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${options.token}`,
-          },
-        })
+        baseURL: API_BASE_URL,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${options.token}`,
+        },
+      })
       : apiClient;
 
     // Make API request
@@ -614,9 +614,8 @@ export async function uploadImageToPresignedUrl(
       const errorText = await uploadResponse.text().catch(() => "");
       return {
         success: false,
-        message: `Upload failed: ${uploadResponse.status} ${
-          uploadResponse.statusText
-        }${errorText ? ` - ${errorText}` : ""}`,
+        message: `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText
+          }${errorText ? ` - ${errorText}` : ""}`,
       };
     }
 
