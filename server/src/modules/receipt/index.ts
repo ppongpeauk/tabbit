@@ -1350,6 +1350,65 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
       },
     }
   )
+  .get(
+    "/:id/shared",
+    async ({ params, set, user }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return unauthorizedResponse();
+      }
+
+      try {
+        const receipt = await findReceiptByIdAndUser(params.id, user.id);
+
+        if (!receipt) {
+          set.status = HTTP_STATUS.NOT_FOUND;
+          return {
+            success: false,
+            message: "Receipt not found",
+          };
+        }
+
+        // Only the owner can see who the receipt is shared with
+        if (receipt.userId !== user.id) {
+          set.status = HTTP_STATUS.FORBIDDEN;
+          return {
+            success: false,
+            message: "You do not have permission to view shared friends",
+          };
+        }
+
+        const shares = await prisma.receiptShare.findMany({
+          where: { receiptId: params.id },
+          select: { userId: true },
+        });
+
+        const sharedFriendIds = shares.map((share) => share.userId);
+
+        set.status = HTTP_STATUS.OK;
+        return {
+          success: true,
+          friendIds: sharedFriendIds,
+        };
+      } catch (error) {
+        set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+        return {
+          success: false,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to get shared friends",
+        };
+      }
+    },
+    {
+      detail: {
+        tags: ["receipts"],
+        summary: "Get friends who have access to receipt",
+        description: "Get list of friend IDs who have access to a receipt (owner only)",
+      },
+    }
+  )
   .post(
     "/save",
     async ({ body, set, user }) => {

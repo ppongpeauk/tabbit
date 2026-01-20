@@ -27,7 +27,11 @@ import { EmptyState } from "@/components/empty-state";
 import type React from "react";
 import { WEB_BASE_URL, AnimationConfig } from "@/utils/config";
 import { useFriends } from "@/hooks/use-friends";
-import { getFriends as getFriendsFromApi, shareReceipt } from "@/utils/api";
+import {
+  getFriends as getFriendsFromApi,
+  shareReceipt,
+  getReceiptSharedFriends,
+} from "@/utils/api";
 import type { Friend } from "@/utils/storage";
 import { Alert } from "react-native";
 
@@ -212,6 +216,20 @@ export function ShareReceiptBottomSheet({
     loadRecentFriends();
   }, [receiptId]);
 
+  useEffect(() => {
+    const loadSharedFriends = async () => {
+      try {
+        const response = await getReceiptSharedFriends(receiptId);
+        if (response.success && response.friendIds) {
+          setSelectedFriendIds(new Set(response.friendIds));
+        }
+      } catch (error) {
+        console.error("Failed to load shared friends:", error);
+      }
+    };
+    loadSharedFriends();
+  }, [receiptId]);
+
   const shareUrl = useMemo(() => {
     return `${WEB_BASE_URL}/receipts/${receiptId}`;
   }, [receiptId]);
@@ -254,7 +272,6 @@ export function ShareReceiptBottomSheet({
 
   const handleClose = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedFriendIds(new Set());
     bottomSheetRef.current?.dismiss();
   }, [bottomSheetRef]);
 
@@ -322,7 +339,10 @@ export function ShareReceiptBottomSheet({
         JSON.stringify(Array.from(updatedIds))
       );
 
-      setSelectedFriendIds(new Set());
+      const sharedResponse = await getReceiptSharedFriends(receiptId);
+      if (sharedResponse.success && sharedResponse.friendIds) {
+        setSelectedFriendIds(new Set(sharedResponse.friendIds));
+      }
       bottomSheetRef.current?.dismiss();
     } catch (error) {
       console.error("Failed to share with friends:", error);

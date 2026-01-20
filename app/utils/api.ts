@@ -879,6 +879,31 @@ export interface ShareReceiptResponse {
 }
 
 /**
+ * Get friends who have access to a receipt
+ */
+export async function getReceiptSharedFriends(
+  receiptId: string
+): Promise<{
+  success: boolean;
+  friendIds?: string[];
+  message?: string;
+}> {
+  try {
+    const response = await apiClient.get(`/receipts/${receiptId}/shared`);
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to get shared friends. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
  * Share a receipt with friends
  */
 export async function shareReceipt(

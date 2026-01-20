@@ -3,7 +3,7 @@
  * @description Split details bottom sheet with list of people in the split
  */
 
-import { useMemo, useCallback, useRef, useState, useEffect } from "react";
+import { useMemo, useCallback, useRef, useState } from "react";
 import { View, ScrollView, ActivityIndicator, TouchableOpacity, Pressable } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { router } from "expo-router";
@@ -15,7 +15,7 @@ import { useReceipt } from "@/hooks/use-receipts";
 import { useFriends } from "@/hooks/use-friends";
 import { formatCurrency } from "@/utils/format";
 import { SplitStatus } from "@/utils/split";
-import type { StoredReceipt, Friend as StorageFriend } from "@/utils/storage";
+import type { Friend as StorageFriend } from "@/utils/storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SymbolView } from "expo-symbols";
 import * as Haptics from "expo-haptics";
@@ -180,7 +180,7 @@ export function SplitDetailsSheet({
             Split Details
           </ThemedText>
           <View className="flex-row items-center gap-4">
-            {splitData && isOwner && (
+            {splitData?.totals && isOwner && (
               <Button size="sm" variant="secondary" onPress={handleEditSplit}>Edit</Button>
             )}
             <TouchableOpacity
@@ -207,7 +207,7 @@ export function SplitDetailsSheet({
           <View className="flex-1 justify-center items-center">
             <ThemedText>Receipt not found</ThemedText>
           </View>
-        ) : !splitData ? (
+        ) : !splitData || !splitData.totals || Object.keys(splitData.totals).length === 0 ? (
           <EmptyState
             icon="person.2.fill"
             title="No Split Configured"
@@ -262,156 +262,136 @@ export function SplitDetailsSheet({
             </View>
 
             {/* People List */}
-            {splitData?.totals && Object.keys(splitData.totals).length > 0 ? (
-              <View
-                className={`rounded-3xl overflow-hidden border ${isDark ? "bg-[#1A1D1E] border-white/5" : "bg-white border-black/5"
-                  }`}
-              >
-                {Object.keys(splitData.totals).map((personId, index) => {
-                  const total = splitData.totals[personId] || 0;
-                  const status = splitData.statuses?.[personId] || SplitStatus.PENDING;
-                  const settledAmount = splitData.settledAmounts?.[personId] || 0;
-                  const isSettled = status === SplitStatus.SETTLED;
-                  const isPartial = status === SplitStatus.PARTIAL;
-                  const personName = peopleLookup[personId] || "Unknown";
+            <View
+              className={`rounded-3xl overflow-hidden border ${isDark ? "bg-[#1A1D1E] border-white/5" : "bg-white border-black/5"
+                }`}
+            >
+              {Object.keys(splitData.totals).map((personId, index) => {
+                const total = splitData.totals[personId] || 0;
+                const status = splitData.statuses?.[personId] || SplitStatus.PENDING;
+                const isSettled = status === SplitStatus.SETTLED;
+                const isPartial = status === SplitStatus.PARTIAL;
+                const personName = peopleLookup[personId] || "Unknown";
 
-                  const statusColor =
-                    isSettled
-                      ? "#10b981"
-                      : isPartial
-                        ? "#f59e0b"
-                        : "#eab308";
+                const statusColor =
+                  isSettled
+                    ? "#10b981"
+                    : isPartial
+                      ? "#f59e0b"
+                      : "#eab308";
 
-                  const statusLabel =
-                    isSettled
-                      ? "SETTLED"
-                      : isPartial
-                        ? "PARTIAL"
-                        : "PENDING";
+                const statusLabel =
+                  isSettled
+                    ? "SETTLED"
+                    : isPartial
+                      ? "PARTIAL"
+                      : "PENDING";
 
-                  const separatorColor =
-                    colorScheme === "dark"
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(0, 0, 0, 0.1)";
-                  const pressedBg =
-                    colorScheme === "dark"
-                      ? "rgba(255, 255, 255, 0.08)"
-                      : "rgba(0, 0, 0, 0.03)";
+                const separatorColor =
+                  colorScheme === "dark"
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)";
+                const pressedBg =
+                  colorScheme === "dark"
+                    ? "rgba(255, 255, 255, 0.08)"
+                    : "rgba(0, 0, 0, 0.03)";
 
-                  return (
-                    <View key={personId}>
-                      {index > 0 && (
-                        <View
-                          className="h-[1px] mx-4"
-                          style={{ backgroundColor: separatorColor }}
-                        />
-                      )}
-                      <Pressable
-                        cssInterop={false}
-                        onPress={() => handlePersonPress(personId)}
-                        style={({ pressed }) => ({
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          paddingVertical: 16,
-                          paddingHorizontal: 16,
-                          backgroundColor: pressed ? pressedBg : "transparent",
-                        })}
-                      >
-                        <View className="flex-row items-center gap-3 flex-1">
-                          <View className="relative">
-                            <PersonAvatar
-                              personId={personId}
-                              name={personName}
-                              friends={friends}
-                              size={48}
-                            />
-                            <View
-                              className="absolute bottom-0 right-0 w-5 h-5 rounded-full items-center justify-center border-2"
-                              style={{
-                                backgroundColor: statusColor,
-                                borderColor: isDark
-                                  ? Colors.dark.surface
-                                  : "#FFFFFF",
-                              }}
-                            >
-                              <SymbolView
-                                name={isSettled ? "checkmark" : "clock"}
-                                tintColor="#FFFFFF"
-                                size={10}
-                              />
-                            </View>
-                          </View>
-                          <View className="flex-1">
-                            <ThemedText size="base" weight="semibold">
-                              {personName}
-                            </ThemedText>
-                            <View className="flex-row items-center gap-2 mt-1">
-                              <View
-                                className="px-2 py-0.5 rounded-full"
-                                style={{ backgroundColor: statusColor }}
-                              >
-                                <ThemedText
-                                  size="xs"
-                                  weight="semibold"
-                                  style={{ color: "#FFFFFF" }}
-                                >
-                                  {statusLabel}
-                                </ThemedText>
-                              </View>
-                            </View>
-                            <ThemedText
-                              size="sm"
-                              className="mt-1"
-                              style={{
-                                color: isDark ? Colors.dark.icon : Colors.light.icon,
-                              }}
-                            >
-                              {isSettled
-                                ? `Paid ${formatCurrency(total, receipt.totals.currency)}`
-                                : `Owes ${formatCurrency(total, receipt.totals.currency)}`}
-                            </ThemedText>
-                          </View>
-                        </View>
-                        <View className="flex-row items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant={isSettled ? "secondary" : "primary"}
-                            onPress={() => handlePersonPress(personId)}
-                          >
-                            {isSettled ? "Details" : "Remind"}
-                          </Button>
-                          <SymbolView
-                            name="chevron.down"
-                            tintColor={
-                              isDark ? Colors.dark.icon : Colors.light.icon
-                            }
-                            size={16}
+                return (
+                  <View key={personId}>
+                    {index > 0 && (
+                      <View
+                        className="h-[1px] mx-4"
+                        style={{ backgroundColor: separatorColor }}
+                      />
+                    )}
+                    <Pressable
+                      cssInterop={false}
+                      onPress={() => handlePersonPress(personId)}
+                      style={({ pressed }) => ({
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        paddingVertical: 16,
+                        paddingHorizontal: 16,
+                        backgroundColor: pressed ? pressedBg : "transparent",
+                      })}
+                    >
+                      <View className="flex-row items-center gap-3 flex-1">
+                        <View className="relative">
+                          <PersonAvatar
+                            personId={personId}
+                            name={personName}
+                            friends={friends}
+                            size={48}
                           />
+                          <View
+                            className="absolute bottom-0 right-0 w-5 h-5 rounded-full items-center justify-center border-2"
+                            style={{
+                              backgroundColor: statusColor,
+                              borderColor: isDark
+                                ? Colors.dark.surface
+                                : "#FFFFFF",
+                            }}
+                          >
+                            <SymbolView
+                              name={isSettled ? "checkmark" : "clock"}
+                              tintColor="#FFFFFF"
+                              size={10}
+                            />
+                          </View>
                         </View>
-                      </Pressable>
-                    </View>
-                  );
-                })}
-              </View>
-            ) : (
-              <EmptyState
-                icon="person.2.fill"
-                title="No Split Configured"
-                subtitle={
-                  isOwner
-                    ? "Set up how you want to split this receipt with your friends."
-                    : "The owner hasn't set up a split for this receipt yet."
-                }
-                action={
-                  isOwner ? (
-                    <Button variant="primary" onPress={handleConfigureSplit} fullWidth>
-                      Configure Split
-                    </Button>
-                  ) : null
-                }
-              />
-            )}
+                        <View className="flex-1">
+                          <ThemedText size="base" weight="semibold">
+                            {personName}
+                          </ThemedText>
+                          <View className="flex-row items-center gap-2 mt-1">
+                            <View
+                              className="px-2 py-0.5 rounded-full"
+                              style={{ backgroundColor: statusColor }}
+                            >
+                              <ThemedText
+                                size="xs"
+                                weight="semibold"
+                                style={{ color: "#FFFFFF" }}
+                              >
+                                {statusLabel}
+                              </ThemedText>
+                            </View>
+                          </View>
+                          <ThemedText
+                            size="sm"
+                            className="mt-1"
+                            style={{
+                              color: isDark ? Colors.dark.icon : Colors.light.icon,
+                            }}
+                          >
+                            {isSettled
+                              ? `Paid ${formatCurrency(total, receipt.totals.currency)}`
+                              : `Owes ${formatCurrency(total, receipt.totals.currency)}`}
+                          </ThemedText>
+                        </View>
+                      </View>
+                      <View className="flex-row items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant={isSettled ? "secondary" : "primary"}
+                          onPress={() => handlePersonPress(personId)}
+                        >
+                          {isSettled ? "Details" : "Remind"}
+                        </Button>
+                        <SymbolView
+                          name="chevron.down"
+                          tintColor={
+                            isDark ? Colors.dark.icon : Colors.light.icon
+                          }
+                          size={16}
+                        />
+                      </View>
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
           </ScrollView>
         )}
       </View>
