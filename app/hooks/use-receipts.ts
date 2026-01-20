@@ -83,6 +83,7 @@ export function useReceipt(id: string | string[] | undefined) {
       }
       return failureCount < 3;
     },
+    staleTime: 0
   });
 }
 

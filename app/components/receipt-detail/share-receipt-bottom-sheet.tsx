@@ -27,8 +27,9 @@ import { EmptyState } from "@/components/empty-state";
 import type React from "react";
 import { WEB_BASE_URL, AnimationConfig } from "@/utils/config";
 import { useFriends } from "@/hooks/use-friends";
-import { getFriends as getFriendsFromApi } from "@/utils/api";
+import { getFriends as getFriendsFromApi, shareReceipt } from "@/utils/api";
 import type { Friend } from "@/utils/storage";
+import { Alert } from "react-native";
 
 interface ShareReceiptBottomSheetProps {
   bottomSheetRef: React.RefObject<TrueSheet | null>;
@@ -298,6 +299,19 @@ export function ShareReceiptBottomSheet({
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
+      // Share receipt with selected friends via API
+      const friendIdsArray = Array.from(selectedFriendIds);
+      const shareResult = await shareReceipt(receiptId, friendIdsArray);
+
+      if (!shareResult.success) {
+        Alert.alert(
+          "Error",
+          shareResult.message || "Failed to share receipt with friends"
+        );
+        return;
+      }
+
+      // Save to recent friends
       const key = RECENT_FRIENDS_KEY(receiptId);
       const updatedIds = new Set(recentFriendIds);
       selectedFriendIds.forEach((id) => updatedIds.add(id));
@@ -308,6 +322,7 @@ export function ShareReceiptBottomSheet({
         JSON.stringify(Array.from(updatedIds))
       );
 
+      // Optionally show native share sheet
       await Share.share({
         url: shareUrl,
         title: receiptName || "Share Receipt",
@@ -315,10 +330,17 @@ export function ShareReceiptBottomSheet({
       });
 
       setSelectedFriendIds(new Set());
+      bottomSheetRef.current?.dismiss();
     } catch (error) {
       console.error("Failed to share with friends:", error);
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "Failed to share receipt with friends"
+      );
     }
-  }, [receiptId, recentFriendIds, selectedFriendIds, shareUrl, shareMessage, receiptName]);
+  }, [receiptId, recentFriendIds, selectedFriendIds, shareUrl, shareMessage, receiptName, bottomSheetRef]);
 
   const renderSectionHeader = useCallback((title: string) => {
     return (
@@ -372,18 +394,17 @@ export function ShareReceiptBottomSheet({
       <View className="px-6 pt-4 pb-6 border-t border-black/10 dark:border-white/10">
         {hasSelectedFriends ? (
           <Button
-            variant="primary"
+            variant="secondary"
+            size="base"
             onPress={handleShareToPeople}
-            className="w-full"
+            fullWidth
             leftIcon={
               <SymbolView
                 name="square.and.arrow.up"
-                tintColor="white"
-                size={20}
               />
             }
           >
-            Share to {selectedFriendIds.size} {selectedFriendIds.size === 1 ? "Person" : "People"}
+            Share to All
           </Button>
         ) : (
           <View className="flex-row gap-3 justify-center w-full">

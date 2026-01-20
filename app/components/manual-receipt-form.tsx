@@ -248,15 +248,38 @@ export const ManualReceiptForm = forwardRef<
           ? `${headerFields.transactionDate}T${headerFields.transactionTime}:00`
           : new Date().toISOString();
 
+      // Build address object with all fields, only including non-empty values
+      const addressParts: {
+        line1?: string;
+        city?: string;
+        state?: string;
+        postalCode?: string;
+        country?: string;
+      } = {};
+
+      if (headerFields.merchantAddressLine1?.trim()) {
+        addressParts.line1 = headerFields.merchantAddressLine1.trim();
+      }
+      if (headerFields.merchantCity?.trim()) {
+        addressParts.city = headerFields.merchantCity.trim();
+      }
+      if (headerFields.merchantState?.trim()) {
+        addressParts.state = headerFields.merchantState.trim();
+      }
+      if (headerFields.merchantPostalCode?.trim()) {
+        addressParts.postalCode = headerFields.merchantPostalCode.trim();
+      }
+      if (headerFields.merchantCountry?.trim()) {
+        addressParts.country = headerFields.merchantCountry.trim();
+      }
+
+      const address = Object.keys(addressParts).length > 0 ? addressParts : undefined;
+
       const formData: ManualReceiptFormData = {
         name: headerFields.name.trim() || "Untitled",
         merchant: {
           name: headerFields.merchantName.trim(),
-          address: headerFields.merchantAddressLine1
-            ? {
-              line1: headerFields.merchantAddressLine1,
-            }
-            : undefined,
+          address,
           phone: headerFields.merchantPhone || undefined,
           category: headerFields.category ? [headerFields.category] : undefined,
         },

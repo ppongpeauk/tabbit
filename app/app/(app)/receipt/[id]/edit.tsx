@@ -195,11 +195,20 @@ export default function EditReceiptScreen() {
     items: StoredReceipt["items"];
     totals: StoredReceipt["totals"];
   }) => {
+    // Merge addresses properly to preserve existing fields
+    const mergedAddress = formData.merchant.address
+      ? {
+          ...receipt.merchant.address,
+          ...formData.merchant.address,
+        }
+      : receipt.merchant.address;
+
     const nextReceipt: Partial<StoredReceipt> = {
       name: formData.name,
       merchant: {
         ...receipt.merchant,
         ...formData.merchant,
+        address: mergedAddress,
       },
       transaction: {
         ...receipt.transaction,

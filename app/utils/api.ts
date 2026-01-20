@@ -872,3 +872,32 @@ export async function removeFriend(friendId: string): Promise<FriendResponse> {
     };
   }
 }
+
+export interface ShareReceiptResponse {
+  success: boolean;
+  message?: string;
+}
+
+/**
+ * Share a receipt with friends
+ */
+export async function shareReceipt(
+  receiptId: string,
+  friendIds: string[]
+): Promise<ShareReceiptResponse> {
+  try {
+    const response = await apiClient.post(`/receipts/${receiptId}/share`, {
+      friendIds,
+    });
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to share receipt. Please check your connection and try again.",
+    };
+  }
+}

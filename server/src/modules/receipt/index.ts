@@ -643,6 +643,72 @@ async function findReceiptByIdAndUser(
 }
 
 /**
+ * Checks if a user has access to a receipt (owner or shared)
+ */
+async function userHasAccessToReceipt(
+  receiptId: string,
+  userId: string
+): Promise<boolean> {
+  const receipt = await prisma.receipt.findUnique({
+    where: { id: receiptId },
+    include: {
+      sharedWith: {
+        where: { userId },
+      },
+    },
+  });
+
+  if (!receipt) {
+    return false;
+  }
+
+  // User is owner or has been shared with
+  return receipt.userId === userId || receipt.sharedWith.length > 0;
+}
+
+/**
+ * Finds a receipt by ID that the user has access to (owner or shared)
+ */
+async function findReceiptWithAccess(
+  receiptId: string,
+  userId: string
+): Promise<{
+  id: string;
+  data: Prisma.JsonValue;
+  createdAt: Date;
+  updatedAt: Date;
+  syncedAt: Date | null;
+  userId: string;
+} | null> {
+  const receipt = await prisma.receipt.findUnique({
+    where: { id: receiptId },
+    include: {
+      sharedWith: {
+        where: { userId },
+      },
+    },
+  });
+
+  if (!receipt) {
+    return null;
+  }
+
+  // User is owner or has been shared with
+  if (receipt.userId === userId || receipt.sharedWith.length > 0) {
+    return {
+      id: receipt.id,
+      data: receipt.data,
+      createdAt: receipt.createdAt,
+      updatedAt: receipt.updatedAt,
+      syncedAt: receipt.syncedAt,
+      userId: receipt.userId,
+    };
+  }
+
+  return null;
+}
+
+/**
  * Finds a receipt by ID, returns null if not found
  */
 async function findReceiptById(receiptId: string): Promise<{
@@ -833,12 +899,34 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
       }
 
       try {
-        const receipts = await prisma.receipt.findMany({
-          where: { userId: user.id },
-          orderBy: { createdAt: "desc" },
-        });
+        // Get receipts owned by user and receipts shared with user
+        const [ownedReceipts, sharedReceipts] = await Promise.all([
+          prisma.receipt.findMany({
+            where: { userId: user.id },
+            orderBy: { createdAt: "desc" },
+          }),
+          prisma.receipt.findMany({
+            where: {
+              sharedWith: {
+                some: {
+                  userId: user.id,
+                },
+              },
+            },
+            orderBy: { createdAt: "desc" },
+          }),
+        ]);
 
-        const mappedReceipts = receipts.map(mapReceiptToResponse);
+        // Combine and deduplicate (in case a receipt is both owned and shared)
+        const receiptMap = new Map<string, typeof ownedReceipts[0]>();
+        ownedReceipts.forEach((r) => receiptMap.set(r.id, r));
+        sharedReceipts.forEach((r) => receiptMap.set(r.id, r));
+
+        const allReceipts = Array.from(receiptMap.values()).sort(
+          (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+        );
+
+        const mappedReceipts = allReceipts.map(mapReceiptToResponse);
 
         set.status = HTTP_STATUS.OK;
         return {
@@ -858,7 +946,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
       detail: {
         tags: ["receipts"],
         summary: "Get all receipts",
-        description: "Get all receipts for the authenticated user",
+        description: "Get all receipts for the authenticated user (owned and shared)",
       },
     }
   )
@@ -922,7 +1010,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
       }
 
       try {
-        const receipt = await findReceiptByIdAndUser(params.id, user.id);
+        const receipt = await findReceiptWithAccess(params.id, user.id);
 
         if (!receipt) {
           set.status = HTTP_STATUS.NOT_FOUND;
@@ -965,7 +1053,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
       detail: {
         tags: ["receipts"],
         summary: "Get receipt photo URL",
-        description: "Get a presigned URL for a receipt photo",
+        description: "Get a presigned URL for a receipt photo (owner or shared)",
       },
     }
   )
@@ -978,7 +1066,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
       }
 
       try {
-        const receipt = await findReceiptByIdAndUser(params.id, user.id);
+        const receipt = await findReceiptWithAccess(params.id, user.id);
 
         if (!receipt) {
           set.status = HTTP_STATUS.NOT_FOUND;
@@ -1006,7 +1094,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
       detail: {
         tags: ["receipts"],
         summary: "Get receipt by ID",
-        description: "Get a specific receipt by ID for the authenticated user",
+        description: "Get a specific receipt by ID for the authenticated user (owned or shared)",
       },
     }
   )
@@ -1026,6 +1114,15 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
           return {
             success: false,
             message: "Receipt not found",
+          };
+        }
+
+        // Only the owner can update the receipt
+        if (existing.userId !== user.id) {
+          set.status = HTTP_STATUS.FORBIDDEN;
+          return {
+            success: false,
+            message: "You do not have permission to update this receipt",
           };
         }
 
@@ -1063,7 +1160,7 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
       detail: {
         tags: ["receipts"],
         summary: "Update receipt",
-        description: "Update a receipt by ID for the authenticated user",
+        description: "Update a receipt by ID (only owner can update)",
       },
     }
   )
@@ -1083,6 +1180,15 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
           return {
             success: false,
             message: "Receipt not found",
+          };
+        }
+
+        // Only the owner can delete the receipt
+        if (existing.userId !== user.id) {
+          set.status = HTTP_STATUS.FORBIDDEN;
+          return {
+            success: false,
+            message: "You do not have permission to delete this receipt",
           };
         }
 
@@ -1113,7 +1219,130 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
       detail: {
         tags: ["receipts"],
         summary: "Delete receipt",
-        description: "Delete a receipt by ID for the authenticated user",
+        description: "Delete a receipt by ID (only owner can delete)",
+      },
+    }
+  )
+  .post(
+    "/:id/share",
+    async ({ params, body, set, user }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return unauthorizedResponse();
+      }
+
+      try {
+        const receipt = await findReceiptByIdAndUser(params.id, user.id);
+
+        if (!receipt) {
+          set.status = HTTP_STATUS.NOT_FOUND;
+          return {
+            success: false,
+            message: "Receipt not found",
+          };
+        }
+
+        // Only the owner can share the receipt
+        if (receipt.userId !== user.id) {
+          set.status = HTTP_STATUS.FORBIDDEN;
+          return {
+            success: false,
+            message: "You do not have permission to share this receipt",
+          };
+        }
+
+        const { friendIds } = body as { friendIds: string[] };
+
+        if (!Array.isArray(friendIds) || friendIds.length === 0) {
+          set.status = HTTP_STATUS.BAD_REQUEST;
+          return {
+            success: false,
+            message: "friendIds must be a non-empty array",
+          };
+        }
+
+        // Verify all friendIds are valid friends
+        const friendships = await prisma.friendship.findMany({
+          where: {
+            OR: [
+              { user1Id: user.id, user2Id: { in: friendIds } },
+              { user2Id: user.id, user1Id: { in: friendIds } },
+            ],
+          },
+        });
+
+        const validFriendIds = new Set<string>();
+        friendships.forEach((f) => {
+          if (f.user1Id === user.id) {
+            validFriendIds.add(f.user2Id);
+          } else {
+            validFriendIds.add(f.user1Id);
+          }
+        });
+
+        const invalidFriendIds = friendIds.filter((id) => !validFriendIds.has(id));
+        if (invalidFriendIds.length > 0) {
+          set.status = HTTP_STATUS.BAD_REQUEST;
+          return {
+            success: false,
+            message: `Invalid friend IDs: ${invalidFriendIds.join(", ")}`,
+          };
+        }
+
+        // Create or update receipt shares
+        await Promise.all(
+          friendIds.map((friendId) =>
+            prisma.receiptShare.upsert({
+              where: {
+                receiptId_userId: {
+                  receiptId: params.id,
+                  userId: friendId,
+                },
+              },
+              create: {
+                receiptId: params.id,
+                userId: friendId,
+              },
+              update: {},
+            })
+          )
+        );
+
+        // Make receipt collaborative if not already
+        const receiptData = receipt.data as StoredReceiptData;
+        if (!receiptData.splitData) {
+          const updatedData = {
+            ...receiptData,
+            splitData: {},
+          };
+          await prisma.receipt.update({
+            where: { id: params.id },
+            data: { data: toPrismaJsonValue(updatedData as Record<string, unknown>) },
+          });
+        }
+
+        set.status = HTTP_STATUS.OK;
+        return {
+          success: true,
+          message: "Receipt shared successfully",
+        };
+      } catch (error) {
+        set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+        return {
+          success: false,
+          message:
+            error instanceof Error ? error.message : "Failed to share receipt",
+        };
+      }
+    },
+    {
+      body: t.Object({
+        friendIds: t.Array(t.String()),
+      }),
+      detail: {
+        tags: ["receipts"],
+        summary: "Share receipt with friends",
+        description: "Share a receipt with friends and make it collaborative",
       },
     }
   )

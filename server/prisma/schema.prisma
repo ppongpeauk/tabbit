@@ -29,6 +29,7 @@ model User {
   verifications          Verification[]
   authCodes              AuthCode[]
   receipts               Receipt[]
+  sharedReceipts         ReceiptShare[]  @relation("SharedReceipts")
   groupMembers           GroupMember[]
   createdGroups          Group[]         @relation("GroupCreator")
   friendRequestsSent     FriendRequest[] @relation("Requester")
@@ -109,11 +110,26 @@ model Receipt {
   updatedAt DateTime  @updatedAt
   syncedAt  DateTime? // When the receipt was last synced from client
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sharedWith   ReceiptShare[]
 
   @@index([userId])
   @@index([userId, createdAt])
   @@index([userId, syncedAt])
+}
+
+model ReceiptShare {
+  id        String   @id @default(cuid())
+  receiptId String
+  userId    String   // The user who has access to the receipt
+  createdAt DateTime @default(now())
+
+  receipt Receipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  user    User    @relation("SharedReceipts", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([receiptId, userId])
+  @@index([receiptId])
+  @@index([userId])
 }
 
 model Group {
