@@ -39,6 +39,7 @@ export interface StoredReceipt {
   splitData?: SplitData;
   visibility?: ReceiptVisibility;
   createdAt: string;
+  ownerId?: string;
 }
 
 // Re-export types for convenience

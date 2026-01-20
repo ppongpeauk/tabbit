@@ -22,6 +22,7 @@ interface ReceiptRowProps {
   isFirstInSection: boolean;
   isLastInSection: boolean;
   sectionTitle: string;
+  currentUserId?: string | null;
   onDelete: (id: string, closeSwipeable: () => void) => void;
 }
 
@@ -103,11 +104,13 @@ export function ReceiptRow({
   isFirstInSection,
   isLastInSection,
   sectionTitle,
+  currentUserId,
   onDelete,
 }: ReceiptRowProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const isToday = sectionTitle === "Today";
+  const isOwner = receipt.ownerId && currentUserId && receipt.ownerId === currentUserId;
 
   const separatorColor =
     colorScheme === "dark"
@@ -132,7 +135,7 @@ export function ReceiptRow({
 
   // Calculate split settlement progress
   const splitSettlementInfo = useMemo(() => {
-    if (!receipt.splitData) return null;
+    if (!receipt.splitData || !receipt.splitData.totals) return null;
 
     const totalOwed = Object.values(receipt.splitData.totals).reduce(
       (sum, amount) => sum + amount,
@@ -164,7 +167,7 @@ export function ReceiptRow({
         friction={2}
         overshootRight={false}
         childrenContainerStyle={{ backgroundColor: rowBaseBg }}
-        renderRightActions={(_, __, swipeableMethods) => (
+        renderRightActions={isOwner ? (_, __, swipeableMethods) => (
           <View
             className="h-full justify-center items-center"
             style={{
@@ -186,7 +189,7 @@ export function ReceiptRow({
               </ThemedText>
             </Pressable>
           </View>
-        )}
+        ) : undefined}
       >
         <Pressable
           cssInterop={false}

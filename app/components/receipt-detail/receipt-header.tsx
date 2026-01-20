@@ -17,6 +17,7 @@ interface ReceiptHeaderProps {
   receipt: StoredReceipt | null;
   colorScheme: "light" | "dark";
   hasPhoto: boolean;
+  currentUserId?: string | null;
   onViewPhoto: () => void;
   onEdit: () => void;
   onShare: () => void;
@@ -31,6 +32,7 @@ export function ReceiptHeader({
   receipt,
   colorScheme,
   hasPhoto,
+  currentUserId,
   onViewPhoto,
   onEdit,
   onShare,
@@ -41,6 +43,7 @@ export function ReceiptHeader({
   onSetVisibility,
 }: ReceiptHeaderProps): Partial<StackNavigationOptions> {
   const visibility = receipt?.visibility || "private";
+  const isOwner = receipt?.ownerId && currentUserId && receipt.ownerId === currentUserId;
 
   const menuActions = [
     ...(hasPhoto
@@ -52,47 +55,55 @@ export function ReceiptHeader({
         },
       ]
       : []),
-    {
-      title: "Edit",
-      systemIcon: "square.and.pencil",
-      handler: onEdit,
-    },
+    ...(isOwner
+      ? [
+        {
+          title: "Edit",
+          systemIcon: "square.and.pencil",
+          handler: onEdit,
+        },
+      ]
+      : []),
     {
       title: "Split",
       systemIcon: "person.2",
       handler: onSplit,
     },
-    {
-      title: "Share",
-      systemIcon: "square.and.arrow.up",
-      handler: onShare,
-    },
-    {
-      title: "Set Visibility",
-      systemIcon: visibility === "public" ? "globe" : "lock.fill",
-      actions: [
+    ...(isOwner
+      ? [
         {
-          title: "Public",
-          subtitle: "Accessible to everyone via a link.",
-          systemIcon: "globe",
-          selected: visibility === "public",
-          handler: () => onSetVisibility("public"),
+          title: "Share",
+          systemIcon: "square.and.arrow.up",
+          handler: onShare,
         },
         {
-          title: "Private",
-          subtitle: "Accessible only to you and those you share with.",
-          systemIcon: "lock.fill",
-          selected: visibility === "private",
-          handler: () => onSetVisibility("private"),
+          title: "Set Visibility",
+          systemIcon: visibility === "public" ? "globe" : "lock.fill",
+          actions: [
+            {
+              title: "Public",
+              subtitle: "Accessible to everyone via a link.",
+              systemIcon: "globe",
+              selected: visibility === "public",
+              handler: () => onSetVisibility("public"),
+            },
+            {
+              title: "Private",
+              subtitle: "Accessible only to you and those you share with.",
+              systemIcon: "lock.fill",
+              selected: visibility === "private",
+              handler: () => onSetVisibility("private"),
+            },
+          ],
         },
-      ],
-    },
-    {
-      title: "Delete Receipt",
-      systemIcon: "trash",
-      destructive: true,
-      handler: onDelete,
-    },
+        {
+          title: "Delete Receipt",
+          systemIcon: "trash",
+          destructive: true,
+          handler: onDelete,
+        },
+      ]
+      : []),
   ]
 
   const handleMenuPress = (event: {

@@ -15,6 +15,7 @@ import * as Haptics from "expo-haptics";
 import { Toolbar, ToolbarButton } from "@/components/toolbar";
 import moment from "moment";
 import { ReceiptRow } from "@/components/receipt-row";
+import { useAuth } from "@/contexts/auth-context";
 
 interface ReceiptSection {
   title: string;
@@ -92,6 +93,7 @@ export default function ReceiptsScreen() {
 
   // Use React Query hook
   const { data: receipts = [], refetch, isRefetching } = useReceipts();
+  const { user } = useAuth();
   const deleteReceipt = useDeleteReceipt();
 
   const onRefresh = useCallback(() => {
@@ -239,11 +241,12 @@ export default function ReceiptsScreen() {
           isFirstInSection={isFirstInSection}
           isLastInSection={isLastInSection}
           sectionTitle={sectionTitle}
+          currentUserId={user?.id}
           onDelete={handleDeleteReceipt}
         />
       );
     },
-    [receiptSectionMap, handleDeleteReceipt]
+    [receiptSectionMap, handleDeleteReceipt, user?.id]
   );
 
   const renderItem = useCallback(

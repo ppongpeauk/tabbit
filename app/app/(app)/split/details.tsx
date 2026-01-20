@@ -49,12 +49,14 @@ function buildPeopleLookup(
 interface SplitDetailsSheetProps {
   bottomSheetRef: React.RefObject<TrueSheet | null>;
   receiptId: string;
+  currentUserId?: string | null;
   onEdit?: () => void;
 }
 
 export function SplitDetailsSheet({
   bottomSheetRef,
   receiptId,
+  currentUserId,
   onEdit,
 }: SplitDetailsSheetProps) {
   const colorScheme = useColorScheme();
@@ -69,6 +71,7 @@ export function SplitDetailsSheet({
   const lastPresentedPersonIdRef = useRef<string | null>(null);
 
   const splitData = receipt?.splitData;
+  const isOwner = receipt?.ownerId && currentUserId && receipt.ownerId === currentUserId;
 
   const peopleLookup = useMemo(
     () => (splitData ? buildPeopleLookup(splitData, friends, user) : {}),
@@ -76,7 +79,7 @@ export function SplitDetailsSheet({
   );
 
   const progress = useMemo(() => {
-    if (!splitData || !receipt) return 0;
+    if (!splitData || !receipt || !splitData.totals) return 0;
 
     const totalOwed = Object.values(splitData.totals).reduce(
       (sum, amount) => sum + amount,
@@ -91,7 +94,7 @@ export function SplitDetailsSheet({
   }, [splitData, receipt]);
 
   const remainingAmount = useMemo(() => {
-    if (!splitData) return 0;
+    if (!splitData || !splitData.totals) return 0;
     const totalOwed = Object.values(splitData.totals).reduce(
       (sum, amount) => sum + amount,
       0
@@ -177,7 +180,7 @@ export function SplitDetailsSheet({
             Split Details
           </ThemedText>
           <View className="flex-row items-center gap-4">
-            {splitData && (
+            {splitData && isOwner && (
               <Button size="sm" variant="secondary" onPress={handleEditSplit}>Edit</Button>
             )}
             <TouchableOpacity
@@ -208,11 +211,17 @@ export function SplitDetailsSheet({
           <EmptyState
             icon="person.2.fill"
             title="No Split Configured"
-            subtitle="Set up how you want to split this receipt with your friends."
+            subtitle={
+              isOwner
+                ? "Set up how you want to split this receipt with your friends."
+                : "The owner hasn't set up a split for this receipt yet."
+            }
             action={
-              <Button variant="primary" onPress={handleEditSplit} fullWidth>
-                Configure Split
-              </Button>
+              isOwner ? (
+                <Button variant="primary" onPress={handleEditSplit} fullWidth>
+                  Configure Split
+                </Button>
+              ) : null
             }
           />
         ) : (
@@ -253,7 +262,7 @@ export function SplitDetailsSheet({
             </View>
 
             {/* People List */}
-            {splitData ? (
+            {splitData?.totals && Object.keys(splitData.totals).length > 0 ? (
               <View
                 className={`rounded-3xl overflow-hidden border ${isDark ? "bg-[#1A1D1E] border-white/5" : "bg-white border-black/5"
                   }`}
@@ -386,14 +395,22 @@ export function SplitDetailsSheet({
                 })}
               </View>
             ) : (
-              <View className="gap-2">
-                <ThemedText size="sm" style={{ opacity: 0.7 }}>
-                  The split isn&apos;t configured yet.
-                </ThemedText>
-                <Button variant="primary" onPress={handleConfigureSplit}>
-                  Configure Split
-                </Button>
-              </View>
+              <EmptyState
+                icon="person.2.fill"
+                title="No Split Configured"
+                subtitle={
+                  isOwner
+                    ? "Set up how you want to split this receipt with your friends."
+                    : "The owner hasn't set up a split for this receipt yet."
+                }
+                action={
+                  isOwner ? (
+                    <Button variant="primary" onPress={handleConfigureSplit} fullWidth>
+                      Configure Split
+                    </Button>
+                  ) : null
+                }
+              />
             )}
           </ScrollView>
         )}
@@ -403,6 +420,7 @@ export function SplitDetailsSheet({
           bottomSheetRef={personDetailsSheetRef}
           receiptId={receipt.id}
           personId={selectedPersonId || ""}
+          currentUserId={currentUserId}
           onStatusChange={handlePersonDetailsStatusChange}
           onDismiss={handlePersonDetailsDismiss}
         />

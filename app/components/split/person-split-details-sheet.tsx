@@ -25,6 +25,7 @@ interface PersonSplitDetailsSheetProps {
   bottomSheetRef: React.RefObject<TrueSheet | null>;
   receiptId: string;
   personId: string;
+  currentUserId?: string | null;
   onStatusChange?: () => void;
   onDismiss?: () => void;
 }
@@ -37,10 +38,11 @@ function buildItemBreakdownForPerson(
   item: StoredReceipt["items"][number];
   amount: number;
 }[] {
+  if (!splitData.totals) return [];
   const peopleIds = Object.keys(splitData.totals);
   if (peopleIds.length === 0) return [];
 
-  const baseShares = splitData.friendShares;
+  const baseShares = splitData.friendShares || {};
   const totalBase = Object.values(baseShares).reduce(
     (sum, amount) => sum + amount,
     0
@@ -48,7 +50,7 @@ function buildItemBreakdownForPerson(
 
   return receipt.items.map((item, index) => {
     const itemId = item.id || index.toString();
-    const assignment = splitData.assignments.find(
+    const assignment = splitData.assignments?.find(
       (entry) => entry.itemId === itemId
     );
     let amount = 0;
@@ -94,6 +96,7 @@ export function PersonSplitDetailsSheet({
   bottomSheetRef,
   receiptId,
   personId,
+  currentUserId,
   onStatusChange,
   onDismiss,
 }: PersonSplitDetailsSheetProps) {
@@ -107,6 +110,7 @@ export function PersonSplitDetailsSheet({
   const updateReceiptMutation = useUpdateReceipt();
 
   const splitData = receipt?.splitData;
+  const isOwner = receipt?.ownerId && currentUserId && receipt.ownerId === currentUserId;
 
   const peopleLookup = useMemo(() => {
     if (!splitData) return {};
@@ -126,9 +130,9 @@ export function PersonSplitDetailsSheet({
   }, [splitData, friends, user]);
 
   const personName = peopleLookup[personId] || "Unknown";
-  const personTotal = splitData?.totals[personId] || 0;
-  const baseAmount = splitData?.friendShares[personId] || 0;
-  const taxAmount = splitData?.taxDistribution[personId] || 0;
+  const personTotal = splitData?.totals?.[personId] || 0;
+  const baseAmount = splitData?.friendShares?.[personId] || 0;
+  const taxAmount = splitData?.taxDistribution?.[personId] || 0;
   const tipAmount = splitData?.tipDistribution?.[personId] || 0;
   const currentStatus = splitData?.statuses?.[personId] || SplitStatus.PENDING;
   const settledAmount = splitData?.settledAmounts?.[personId] || 0;
@@ -293,7 +297,7 @@ export function PersonSplitDetailsSheet({
         }}
       >
         <View className="gap-3">
-          {currentStatus !== SplitStatus.SETTLED && receipt && splitData && (
+          {isOwner && currentStatus !== SplitStatus.SETTLED && receipt && splitData && (
             <Button
               variant="primary"
               onPress={() => handleStatusChange(SplitStatus.SETTLED)}
@@ -303,7 +307,7 @@ export function PersonSplitDetailsSheet({
               Mark as Settled
             </Button>
           )}
-          {currentStatus === SplitStatus.SETTLED && receipt && splitData && (
+          {isOwner && currentStatus === SplitStatus.SETTLED && receipt && splitData && (
             <Button
               variant="secondary"
               onPress={() => handleStatusChange(SplitStatus.PENDING)}
@@ -313,7 +317,7 @@ export function PersonSplitDetailsSheet({
               Mark as Pending
             </Button>
           )}
-          {remainingAmount > 0 && settleRemainingText && receipt && splitData && (
+          {isOwner && remainingAmount > 0 && settleRemainingText && receipt && splitData && (
             <Button
               variant="secondary"
               onPress={() => handleSettleAmount(remainingAmount)}

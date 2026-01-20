@@ -16,7 +16,8 @@ export function SplitSummaryCard({ receipt, friends, onPress }: SplitSummaryCard
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  if (!receipt.splitData) {
+  const splitData = receipt.splitData;
+  if (!splitData?.totals || Object.keys(splitData.totals).length === 0) {
     return null;
   }
 

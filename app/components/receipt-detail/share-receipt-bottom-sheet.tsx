@@ -322,13 +322,6 @@ export function ShareReceiptBottomSheet({
         JSON.stringify(Array.from(updatedIds))
       );
 
-      // Optionally show native share sheet
-      await Share.share({
-        url: shareUrl,
-        title: receiptName || "Share Receipt",
-        message: shareMessage,
-      });
-
       setSelectedFriendIds(new Set());
       bottomSheetRef.current?.dismiss();
     } catch (error) {

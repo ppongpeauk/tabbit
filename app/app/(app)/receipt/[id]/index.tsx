@@ -29,6 +29,7 @@ import {
   useUpdateReceipt,
 } from "@/hooks/use-receipts";
 import { useFriends } from "@/hooks/use-friends";
+import { useAuth } from "@/contexts/auth-context";
 import { Colors } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 import {
@@ -66,6 +67,7 @@ function useReceiptToolbar({
   receipt,
   colorScheme,
   hasPhoto,
+  currentUserId,
   onViewPhoto,
   onEdit,
   onShare,
@@ -78,6 +80,7 @@ function useReceiptToolbar({
   receipt: StoredReceipt | null;
   colorScheme: "light" | "dark" | null | undefined;
   hasPhoto: boolean;
+  currentUserId?: string | null;
   onViewPhoto: () => void;
   onEdit: () => void;
   onShare: () => void;
@@ -95,6 +98,7 @@ function useReceiptToolbar({
         receipt,
         colorScheme: colorScheme || "light",
         hasPhoto,
+        currentUserId,
         onViewPhoto,
         onEdit,
         onShare,
@@ -110,6 +114,7 @@ function useReceiptToolbar({
     colorScheme,
     receipt,
     hasPhoto,
+    currentUserId,
     onViewPhoto,
     onEdit,
     onShare,
@@ -468,6 +473,7 @@ function ReceiptContent({
   isDark,
   onMerchantPress,
   onViewSplit,
+  currentUserId,
 }: {
   receipt: StoredReceipt;
   friends: StorageFriend[];
@@ -478,7 +484,9 @@ function ReceiptContent({
   isDark: boolean;
   onMerchantPress: () => void;
   onViewSplit?: () => void;
+  currentUserId?: string | null;
 }) {
+  const isOwner = receipt.ownerId && currentUserId && receipt.ownerId === currentUserId;
   return (
     <ScrollView
       className="flex-1"
@@ -522,10 +530,11 @@ function ReceiptContent({
         </View>
       </View>
 
-      {/* Share Receipt Card */}
-      <View className="px-6 mb-4">
-        <ShareReceiptCard onShare={onShare} />
-      </View>
+      {isOwner && (
+        <View className="px-6 mb-4">
+          <ShareReceiptCard onShare={onShare} />
+        </View>
+      )}
 
       {/* Items and Totals Card */}
       <View className="px-6 mb-4">
@@ -554,8 +563,7 @@ function ReceiptContent({
         </View>
       ) : null}
 
-      {/* Scan Return Barcode Button - shown when no return info exists */}
-      {!shouldShowReturnInfo(receipt.returnInfo) ? (
+      {!shouldShowReturnInfo(receipt.returnInfo) && isOwner && (
         <View className="px-6 mb-4">
           <TouchableOpacity
             activeOpacity={0.7}
@@ -611,7 +619,7 @@ function ReceiptContent({
             </View>
           </TouchableOpacity>
         </View>
-      ) : null}
+      )}
 
       {/* Return Info */}
       {shouldShowReturnInfo(receipt.returnInfo) ||
@@ -662,6 +670,7 @@ export default function ReceiptDetailScreen() {
   } = useReceipt(id);
 
   const { data: friends = [], isLoading: isLoadingFriends } = useFriends();
+  const { user } = useAuth();
   const deleteReceiptMutation = useDeleteReceipt();
   const updateReceiptMutation = useUpdateReceipt();
 
@@ -831,6 +840,7 @@ export default function ReceiptDetailScreen() {
     receipt: receipt || null,
     colorScheme,
     hasPhoto,
+    currentUserId: user?.id,
     onViewPhoto: handleViewPhoto,
     onEdit: handleEdit,
     onShare: handleShare,
@@ -866,6 +876,7 @@ export default function ReceiptDetailScreen() {
           isDark={isDark}
           onMerchantPress={handleMerchantPress}
           onViewSplit={() => splitDetailsSheetRef.current?.present()}
+          currentUserId={user?.id}
         />
       </ThemedView>
       {/* <Toolbar bottom={insets.bottom}>
@@ -905,6 +916,7 @@ export default function ReceiptDetailScreen() {
           <SplitDetailsSheet
             bottomSheetRef={splitDetailsSheetRef}
             receiptId={receipt.id}
+            currentUserId={user?.id}
             onEdit={() => splitFlowSheetRef.current?.present()}
           />
           <SplitFlowSheet

@@ -612,11 +612,13 @@ function mapReceiptToResponse(receipt: {
   id: string;
   data: Prisma.JsonValue;
   createdAt: Date;
+  userId: string;
 }) {
   return {
     ...(receipt.data as Record<string, unknown>),
     id: receipt.id,
     createdAt: receipt.createdAt.toISOString(),
+    ownerId: receipt.userId,
   };
 }
 
@@ -715,6 +717,7 @@ async function findReceiptById(receiptId: string): Promise<{
   id: string;
   data: Prisma.JsonValue;
   createdAt: Date;
+  userId: string;
 } | null> {
   return prisma.receipt.findUnique({
     where: {
@@ -724,6 +727,7 @@ async function findReceiptById(receiptId: string): Promise<{
       id: true,
       data: true,
       createdAt: true,
+      userId: true,
     },
   });
 }
