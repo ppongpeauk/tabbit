@@ -95,7 +95,8 @@ export function ManualReceiptHeaderSheet({
 
         <View>
           <FormTextInput
-            label="Merchant Name *"
+            label="Merchant Name"
+            required
             value={headerFields.merchantName}
             onChangeText={(value) =>
               onHeaderFieldsChange({ merchantName: value })

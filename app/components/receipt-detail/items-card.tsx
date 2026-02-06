@@ -1,4 +1,5 @@
 import { View, TouchableOpacity } from "react-native";
+import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatCurrency } from "@/utils/format";
@@ -26,7 +27,16 @@ export function ItemsCard({ receipt, onItemPress, isCollaborator = false }: Item
         return (
           <ItemWrapper
             key={index}
-            onPress={isCollaborator ? () => onItemPress?.(item, index) : undefined}
+            onPress={
+              isCollaborator
+                ? () => {
+                    if (process.env.EXPO_OS === "ios") {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }
+                    onItemPress?.(item, index);
+                  }
+                : undefined
+            }
             activeOpacity={isCollaborator ? 0.7 : undefined}
             className="flex-row justify-between items-start gap-4"
           >

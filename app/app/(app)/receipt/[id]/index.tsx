@@ -48,6 +48,7 @@ import {
   EditItemSheet,
   EditTotalsSheet,
 } from "@/components/receipt-detail";
+import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
 import { SplitDetailsSheet } from "@/app/(app)/split/details";
 import { SplitFlowSheet } from "@/components/split/split-flow-sheet";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
@@ -187,6 +188,7 @@ function ReceiptContent({
   currentUserId,
   onItemPress,
   onTotalsPress,
+  onCurrencyPress,
 }: {
   receipt: StoredReceipt;
   friends: StorageFriend[];
@@ -200,6 +202,7 @@ function ReceiptContent({
   currentUserId?: string | null;
   onItemPress?: (item: any, index: number) => void;
   onTotalsPress?: () => void;
+  onCurrencyPress?: () => void;
 }) {
   const isCollaboratorValue = isCollaborator(receipt, currentUserId);
   return (
@@ -219,6 +222,7 @@ function ReceiptContent({
           isCollaborator={isCollaboratorValue}
           onShare={onShare}
           onMerchantPress={onMerchantPress}
+          onCurrencyPress={onCurrencyPress}
         />
       </View>
 
@@ -357,6 +361,7 @@ export default function ReceiptDetailScreen() {
   const splitFlowSheetRef = useRef<TrueSheet>(null);
   const editItemSheetRef = useRef<TrueSheet>(null);
   const editTotalsSheetRef = useRef<TrueSheet>(null);
+  const currencyPickerSheetRef = useRef<TrueSheet>(null);
 
   const [editingItem, setEditingItem] = useState<{
     item: StoredReceipt["items"][0];
@@ -586,6 +591,40 @@ export default function ReceiptDetailScreen() {
     [receipt, updateReceiptMutation]
   );
 
+  const handleCurrencyPress = useCallback(() => {
+    if (!receipt) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    currencyPickerSheetRef.current?.present();
+  }, [receipt]);
+
+  const handleCurrencyChange = useCallback(
+    async (currencyCode: string) => {
+      if (!receipt) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        await updateReceiptMutation.mutateAsync({
+          id: receipt.id,
+          updates: {
+            totals: {
+              ...receipt.totals,
+              currency: currencyCode,
+            },
+          },
+        });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (error) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          "Error",
+          error instanceof Error
+            ? error.message
+            : "Failed to update currency. Please try again."
+        );
+      }
+    },
+    [receipt, updateReceiptMutation]
+  );
+
   // Setup toolbar
   useReceiptToolbar({
     receipt: receipt || null,
@@ -633,6 +672,7 @@ export default function ReceiptDetailScreen() {
             editItemSheetRef.current?.present();
           }}
           onTotalsPress={() => editTotalsSheetRef.current?.present()}
+          onCurrencyPress={handleCurrencyPress}
         />
       </ThemedView>
       {/* <Toolbar bottom={insets.bottom}>
@@ -693,6 +733,12 @@ export default function ReceiptDetailScreen() {
         bottomSheetRef={editTotalsSheetRef}
         receipt={receipt}
         onSave={handleUpdateTotals}
+        onClose={() => { }}
+      />
+      <CurrencyPickerSheet
+        bottomSheetRef={currencyPickerSheetRef}
+        selectedCurrency={receipt.totals.currency}
+        onSelect={handleCurrencyChange}
         onClose={() => { }}
       />
     </View>

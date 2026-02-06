@@ -49,6 +49,15 @@ export class FriendService {
         };
       }
 
+      // Delete any existing friend requests for this user (expired or pending)
+      // This prevents unique constraint violations when creating a new token
+      await prisma.friendRequest.deleteMany({
+        where: {
+          requesterId: userId,
+          requesteeId: userId, // Only delete placeholder requests (not yet scanned)
+        },
+      });
+
       // Create a new friend request token
       // The requester is the user generating the token (they want to be added as a friend)
       // The requestee will be set when someone scans the QR code

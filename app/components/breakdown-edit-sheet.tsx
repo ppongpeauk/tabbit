@@ -153,7 +153,8 @@ export function BreakdownEditSheet({
                     render={({ field: { onChange, onBlur, value } }) => (
                         <FormTextInput
                             ref={labelInputRef}
-                            label={`${type === "tax" ? "Tax" : "Fee"} Label *`}
+                            label={`${type === "tax" ? "Tax" : "Fee"} Label`}
+                            required
                             value={value}
                             onChangeText={onChange}
                             onBlur={onBlur}
@@ -169,7 +170,8 @@ export function BreakdownEditSheet({
                     rules={{ required: true }}
                     render={({ field: { onChange, onBlur, value } }) => (
                         <FormTextInput
-                            label="Amount *"
+                            label="Amount"
+                            required
                             value={value}
                             onChangeText={onChange}
                             onBlur={onBlur}

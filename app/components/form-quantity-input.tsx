@@ -11,6 +11,7 @@ import { SymbolView } from "expo-symbols";
 
 export type FormQuantityInputProps = {
   label?: string;
+  required?: boolean;
   value: number;
   onChange: (value: number) => void;
   min?: number;
@@ -19,6 +20,7 @@ export type FormQuantityInputProps = {
 
 export function FormQuantityInput({
   label,
+  required,
   value,
   onChange,
   min,
@@ -61,6 +63,11 @@ export function FormQuantityInput({
       {label && (
         <ThemedText size="base" weight="semibold" className="mb-2">
           {label}
+          {required && (
+            <ThemedText size="base" weight="semibold" style={{ color: "#EF4444" }}>
+              {" *"}
+            </ThemedText>
+          )}
         </ThemedText>
       )}
       <View

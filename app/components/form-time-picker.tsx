@@ -12,6 +12,7 @@ import { SymbolView } from "expo-symbols";
 
 export type FormTimePickerProps = {
   label?: string;
+  required?: boolean;
   value?: string; // HH:MM format
   onChange?: (time: string) => void; // Returns HH:MM format
   placeholder?: string;
@@ -21,6 +22,7 @@ export type FormTimePickerProps = {
 
 export function FormTimePicker({
   label,
+  required,
   value,
   onChange,
   placeholder = "Select time",
@@ -86,6 +88,11 @@ export function FormTimePicker({
       {label && (
         <ThemedText size="base" weight="semibold" style={styles.label}>
           {label}
+          {required && (
+            <ThemedText size="base" weight="semibold" style={{ color: "#EF4444" }}>
+              {" *"}
+            </ThemedText>
+          )}
         </ThemedText>
       )}
       <TouchableOpacity

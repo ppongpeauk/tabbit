@@ -14,6 +14,7 @@ import { getCategoryName, getCategoryEmoji } from "@/utils/categories";
 
 export type FormCategoryPickerProps = {
   label?: string;
+  required?: boolean;
   value?: string; // Category code (e.g., "GENERAL_MERCHANDISE")
   onChange?: (categoryCode: string) => void;
   placeholder?: string;
@@ -21,6 +22,7 @@ export type FormCategoryPickerProps = {
 
 export function FormCategoryPicker({
   label,
+  required,
   value,
   onChange,
   placeholder = "Select category",
@@ -58,6 +60,11 @@ export function FormCategoryPicker({
       {label && (
         <ThemedText size="base" weight="semibold" style={styles.label}>
           {label}
+          {required && (
+            <ThemedText size="base" weight="semibold" style={{ color: "#EF4444" }}>
+              {" *"}
+            </ThemedText>
+          )}
         </ThemedText>
       )}
       <TouchableOpacity

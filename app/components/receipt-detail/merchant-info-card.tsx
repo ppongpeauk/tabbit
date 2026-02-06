@@ -16,6 +16,7 @@ interface MerchantInfoCardProps {
   isCollaborator: boolean;
   onShare: () => void;
   onMerchantPress: () => void;
+  onCurrencyPress?: () => void;
 }
 
 function AddressMap({ address, isDark }: { address: StoredReceipt["merchant"]["address"]; isDark: boolean }) {
@@ -165,7 +166,15 @@ function HeroSection({ receipt, isDark, onMerchantPress }: { receipt: StoredRece
   );
 }
 
-function MetadataGrid({ receipt, isDark }: { receipt: StoredReceipt; isDark: boolean }) {
+function MetadataGrid({
+  receipt,
+  isDark,
+  onCurrencyPress,
+}: {
+  receipt: StoredReceipt;
+  isDark: boolean;
+  onCurrencyPress?: () => void;
+}) {
   const date = new Date(receipt.transaction.datetime || receipt.createdAt);
   const formattedDate = date.toLocaleDateString("en-US", {
     month: "short",
@@ -265,9 +274,26 @@ function MetadataGrid({ receipt, isDark }: { receipt: StoredReceipt; isDark: boo
               Currency
             </ThemedText>
           </View>
-          <ThemedText size="base" weight="semibold" family="sans">
-            {currency}
-          </ThemedText>
+          {onCurrencyPress ? (
+            <TouchableOpacity
+              onPress={onCurrencyPress}
+              activeOpacity={0.7}
+              className="flex-row items-center gap-2"
+            >
+              <ThemedText size="base" weight="semibold" family="sans">
+                {currency}
+              </ThemedText>
+              <SymbolView
+                name="chevron.right"
+                tintColor={subtleColor}
+                style={{ width: 14, height: 14 }}
+              />
+            </TouchableOpacity>
+          ) : (
+            <ThemedText size="base" weight="semibold" family="sans">
+              {currency}
+            </ThemedText>
+          )}
         </View>
       </View>
     </View>
@@ -279,6 +305,7 @@ export function MerchantInfoCard({
   isCollaborator,
   onShare,
   onMerchantPress,
+  onCurrencyPress,
 }: MerchantInfoCardProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -312,7 +339,11 @@ export function MerchantInfoCard({
         }}
       />
 
-      <MetadataGrid receipt={receipt} isDark={isDark} />
+      <MetadataGrid
+        receipt={receipt}
+        isDark={isDark}
+        onCurrencyPress={onCurrencyPress}
+      />
 
       {isCollaborator && (
         <>

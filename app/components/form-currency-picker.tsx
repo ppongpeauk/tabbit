@@ -14,6 +14,7 @@ import { getCurrencyByCode } from "@/utils/currencies";
 
 export type FormCurrencyPickerProps = {
   label?: string;
+  required?: boolean;
   value?: string; // Currency code (e.g., "USD")
   onChange?: (currencyCode: string) => void;
   placeholder?: string;
@@ -21,6 +22,7 @@ export type FormCurrencyPickerProps = {
 
 export function FormCurrencyPicker({
   label,
+  required,
   value,
   onChange,
   placeholder = "Select currency",
@@ -57,6 +59,11 @@ export function FormCurrencyPicker({
       {label && (
         <ThemedText size="base" weight="semibold" style={styles.label}>
           {label}
+          {required && (
+            <ThemedText size="base" weight="semibold" style={{ color: "#EF4444" }}>
+              {" *"}
+            </ThemedText>
+          )}
         </ThemedText>
       )}
       <TouchableOpacity

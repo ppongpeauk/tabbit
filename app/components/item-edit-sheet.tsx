@@ -160,7 +160,8 @@ export function ItemEditSheet({
           render={({ field: { onChange, onBlur, value } }) => (
             <FormTextInput
               ref={nameInputRef}
-              label="Item Name *"
+              label="Item Name"
+              required
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}

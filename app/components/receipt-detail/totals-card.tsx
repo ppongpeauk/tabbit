@@ -1,4 +1,5 @@
 import { View, TouchableOpacity } from "react-native";
+import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatCurrency } from "@/utils/format";
@@ -26,7 +27,16 @@ export function TotalsCard({ receipt, onTotalsPress, isCollaborator = false }: T
   return (
     <TotalsWrapper
       activeOpacity={isCollaborator ? 0.7 : undefined}
-      onPress={isCollaborator ? onTotalsPress : undefined}
+      onPress={
+        isCollaborator
+          ? () => {
+              if (process.env.EXPO_OS === "ios") {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              onTotalsPress?.();
+            }
+          : undefined
+      }
       className="mt-6"
     >
       <View className="flex-col gap-3">

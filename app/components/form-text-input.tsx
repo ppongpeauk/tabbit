@@ -20,6 +20,7 @@ import { ThemedText } from "./themed-text";
 
 export type FormTextInputProps = TextInputProps & {
   label?: string;
+  required?: boolean;
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
   numericOnly?: boolean;
@@ -31,6 +32,7 @@ export const FormTextInput = forwardRef<TextInput, FormTextInputProps>(
   function FormTextInput(
     {
       label,
+      required,
       style,
       leftIcon,
       rightIcon,
@@ -144,6 +146,11 @@ export const FormTextInput = forwardRef<TextInput, FormTextInputProps>(
         {label && (
           <ThemedText size="base" weight="semibold" style={styles.label}>
             {label}
+            {required && (
+              <ThemedText size="base" weight="semibold" style={{ color: "#EF4444" }}>
+                {" *"}
+              </ThemedText>
+            )}
           </ThemedText>
         )}
         <View style={styles.inputContainer}>

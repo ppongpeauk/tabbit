@@ -25,6 +25,7 @@ import {
   getPresignedUrl,
   generateReceiptImageKey,
 } from "../../lib/s3";
+import { convertReceiptCurrency } from "../../utils/currency-converter";
 
 function parseSkipPreprocessing(value: string | boolean | undefined): boolean {
   return value === true || (typeof value === "string" && value === "true");
@@ -1131,12 +1132,41 @@ export const receiptModule = new Elysia({ prefix: "/receipts" })
         }
 
         // Merge existing data with updates, ensuring type safety for Prisma JSON field
-        const existingData = existing.data as Record<string, unknown>;
+        const existingData = existing.data as StoredReceiptData;
         const mergedData = {
           ...existingData,
           ...body.updates,
         };
-        const nextData = toPrismaJsonValue(mergedData);
+
+        // Check if currency is being changed
+        const oldCurrency = existingData.totals.currency;
+        const newCurrency = mergedData.totals?.currency;
+
+        let finalData = mergedData;
+
+        if (newCurrency && newCurrency !== oldCurrency) {
+          console.log("[ReceiptUpdate] Currency change detected:", {
+            receiptId: params.id,
+            oldCurrency,
+            newCurrency,
+          });
+
+          try {
+            finalData = await convertReceiptCurrency(mergedData, newCurrency);
+          } catch (error) {
+            console.error("[ReceiptUpdate] Currency conversion failed:", error);
+            set.status = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+            return {
+              success: false,
+              message:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to convert currency",
+            };
+          }
+        }
+
+        const nextData = toPrismaJsonValue(finalData as Record<string, unknown>);
 
         const updated = await prisma.receipt.update({
           where: { id: params.id },

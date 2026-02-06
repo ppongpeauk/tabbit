@@ -12,6 +12,7 @@ import { SymbolView } from "expo-symbols";
 
 export type FormDatePickerProps = {
   label?: string;
+  required?: boolean;
   value?: string; // YYYY-MM-DD format
   onChange?: (date: string) => void; // Returns YYYY-MM-DD format
   placeholder?: string;
@@ -22,6 +23,7 @@ export type FormDatePickerProps = {
 
 export function FormDatePicker({
   label,
+  required,
   value,
   onChange,
   placeholder = "Select date",
@@ -78,6 +80,11 @@ export function FormDatePicker({
       {label && (
         <ThemedText size="base" weight="semibold" style={styles.label}>
           {label}
+          {required && (
+            <ThemedText size="base" weight="semibold" style={{ color: "#EF4444" }}>
+              {" *"}
+            </ThemedText>
+          )}
         </ThemedText>
       )}
       <TouchableOpacity

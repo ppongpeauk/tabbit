@@ -293,7 +293,8 @@ export function ProfileEditSheet({
           rules={{ required: true }}
           render={({ field: { onChange, onBlur, value } }) => (
             <FormTextInput
-              label="Name *"
+              label="Name"
+              required
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
