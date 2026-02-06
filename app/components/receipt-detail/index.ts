@@ -12,5 +12,6 @@ export { BarcodeModal } from "./barcode-modal";
 export { MerchantDetailsSheet } from "./merchant-details-sheet";
 export { EditItemSheet } from "./edit-item-sheet";
 export { EditTotalsSheet } from "./edit-totals-sheet";
+export { ReceiptPhotoSheet } from "./receipt-photo-sheet";
 export * from "./utils";
 export * from "./hooks";

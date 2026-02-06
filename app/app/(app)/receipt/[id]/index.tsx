@@ -19,7 +19,6 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
-import * as Linking from "expo-linking";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -47,13 +46,13 @@ import {
   MerchantDetailsSheet,
   EditItemSheet,
   EditTotalsSheet,
+  ReceiptPhotoSheet,
 } from "@/components/receipt-detail";
 import { CurrencyPickerSheet } from "@/components/currency-picker-sheet";
 import { SplitDetailsSheet } from "@/app/(app)/split/details";
 import { SplitFlowSheet } from "@/components/split/split-flow-sheet";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import type { StoredReceipt, Friend as StorageFriend } from "@/utils/storage";
-import { getReceiptPhotoUrl } from "@/utils/storage";
 import { SymbolView } from "expo-symbols";
 import { AppleMaps } from "expo-maps";
 import * as Location from "expo-location";
@@ -362,6 +361,7 @@ export default function ReceiptDetailScreen() {
   const editItemSheetRef = useRef<TrueSheet>(null);
   const editTotalsSheetRef = useRef<TrueSheet>(null);
   const currencyPickerSheetRef = useRef<TrueSheet>(null);
+  const receiptPhotoSheetRef = useRef<TrueSheet>(null);
 
   const [editingItem, setEditingItem] = useState<{
     item: StoredReceipt["items"][0];
@@ -381,7 +381,6 @@ export default function ReceiptDetailScreen() {
   const updateReceiptMutation = useUpdateReceipt();
 
   const isLoading = isLoadingReceipt || isLoadingFriends;
-  const [isLoadingPhoto, setIsLoadingPhoto] = useState(false);
   const hasPhoto = Boolean(
     receipt?.appData?.images?.some((image) => Boolean(image.key || image.url))
   );
@@ -447,31 +446,16 @@ export default function ReceiptDetailScreen() {
     barcodeModalRef.current?.present();
   }, []);
 
-  const handleViewPhoto = useCallback(async () => {
+  const handleViewPhoto = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    if (isLoadingPhoto) {
-      return;
-    }
 
     if (!hasPhoto) {
       Alert.alert("No Photo", "No photo is attached to this receipt.");
       return;
     }
 
-    setIsLoadingPhoto(true);
-    try {
-      const url = await getReceiptPhotoUrl(id);
-      await Linking.openURL(url);
-    } catch (error) {
-      Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Failed to load receipt photo"
-      );
-    } finally {
-      setIsLoadingPhoto(false);
-    }
-  }, [hasPhoto, id, isLoadingPhoto]);
+    receiptPhotoSheetRef.current?.present();
+  }, [hasPhoto]);
 
   const handleEdit = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -739,6 +723,11 @@ export default function ReceiptDetailScreen() {
         bottomSheetRef={currencyPickerSheetRef}
         selectedCurrency={receipt.totals.currency}
         onSelect={handleCurrencyChange}
+        onClose={() => { }}
+      />
+      <ReceiptPhotoSheet
+        bottomSheetRef={receiptPhotoSheetRef}
+        receiptId={receipt.id}
         onClose={() => { }}
       />
     </View>

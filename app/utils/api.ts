@@ -877,6 +877,67 @@ export interface ShareReceiptResponse {
   message?: string;
 }
 
+// Group Receipt types
+export interface GroupReceipt {
+  id: string;
+  groupId: string;
+  receiptId: string;
+  sharedBy: string;
+  sharedAt: string;
+  receipt: {
+    id: string;
+    userId: string;
+    data: Receipt;
+    createdAt: string;
+    updatedAt: string;
+    syncedAt: string | null;
+  };
+  sharer: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  };
+}
+
+export interface GroupReceiptResponse {
+  success: boolean;
+  message?: string;
+  receipts?: GroupReceipt[];
+}
+
+export interface GroupActivity {
+  id: string;
+  type: "receipt_added" | "member_joined" | "member_role_changed" | "group_updated";
+  userId: string;
+  userName: string;
+  action: string;
+  detail: string;
+  createdAt: string;
+  emoji: string;
+}
+
+export interface GroupActivityResponse {
+  success: boolean;
+  message?: string;
+  activities?: GroupActivity[];
+}
+
+export interface GroupBalance {
+  userId: string;
+  userName: string;
+  userImage: string | null;
+  amount: number;
+  currency: string;
+  status: "owed" | "owes" | "settled";
+}
+
+export interface GroupBalanceResponse {
+  success: boolean;
+  message?: string;
+  balances?: GroupBalance[];
+}
+
 /**
  * Get friends who have access to a receipt
  */
@@ -922,6 +983,167 @@ export async function shareReceipt(
         axiosError.response?.data?.message ||
         axiosError.message ||
         "Failed to share receipt. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Share a receipt with a group
+ */
+export async function shareReceiptWithGroup(
+  receiptId: string,
+  groupId: string
+): Promise<GroupReceiptResponse> {
+  try {
+    const response = await apiClient.post(
+      `/groups/${groupId}/receipts/${receiptId}`
+    );
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to share receipt with group. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Get group receipts
+ */
+export async function getGroupReceipts(
+  groupId: string
+): Promise<GroupReceiptResponse> {
+  try {
+    const response = await apiClient.get(`/groups/${groupId}/receipts`);
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to get group receipts. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Remove a receipt from a group
+ */
+export async function removeReceiptFromGroup(
+  groupId: string,
+  receiptId: string
+): Promise<GroupReceiptResponse> {
+  try {
+    const response = await apiClient.delete(
+      `/groups/${groupId}/receipts/${receiptId}`
+    );
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to remove receipt. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Update member role in a group
+ */
+export async function updateMemberRole(
+  groupId: string,
+  memberId: string,
+  role: "admin" | "member"
+): Promise<GroupResponse> {
+  try {
+    const response = await apiClient.put(
+      `/groups/${groupId}/members/${memberId}/role`,
+      { role }
+    );
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to update member role. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Remove a member from a group
+ */
+export async function removeGroupMember(
+  groupId: string,
+  memberId: string
+): Promise<GroupResponse> {
+  try {
+    const response = await apiClient.delete(
+      `/groups/${groupId}/members/${memberId}`
+    );
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to remove member. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Get group activity feed
+ */
+export async function getGroupActivity(
+  groupId: string
+): Promise<GroupActivityResponse> {
+  try {
+    const response = await apiClient.get(`/groups/${groupId}/activity`);
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to get group activity. Please check your connection and try again.",
+    };
+  }
+}
+
+/**
+ * Get group balances
+ */
+export async function getGroupBalances(
+  groupId: string
+): Promise<GroupBalanceResponse> {
+  try {
+    const response = await apiClient.get(`/groups/${groupId}/balances`);
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return {
+      success: false,
+      message:
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        "Failed to get group balances. Please check your connection and try again.",
     };
   }
 }

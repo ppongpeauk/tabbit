@@ -29,6 +29,7 @@ import { Toolbar, ToolbarButton } from "@/components/toolbar";
 import { ManualReceiptHeaderSheet } from "@/components/manual-receipt-header-sheet";
 import type { ManualReceiptHeaderFields } from "@/components/manual-receipt-header-fields";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
+import * as Haptics from "expo-haptics";
 import type {
   Merchant,
   Transaction,
@@ -36,6 +37,8 @@ import type {
   ReceiptItem,
   ReturnInfo,
 } from "@/utils/api";
+import { shareReceiptWithGroup } from "@/utils/api";
+import { useLocalSearchParams } from "expo-router";
 
 interface ManualReceiptFormData {
   name: string;
@@ -51,6 +54,8 @@ export default function CreateManualReceiptScreen() {
   const navigation = useNavigation();
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ groupId?: string }>();
+  const groupId = params.groupId; // Get groupId from params for automatic group sharing
   const [saving, setSaving] = useState(false);
   const isSavingRef = useRef(false);
   const isCancellingRef = useRef(false);
@@ -76,7 +81,7 @@ export default function CreateManualReceiptScreen() {
     setSaving(true);
     isSavingRef.current = true;
     try {
-      await saveReceipt({
+      const savedReceipt = await saveReceipt({
         name: formData.name || formData.merchant.name,
         merchant: formData.merchant,
         transaction: formData.transaction,
@@ -91,7 +96,42 @@ export default function CreateManualReceiptScreen() {
         },
       });
 
-      router.back();
+      // If groupId is present, automatically share the receipt with the group
+      if (groupId) {
+        try {
+          const shareResponse = await shareReceiptWithGroup(
+            savedReceipt.id,
+            groupId
+          );
+
+          if (shareResponse.success) {
+            Haptics.notificationAsync(
+              Haptics.NotificationFeedbackType.Success
+            );
+          } else {
+            Haptics.notificationAsync(
+              Haptics.NotificationFeedbackType.Error
+            );
+            Alert.alert(
+              "Error Sharing with Group",
+              shareResponse.message || "Failed to share receipt with group.",
+              [
+                {
+                  text: "Continue",
+                  onPress: () => {
+                    router.replace(`/receipt/${savedReceipt.id}`);
+                  },
+                },
+              ]
+            );
+            return;
+          }
+        } catch (error) {
+          console.error("Error sharing receipt with group:", error);
+        }
+      }
+
+      router.replace(`/receipt/${savedReceipt.id}`);
     } catch (error) {
       isSavingRef.current = false;
       Alert.alert("Error", "Failed to save receipt");
@@ -99,7 +139,7 @@ export default function CreateManualReceiptScreen() {
     } finally {
       setSaving(false);
     }
-  }, []);
+  }, [groupId]);
 
   const [hasFormData, setHasFormData] = useState(false);
   const [isFormDirty, setIsFormDirty] = useState(false);

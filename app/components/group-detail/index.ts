@@ -5,3 +5,4 @@
 
 export { GroupHeader } from "./group-header";
 export { ShareBottomSheet } from "./share-bottom-sheet";
+export { MemberActionsSheet } from "./member-actions-sheet";

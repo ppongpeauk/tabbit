@@ -60,6 +60,67 @@ export interface GroupResponse {
   groups?: GroupWithMembers[];
 }
 
+// Group Receipt interfaces
+export interface GroupReceipt {
+  id: string;
+  groupId: string;
+  receiptId: string;
+  sharedBy: string;
+  sharedAt: Date;
+  receipt: {
+    id: string;
+    userId: string;
+    data: any;
+    createdAt: Date;
+    updatedAt: Date;
+    syncedAt: Date | null;
+  };
+  sharer: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  };
+}
+
+export interface GroupReceiptResponse {
+  success: boolean;
+  message?: string;
+  receipts?: GroupReceipt[];
+}
+
+export interface GroupActivity {
+  id: string;
+  type: "receipt_added" | "member_joined" | "member_role_changed" | "group_updated";
+  userId: string;
+  userName: string;
+  action: string;
+  detail: string;
+  createdAt: Date;
+  emoji: string;
+}
+
+export interface GroupActivityResponse {
+  success: boolean;
+  message?: string;
+  activities?: GroupActivity[];
+}
+
+export interface GroupBalance {
+  userId: string;
+  userName: string;
+  userImage: string | null;
+  amount: number;
+  currency: string;
+  status: "owed" | "owes" | "settled";
+}
+
+export interface GroupBalanceResponse {
+  success: boolean;
+  message?: string;
+  balances?: GroupBalance[];
+}
+
 /**
  * Generate a unique group code
  */

@@ -24,7 +24,12 @@ import * as ImageManipulator from "expo-image-manipulator";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import { Fonts } from "@/constants/theme";
-import { scanReceipt, scanBarcodeImage, addFriendByToken } from "@/utils/api";
+import {
+  scanReceipt,
+  scanBarcodeImage,
+  addFriendByToken,
+  shareReceiptWithGroup,
+} from "@/utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   CameraGuideOverlay,
@@ -49,11 +54,12 @@ interface CameraScreenProps {
 }
 
 export function CameraScreen({ mode: propMode }: CameraScreenProps = {}) {
-  const params = useLocalSearchParams<{ onScan?: string }>();
+  const params = useLocalSearchParams<{ onScan?: string; groupId?: string }>();
   // Determine mode: prop > route name > default to receipt
   const mode: ScanMode =
     propMode || (params.onScan !== undefined ? "barcode" : "receipt");
   const isFriendScan = params.onScan === "friend";
+  const groupId = params.groupId; // Get groupId from params for automatic group sharing
 
   const [facing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<"on" | "off">("off");
@@ -414,9 +420,50 @@ export function CameraScreen({ mode: propMode }: CameraScreenProps = {}) {
         { imageUri }
       );
 
-      // Dismiss camera modal and navigate to receipt detail screen
-      router.dismissAll();
-      router.push(`/receipt/${savedReceipt.id}`);
+      // If groupId is present, automatically share the receipt with the group
+      if (groupId) {
+        try {
+          const shareResponse = await shareReceiptWithGroup(
+            savedReceipt.id,
+            groupId
+          );
+
+          if (shareResponse.success) {
+            Haptics.notificationAsync(
+              Haptics.NotificationFeedbackType.Success
+            );
+            // Dismiss all and navigate to the receipt detail
+            router.dismissAll();
+            router.push(`/receipt/${savedReceipt.id}`);
+          } else {
+            Haptics.notificationAsync(
+              Haptics.NotificationFeedbackType.Error
+            );
+            Alert.alert(
+              "Error Sharing with Group",
+              shareResponse.message || "Failed to share receipt with group.",
+              [
+                {
+                  text: "Continue",
+                  onPress: () => {
+                    router.dismissAll();
+                    router.push(`/receipt/${savedReceipt.id}`);
+                  },
+                },
+              ]
+            );
+          }
+        } catch (error) {
+          console.error("Error sharing receipt with group:", error);
+          // Even if sharing fails, still navigate to the receipt
+          router.dismissAll();
+          router.push(`/receipt/${savedReceipt.id}`);
+        }
+      } else {
+        // Dismiss camera modal and navigate to receipt detail screen
+        router.dismissAll();
+        router.push(`/receipt/${savedReceipt.id}`);
+      }
     } catch (error) {
       console.error("Error saving receipt:", error);
       Alert.alert(

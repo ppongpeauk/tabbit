@@ -27,10 +27,13 @@ import { EmptyState } from "@/components/empty-state";
 import type React from "react";
 import { WEB_BASE_URL, AnimationConfig } from "@/utils/config";
 import { useFriends } from "@/hooks/use-friends";
+import { useGroups } from "@/hooks/use-groups";
 import {
   getFriends as getFriendsFromApi,
   shareReceipt,
   getReceiptSharedFriends,
+  shareReceiptWithGroup,
+  type Group,
 } from "@/utils/api";
 import type { Friend } from "@/utils/storage";
 import { Alert } from "react-native";
@@ -47,6 +50,11 @@ interface FriendSection {
   data: Friend[];
 }
 
+interface GroupSection {
+  title: string;
+  data: Group[];
+}
+
 const RECENT_FRIENDS_KEY = (receiptId: string) =>
   `@tabbit:recent_friends:${receiptId}`;
 
@@ -55,6 +63,13 @@ interface FriendGridItemProps {
   isSelected: boolean;
   isDark: boolean;
   onPress: (friend: Friend) => void;
+}
+
+interface GroupGridItemProps {
+  group: Group;
+  isSelected: boolean;
+  isDark: boolean;
+  onPress: (group: Group) => void;
 }
 
 function FriendGridItem({
@@ -162,6 +177,120 @@ function FriendGridItem({
   );
 }
 
+function GroupGridItem({
+  group,
+  isSelected,
+  isDark,
+  onPress,
+}: GroupGridItemProps) {
+  const selectionProgress = useSharedValue(isSelected ? 1 : 0);
+
+  useEffect(() => {
+    selectionProgress.value = withTiming(isSelected ? 1 : 0, {
+      duration: AnimationConfig.fast,
+    });
+  }, [isSelected, selectionProgress]);
+
+  const avatarBgAnimatedStyle = useAnimatedStyle(() => {
+    const unselectedBg = isDark
+      ? "rgba(255, 255, 255, 0.1)"
+      : "rgba(0, 0, 0, 0.1)";
+    const selectedBg = isDark ? "#22c55e" : "#16a34a";
+
+    return {
+      backgroundColor: interpolateColor(
+        selectionProgress.value,
+        [0, 1],
+        [unselectedBg, selectedBg]
+      ),
+    };
+  });
+
+  const borderAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      borderWidth: selectionProgress.value * 3,
+      borderColor: isDark ? Colors.dark.background : Colors.light.background,
+    };
+  });
+
+  const checkmarkOverlayAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: selectionProgress.value,
+      transform: [{ scale: selectionProgress.value }],
+    };
+  });
+
+  const initialAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: 1 - selectionProgress.value,
+      transform: [{ scale: 1 - selectionProgress.value * 0.3 }],
+    };
+  });
+
+  return (
+    <Pressable
+      onPress={() => onPress(group)}
+      className="items-center flex-1 max-w-[33.33%] mb-4"
+      style={{ minWidth: "33.33%" }}
+    >
+      <Animated.View
+        className="w-20 h-20 rounded-full items-center justify-center mb-2"
+        style={[avatarBgAnimatedStyle, borderAnimatedStyle]}
+      >
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+              alignItems: "center",
+              justifyContent: "center",
+            },
+            initialAnimatedStyle,
+          ]}
+        >
+          <View
+            className="w-20 h-20 rounded-full items-center justify-center"
+            style={{
+              backgroundColor: isDark
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(0, 0, 0, 0.05)",
+            }}
+          >
+            <ThemedText size="lg">👥</ThemedText>
+          </View>
+        </Animated.View>
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+              alignItems: "center",
+              justifyContent: "center",
+            },
+            checkmarkOverlayAnimatedStyle,
+          ]}
+        >
+          <SymbolView
+            name="checkmark"
+            tintColor="white"
+            size={24}
+          />
+        </Animated.View>
+      </Animated.View>
+      <ThemedText
+        size="xs"
+        weight="normal"
+        className="text-center px-1"
+        numberOfLines={1}
+      >
+        {group.name}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
 export function ShareReceiptBottomSheet({
   bottomSheetRef,
   receiptId,
@@ -170,6 +299,7 @@ export function ShareReceiptBottomSheet({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const { data: allFriends = [] } = useFriends();
+  const { data: allGroups = [] } = useGroups();
   const [platformFriendIds, setPlatformFriendIds] = useState<Set<string>>(
     new Set()
   );
@@ -177,6 +307,9 @@ export function ShareReceiptBottomSheet({
     new Set()
   );
   const [selectedFriendIds, setSelectedFriendIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(
     new Set()
   );
   const qrCodeSheetRef = useRef<TrueSheet | null>(null);
@@ -238,7 +371,7 @@ export function ShareReceiptBottomSheet({
     return `Check out ${name} on Tabbit!\n\n${shareUrl}`;
   }, [receiptName, shareUrl]);
 
-  const sections = useMemo<FriendSection[]>(() => {
+  const sections = useMemo<(FriendSection | GroupSection)[]>(() => {
     const recentFriends: Friend[] = [];
     const allFriends: Friend[] = [];
 
@@ -250,7 +383,14 @@ export function ShareReceiptBottomSheet({
       }
     });
 
-    const sections: FriendSection[] = [];
+    const sections: (FriendSection | GroupSection)[] = [];
+
+    // Add groups section first
+    if (allGroups.length > 0) {
+      sections.push({ title: "Groups", data: allGroups });
+    }
+
+    // Add friend sections
     if (recentFriends.length > 0) {
       sections.push({ title: "Recents", data: recentFriends });
     }
@@ -259,7 +399,7 @@ export function ShareReceiptBottomSheet({
     }
 
     return sections;
-  }, [friends, recentFriendIds]);
+  }, [friends, recentFriendIds, allGroups]);
 
   const chunkArray = useCallback((array: Friend[], size: number) => {
     const chunks: Friend[][] = [];
@@ -310,49 +450,88 @@ export function ShareReceiptBottomSheet({
     []
   );
 
+  const handleGroupPress = useCallback(
+    (group: Group) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setSelectedGroupIds((prev) => {
+        const updated = new Set(prev);
+        if (updated.has(group.id)) {
+          updated.delete(group.id);
+        } else {
+          updated.add(group.id);
+        }
+        return updated;
+      });
+    },
+    []
+  );
+
   const handleShareToPeople = useCallback(async () => {
-    if (selectedFriendIds.size === 0) return;
+    if (selectedFriendIds.size === 0 && selectedGroupIds.size === 0) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      // Share receipt with selected friends via API
-      const friendIdsArray = Array.from(selectedFriendIds);
-      const shareResult = await shareReceipt(receiptId, friendIdsArray);
+      // Share with friends
+      if (selectedFriendIds.size > 0) {
+        const friendIdsArray = Array.from(selectedFriendIds);
+        const shareResult = await shareReceipt(receiptId, friendIdsArray);
 
-      if (!shareResult.success) {
-        Alert.alert(
-          "Error",
-          shareResult.message || "Failed to share receipt with friends"
+        if (!shareResult.success) {
+          Alert.alert(
+            "Error",
+            shareResult.message || "Failed to share receipt with friends"
+          );
+          return;
+        }
+
+        // Save to recent friends
+        const key = RECENT_FRIENDS_KEY(receiptId);
+        const updatedIds = new Set(recentFriendIds);
+        selectedFriendIds.forEach((id) => updatedIds.add(id));
+        setRecentFriendIds(updatedIds);
+
+        await AsyncStorage.setItem(
+          key,
+          JSON.stringify(Array.from(updatedIds))
         );
-        return;
       }
 
-      // Save to recent friends
-      const key = RECENT_FRIENDS_KEY(receiptId);
-      const updatedIds = new Set(recentFriendIds);
-      selectedFriendIds.forEach((id) => updatedIds.add(id));
-      setRecentFriendIds(updatedIds);
+      // Share with groups
+      if (selectedGroupIds.size > 0) {
+        const groupIdsArray = Array.from(selectedGroupIds);
 
-      await AsyncStorage.setItem(
-        key,
-        JSON.stringify(Array.from(updatedIds))
-      );
+        // Share with each group
+        const results = await Promise.all(
+          groupIdsArray.map((groupId) =>
+            shareReceiptWithGroup(receiptId, groupId)
+          )
+        );
+
+        const failedGroups = results.filter((r) => !r.success);
+        if (failedGroups.length > 0) {
+          Alert.alert(
+            "Partial Error",
+            `Shared to ${groupIdsArray.length - failedGroups.length} of ${groupIdsArray.length} groups. Some groups may not have access.`
+          );
+        }
+      }
 
       const sharedResponse = await getReceiptSharedFriends(receiptId);
       if (sharedResponse.success && sharedResponse.friendIds) {
         setSelectedFriendIds(new Set(sharedResponse.friendIds));
       }
+      setSelectedGroupIds(new Set());
       bottomSheetRef.current?.dismiss();
     } catch (error) {
-      console.error("Failed to share with friends:", error);
+      console.error("Failed to share:", error);
       Alert.alert(
         "Error",
         error instanceof Error
           ? error.message
-          : "Failed to share receipt with friends"
+          : "Failed to share receipt"
       );
     }
-  }, [receiptId, recentFriendIds, selectedFriendIds, shareUrl, shareMessage, receiptName, bottomSheetRef]);
+  }, [receiptId, recentFriendIds, selectedFriendIds, selectedGroupIds, shareUrl, shareMessage, receiptName, bottomSheetRef]);
 
   const renderSectionHeader = useCallback((title: string) => {
     return (
@@ -384,11 +563,29 @@ export function ShareReceiptBottomSheet({
     [handleFriendPress, selectedFriendIds, isDark]
   );
 
+  const renderGroupGridItem = useCallback(
+    (group: Group) => {
+      const isSelected = selectedGroupIds.has(group.id);
+      return (
+        <GroupGridItem
+          key={group.id}
+          group={group}
+          isSelected={isSelected}
+          isDark={isDark}
+          onPress={handleGroupPress}
+        />
+      );
+    },
+    [handleGroupPress, selectedGroupIds, isDark]
+  );
+
   const renderGridRow = useCallback(
-    (row: Friend[], rowIndex: number) => {
+    (row: Friend[] | Group[], rowIndex: number, isGroup: boolean) => {
       return (
         <View key={rowIndex} className="flex-row px-6">
-          {row.map((friend) => renderFriendGridItem(friend))}
+          {isGroup
+            ? (row as Group[]).map((item) => renderGroupGridItem(item))
+            : (row as Friend[]).map((item) => renderFriendGridItem(item))}
           {row.length < 3 &&
             Array.from({ length: 3 - row.length }).map((_, index) => (
               <View key={`empty-${index}`} className="flex-1" />
@@ -396,15 +593,17 @@ export function ShareReceiptBottomSheet({
         </View>
       );
     },
-    [renderFriendGridItem]
+    [renderFriendGridItem, renderGroupGridItem]
   );
 
   const renderFooter = useCallback(() => {
     const hasSelectedFriends = selectedFriendIds.size > 0;
+    const hasSelectedGroups = selectedGroupIds.size > 0;
+    const hasSelection = hasSelectedFriends || hasSelectedGroups;
 
     return (
       <View className="px-6 pt-4 pb-6 border-t border-black/10 dark:border-white/10">
-        {hasSelectedFriends ? (
+        {hasSelection ? (
           <Button
             variant="secondary"
             size="base"
@@ -452,7 +651,7 @@ export function ShareReceiptBottomSheet({
         )}
       </View>
     );
-  }, [handleShare, handleShowQRCode, handleShareToPeople, selectedFriendIds.size, isDark]);
+  }, [handleShare, handleShowQRCode, handleShareToPeople, selectedFriendIds.size, selectedGroupIds.size, isDark]);
 
   const handleCloseQRCode = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -500,14 +699,17 @@ export function ShareReceiptBottomSheet({
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 140 }}
             >
-              {sections.map((section) => (
-                <View key={section.title}>
-                  {renderSectionHeader(section.title)}
-                  {chunkArray(section.data, 3).map((row, rowIndex) =>
-                    renderGridRow(row, rowIndex)
-                  )}
-                </View>
-              ))}
+              {sections.map((section) => {
+                const isGroup = "data" in section && section.data.length > 0 && "id" in section.data[0] && "name" in section.data[0] && "code" in section.data[0];
+                return (
+                  <View key={section.title}>
+                    {renderSectionHeader(section.title)}
+                    {chunkArray(section.data, 3).map((row, rowIndex) =>
+                      renderGridRow(row, rowIndex, isGroup)
+                    )}
+                  </View>
+                );
+              })}
             </ScrollView>
           )}
         </View>

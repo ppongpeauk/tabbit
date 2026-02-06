@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useLayoutEffect } from "react";
+import { useState, useEffect, useCallback, useLayoutEffect, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -20,9 +20,11 @@ import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/theme";
 import { SymbolView } from "expo-symbols";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { getGroup, getPresignedUrl, type Group } from "@/utils/api";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/contexts/auth-context";
+import { MemberActionsSheet } from "@/components/group-detail/member-actions-sheet";
 
 export default function GroupDetailsScreen() {
   const { id, title, memberCount } = useLocalSearchParams<{
@@ -38,6 +40,22 @@ export default function GroupDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [iconUrl, setIconUrl] = useState<string | null>(null);
+  const [selectedMember, setSelectedMember] = useState<{
+    id: string;
+    userId: string;
+    role: "admin" | "member";
+    user: {
+      id: string;
+      name: string | null;
+      email: string;
+      image: string | null;
+    };
+  } | null>(null);
+  const memberActionsSheetRef = useRef<TrueSheet | null>(null);
+  const isAdmin =
+    group && user
+      ? group.members.some((m) => m.userId === user.id && m.role === "admin")
+      : false;
 
   const loadGroup = useCallback(async () => {
     if (!id) return;
@@ -91,10 +109,35 @@ export default function GroupDetailsScreen() {
     router.push("/(app)/(tabs)/(groups)/join");
   };
 
-  const isAdmin =
-    group && user
-      ? group.members.some((m) => m.userId === user.id && m.role === "admin")
-      : false;
+  const handleMemberPress = useCallback(
+    (member: {
+      id: string;
+      userId: string;
+      role: "admin" | "member";
+      user: {
+        id: string;
+        name: string | null;
+        email: string;
+        image: string | null;
+      };
+    }) => {
+      // Only allow admins to manage members
+      if (!isAdmin) return;
+
+      // Cannot manage self
+      if (member.userId === user?.id) return;
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setSelectedMember(member);
+      memberActionsSheetRef.current?.present();
+    },
+    [isAdmin, user?.id]
+  );
+
+  const handleMemberActionComplete = useCallback(() => {
+    setSelectedMember(null);
+    loadGroup();
+  }, [loadGroup]);
 
   useLayoutEffect(() => {
     const displayTitle = group?.name || title || "Group Details";
@@ -285,6 +328,7 @@ export default function GroupDetailsScreen() {
                       />
                     )}
                     <Pressable
+                      onPress={() => handleMemberPress(member)}
                       style={({ pressed }) => ({
                         flexDirection: "row",
                         alignItems: "center",
@@ -349,6 +393,14 @@ export default function GroupDetailsScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Member Actions Sheet */}
+      <MemberActionsSheet
+        bottomSheetRef={memberActionsSheetRef}
+        groupId={id}
+        member={selectedMember}
+        onActionComplete={handleMemberActionComplete}
+      />
     </KeyboardAvoidingView>
   );
 }

@@ -10,6 +10,9 @@ import {
   updateGroupSchema,
   joinGroupSchema,
   type GroupResponse,
+  type GroupReceiptResponse,
+  type GroupActivityResponse,
+  type GroupBalanceResponse,
 } from "./model";
 import { HTTP_STATUS } from "../../utils/constants";
 import { handleServiceResult, unauthorizedResponse } from "../../utils/route-helpers";
@@ -393,6 +396,215 @@ export const groupModule = new Elysia({ prefix: "/groups" })
         summary: "Get presigned URL for file",
         description:
           "Get a presigned URL to access a file by its S3 key. Single endpoint to resolve keys to presigned URLs. Key should be URL-encoded.",
+      },
+    }
+  )
+  .post(
+    "/:id/receipts/:receiptId",
+    async ({ params: { id, receiptId }, user, set }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return unauthorizedResponse();
+      }
+
+      const result = await groupService.shareReceiptWithGroup(
+        id,
+        receiptId,
+        user.id
+      );
+      const { result: response, status } = handleServiceResult<GroupReceiptResponse>(
+        result,
+        HTTP_STATUS.OK
+      );
+      set.status = status;
+      return response;
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+        receiptId: t.String(),
+      }),
+      detail: {
+        tags: ["groups"],
+        summary: "Share receipt with group",
+        description: "Share a receipt with a group (members only)",
+      },
+    }
+  )
+  .get(
+    "/:id/receipts",
+    async ({ params: { id }, user, set }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return unauthorizedResponse();
+      }
+
+      const result = await groupService.getGroupReceipts(id, user.id);
+      const { result: response, status } = handleServiceResult<GroupReceiptResponse>(
+        result,
+        HTTP_STATUS.OK
+      );
+      set.status = status;
+      return response;
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+      detail: {
+        tags: ["groups"],
+        summary: "Get group receipts",
+        description: "Get all receipts shared with a group (members only)",
+      },
+    }
+  )
+  .delete(
+    "/:id/receipts/:receiptId",
+    async ({ params: { id, receiptId }, user, set }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return unauthorizedResponse();
+      }
+
+      const result = await groupService.removeReceiptFromGroup(
+        id,
+        receiptId,
+        user.id
+      );
+      const { result: response, status } = handleServiceResult<GroupReceiptResponse>(
+        result,
+        HTTP_STATUS.OK
+      );
+      set.status = status;
+      return response;
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+        receiptId: t.String(),
+      }),
+      detail: {
+        tags: ["groups"],
+        summary: "Remove receipt from group",
+        description: "Remove a receipt from a group (admin only)",
+      },
+    }
+  )
+  .put(
+    "/:id/members/:memberId/role",
+    async ({ params: { id, memberId }, body, user, set }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return unauthorizedResponse();
+      }
+
+      const result = await groupService.updateMemberRole(
+        id,
+        memberId,
+        body.role,
+        user.id
+      );
+      const { result: response, status } = handleServiceResult<GroupResponse>(
+        result,
+        HTTP_STATUS.OK
+      );
+      set.status = status;
+      return response;
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+        memberId: t.String(),
+      }),
+      body: t.Object({
+        role: t.Union([t.Literal("admin"), t.Literal("member")]),
+      }),
+      detail: {
+        tags: ["groups"],
+        summary: "Update member role",
+        description: "Change a member's role (admin only)",
+      },
+    }
+  )
+  .delete(
+    "/:id/members/:memberId",
+    async ({ params: { id, memberId }, user, set }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return unauthorizedResponse();
+      }
+
+      const result = await groupService.removeMember(id, memberId, user.id);
+      const { result: response, status } = handleServiceResult<GroupResponse>(
+        result,
+        HTTP_STATUS.OK
+      );
+      set.status = status;
+      return response;
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+        memberId: t.String(),
+      }),
+      detail: {
+        tags: ["groups"],
+        summary: "Remove member from group",
+        description: "Remove a member from the group (admin only)",
+      },
+    }
+  )
+  .get(
+    "/:id/activity",
+    async ({ params: { id }, user, set }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return unauthorizedResponse();
+      }
+
+      const result = await groupService.getGroupActivity(id, user.id);
+      const { result: response, status } = handleServiceResult<GroupActivityResponse>(
+        result,
+        HTTP_STATUS.OK
+      );
+      set.status = status;
+      return response;
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+      detail: {
+        tags: ["groups"],
+        summary: "Get group activity",
+        description: "Get activity feed for a group (members only)",
+      },
+    }
+  )
+  .get(
+    "/:id/balances",
+    async ({ params: { id }, user, set }) => {
+      if (!user) {
+        set.status = HTTP_STATUS.UNAUTHORIZED;
+        return unauthorizedResponse();
+      }
+
+      const result = await groupService.getGroupBalances(id, user.id);
+      const { result: response, status } = handleServiceResult<GroupBalanceResponse>(
+        result,
+        HTTP_STATUS.OK
+      );
+      set.status = status;
+      return response;
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+      detail: {
+        tags: ["groups"],
+        summary: "Get group balances",
+        description: "Get member balances for a group (members only)",
       },
     }
   );
